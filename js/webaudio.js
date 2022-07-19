@@ -3,7 +3,7 @@
  * 
  * References:
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
- * 
+ *  - https://github.com/mdn/webaudio-examples/
  */
 ;($ => {
 
@@ -16,9 +16,7 @@
 
         // Delay with gain control.
         const Delay = Ctx.createDelay()
-        Delay.level = Ctx.createGain()
-        Delay.connect(Delay.level)
-        Delay.level.connect(Main)
+        Delay.connect(Main)
         // Delay feedback
         Delay.feedback = Ctx.createGain()
         Delay.connect(Delay.feedback)
@@ -26,35 +24,45 @@
 
         // Oscillator.
         const Osc = Ctx.createOscillator()
-        Osc.connect(Main)
+        Osc.dry = Ctx.createGain()
+        Osc.dry.gain.value = 1
+        Osc.dry.connect(Main)
+        Osc.connect(Osc.dry)
         Osc.connect(Delay)
+
+        // Compressor
+        const Compressor = Ctx.createDynamicsCompressor()
+        Compressor._active = false
+        Compressor.prev = Delay
+        Compressor.next = Main
+        Object.defineProperty(Compressor, 'active', {
+            get: getActive,
+            set: setActive,
+        })
 
         // Setter elements to parameter.
         const ParamValueSetters = {
             'volume': Main.gain,
-            'frequency': Osc.frequency,
-            'delay-gain': Delay.level.gain,
+            'oscillator-dry': Osc.dry.gain,
+            'oscillator-frequency': Osc.frequency,
             'delay-time': Delay.delayTime,
             'delay-feedback': Delay.feedback.gain,
+            'compressor-threshold': Compressor.threshold,
+            'compressor-knee': Compressor.knee,
+            'compressor-ratio': Compressor.ratio,
+            'compressor-attack': Compressor.attack,
+            'compressor-release': Compressor.release,
         }
 
-        // Meter elements to parameter.
-        const Meters = Object.create(null)
-        Object.entries(ParamValueSetters).forEach(([id, param]) => {
-            Meters[`${id}-meter`] = param
-        })
 
         $(document).on('click', function(e) {
             const $target = $(e.target)
             const id = $target.attr('id')
             switch (id) {
                 case 'start':
-                    Osc.start()
-                    $target.prop('disabled', true)
                     $('#stop').prop('disabled', false)
-                    return
                 case 'stop':
-                    Osc.stop()
+                    Osc[id]()
                     $target.prop('disabled', true)
                     return
             }
@@ -78,6 +86,11 @@
         $(document).on('change', function(e) {
             const $target = $(e.target)
             const id = $target.attr('id')
+            switch (id) {
+                case 'compressor-active':
+                    Compressor.active = $target.prop('checked')
+                    return
+            }
             const value = $target.val()
             let param = ParamValueSetters[id]
             if (param) {
@@ -86,12 +99,34 @@
             updateMeters()
         })
 
+        function setActive(value) {
+            value = Boolean(value)
+            if (value === this.active) {
+                return
+            }
+            if (value) {
+                this.prev.disconnect(this.next)
+                this.prev.connect(this)
+                this.connect(this.next)
+            } else {
+                this.disconnect(this.next)
+                this.prev.disconnect(this)
+                this.prev.connect(this.next)
+            }
+            this._active = value
+        }
+        function getActive() {
+            return Boolean(this._active)
+        }
         /**
          * Update meter text values.
          */
         function updateMeters() {
-            Object.entries(Meters).forEach(([id, param]) => {
-                $(`#${id}`).text(param.value.toFixed(2))
+            Object.entries(ParamValueSetters).forEach(([id, param]) => {
+                const {value} = param
+                if (value !== undefined) {
+                    $(`#${id}-meter`).text(value.toFixed(2))
+                }
             })
         }
 
@@ -101,7 +136,7 @@
         function readParams() {
             Object.entries(ParamValueSetters).forEach(([id, param]) => {
                 const value = $(`#${id}`).val()
-                if (value !== undefined) {
+                if (value) {
                     param.value = value
                 }
             })
