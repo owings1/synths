@@ -1,0 +1,86 @@
+<!doctype HTML>
+<html>
+    <head>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script src="./webaudio.js"></script>
+    </head>
+    <body>
+        <div>
+            <h2>Main</h2>
+            <button data-category="start">Start</button>
+            <button id="stop" data-category="stop">Stop</button>
+        </div>
+        <div>
+            <h2>Volume</h2>
+            <span id="volume-meter"></span>
+            <div>
+                <input data-category="volume" type="range" min="0.0" max="1.0" step="0.01"
+                    value="0.5" list="minmax" id="volume">
+            </div>
+        </div>
+        <div>
+            <h2>Frequency</h2>
+            <span id="frequency-meter"></span>
+            <div>
+                <h3>Increase</h3>
+                <div>
+                    <button data-category="frequency" data-quantity="1">2nd[m]</button>
+                    <button data-category="frequency" data-quantity="2">2nd[M]</button>
+                    <button data-category="frequency" data-quantity="3">3rd[m]</button>
+                    <button data-category="frequency" data-quantity="4">3th[M]</button>
+                    <button data-category="frequency" data-quantity="5">4th</button>
+                    <button data-category="frequency" data-quantity="6">Tri</button>
+                    <button data-category="frequency" data-quantity="7">5th</button>
+                </div>
+                <h3>Decrease</h3>
+                <div>
+                    <button data-category="frequency" data-quantity="-1">2nd[m]</button>
+                    <button data-category="frequency" data-quantity="-2">2nd[M]</button>
+                    <button data-category="frequency" data-quantity="-3">3rd[m]</button>
+                    <button data-category="frequency" data-quantity="-4">3th[M]</button>
+                    <button data-category="frequency" data-quantity="-5">4th</button>
+                    <button data-category="frequency" data-quantity="-6">Tri</button>
+                    <button data-category="frequency" data-quantity="-7">5th</button>
+                </div>
+            </div>
+        </div>
+        <div>
+            <h2>Waveform</h2>
+            <button data-category="waveform" data-value="sine">Sine</button>
+            <button data-category="waveform" data-value="square">Square</button>
+            <button data-category="waveform" data-value="sawtooth">Sawtooth</button>
+            <button data-category="waveform" data-value="triangle">Triangle</button>
+        </div>
+        <div>
+            <h2>Delay</h2>
+            <div>
+                <h3>Gain</h3>
+                <span id="delay-gain-meter"></span>
+                <div>
+                    <input data-category="delay-gain" type="range" min="0.0" max="1.0" step="0.01"
+                        value="0.0" list="minmax" id="delay-gain">
+                </div>
+            </div>
+            <div>
+                <h3>Time</h3>
+                <span id="delay-time-meter"></span>
+                <div>
+                    <input data-category="delay-time" type="range" min="0.0" max="1.0" step="0.01"
+                        value="0.5" list="minmax" id="delay-time">
+                </div>
+            </div>
+            <div>
+                <h3>Feedback</h3>
+                <span id="delay-feedback-meter"></span>
+                <div>
+                    <input data-category="delay-feedback" type="range" min="0.0" max="1.0" step="0.01"
+                        value="0.5" list="minmax" id="delay-feedback">
+                </div>
+            </div>
+        </div>
+        <datalist id="minmax">
+            <option value="0.0" label="None"></option>
+            <option value="1.0" label="100%"></option>
+        </datalist>
+    </body>
+</html>
