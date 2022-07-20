@@ -25,60 +25,36 @@ Oscillator.connect(Dry)
 Oscillator.connect(FxSend)
 Dry.connect(Main)
 
-const Distortion = new Effects.Distortion(Context)
-const Overdrive = new Effects.Overdrive(Context)
-const Delay = new Effects.Delay(Context)
-const Lowpass = new Effects.Lowpass(Context)
-const Highpass = new Effects.Highpass(Context)
-const Compressor = new Effects.Compressor(Context)
 
-// FX Chain
-Effects.initChain(FxSend, Main, [
-    Distortion,
-    Overdrive,
-    Delay,
-    Lowpass,
-    Highpass,
-    Compressor,
-])
+const effects = {
+    distortion: new Effects.Distortion(Context),
+    overdrive: new Effects.Overdrive(Context),
+    delay: new Effects.Delay(Context),
+    lowpass: new Effects.Lowpass(Context),
+    highpass: new Effects.Highpass(Context),
+    compressor: new Effects.Compressor(Context),
+}
 
+Effects.initChain(FxSend, Main, Object.values(effects))
+
+// Element IDs to node.
+const Activators = {}
 // Element IDs to parameter.
-const ParamValueSetters = {
+const Params = {
     'volume': Main.gain,
     'oscillator-dry': Dry.gain,
     'oscillator-fxsend': FxSend.gain,
     'oscillator-frequency': Oscillator.frequency,
-    'distortion-gain': Distortion.gain,
-    'distortion-drive': Distortion.drive,
-    'overdrive-gain': Overdrive.gain,
-    'overdrive-drive': Overdrive.drive,
-    'overdrive-color': Overdrive.color,
-    'overdrive-preBand': Overdrive.preBand,
-    'overdrive-postCut': Overdrive.postCut,
-    'delay-gain': Delay.gain,
-    'delay-time': Delay.delayTime,
-    'delay-feedback': Delay.feedback,
-    'lowpass-cutoff': Lowpass.cutoff,
-    'lowpass-quality': Lowpass.quality,
-    'highpass-cutoff': Highpass.cutoff,
-    'highpass-quality': Highpass.quality,
-    'compressor-gain': Compressor.gain,
-    'compressor-threshold': Compressor.threshold,
-    'compressor-knee': Compressor.knee,
-    'compressor-ratio': Compressor.ratio,
-    'compressor-attack': Compressor.attack,
-    'compressor-release': Compressor.release,
 }
-
-// Element IDs to node.
-const NodeActiveCheckboxes = {
-    'distortion-active': Distortion,
-    'overdrive-active': Overdrive,
-    'delay-active': Delay,
-    'lowpass-active': Lowpass,
-    'highpass-active': Highpass,
-    'compressor-active': Compressor,
-}
+Object.entries(effects).forEach(([effect, node]) => {
+    const id = [effect, 'active'].join('-')
+    Activators[id] = node
+    Object.keys(node.meta.params).forEach(key => {
+        const id = [effect, key].join('-')
+        const param = node[key]
+        Params[id] = param
+    })
+})
 
 $(document).on('click', function(e) {
     const $target = $(e.target)
@@ -107,13 +83,13 @@ $(document).on('click', function(e) {
 }).on('change', function(e) {
     const $target = $(e.target)
     const id = $target.attr('id')
-    let node = NodeActiveCheckboxes[id]
+    let node = Activators[id]
     if (node) {
         node.active = $target.is(':checked')
         return
     }
     let value = $target.val()
-    let param = ParamValueSetters[id]
+    let param = Params[id]
     if (param) {
         param.value = value
         updateMeters()
@@ -138,7 +114,7 @@ $(() => {
  * Update meter text values.
  */
 function updateMeters() {
-    Object.entries(ParamValueSetters).forEach(([id, param]) => {
+    Object.entries(Params).forEach(([id, param]) => {
         const {value} = param
         if (value !== undefined) {
             const $el = $(`#${id}-meter`)
@@ -153,13 +129,13 @@ function updateMeters() {
  * Read param setters from elements.
  */
 function readParams() {
-    Object.entries(ParamValueSetters).forEach(([id, param]) => {
+    Object.entries(Params).forEach(([id, param]) => {
         const $el = $(`#${id}`)
         if ($el.length) {
             param.value = $el.val()
         }
     })
-    Object.entries(NodeActiveCheckboxes).forEach(([id, node]) => {
+    Object.entries(Activators).forEach(([id, node]) => {
         const $el = $(`#${id}`)
         if ($el.length) {
             node.active = $el.is(':checked')
