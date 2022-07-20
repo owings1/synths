@@ -25,20 +25,18 @@
                     <td><input id="oscillator-dry" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
                     <td><span id="oscillator-dry-meter"></span></td>
                 </tr>
+                <tr>
+                    <td><label for="oscillator-fxsend">FX Send</label></td>
+                    <td><input id="oscillator-fxsend" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="oscillator-fxsend-meter"></span></td>
+                </tr>
             </table>
         </div>
         <div id="oscillator">
             <h2>Oscillator</h2>
             <div>
-                <table>
-                    <tr>
-                        <td><label>Frequency</label></td>
-                        <td></td>
-                        <td><span id="oscillator-frequency-meter"></span></td>
-                    </tr>
-                </table>
                 <fieldset>
-                    <legend>Interval</legend>
+                    <legend>Frequency <span id="oscillator-frequency-meter"></span></legend>
                     <div>
                         +
                         <button name="oscillator-interval" value="1">min 2nd</button>
@@ -87,9 +85,59 @@
                 </fieldset>
             </div>
         </div>
-        <div id="delay">
+        <div id="distortion" class="fxnode">
+            <h2>Distortion</h2>
+            <table>
+                <tr>
+                    <td><label for="distortion-active">Active</label></td>
+                    <td><input id="distortion-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+        <div id="overdrive" class="fxnode">
+            <h2>Overdrive</h2>
+            <table>
+                <tr>
+                    <td><label for="overdrive-active">Active</label></td>
+                    <td><input id="overdrive-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="overdrive-gain">Gain</label></td>
+                    <td><input id="overdrive-gain" value="2.0" type="range" min="1.0" max="3.0" step="0.01"></td>
+                    <td><span id="overdrive-gain-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="overdrive-drive">Drive</label></td>
+                    <td><input id="overdrive-drive" value="0.5" type="range" min="0.0" max="1.0" step="0.01"></td>
+                    <td><span id="overdrive-drive-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="overdrive-color">Color</label></td>
+                    <td><input id="overdrive-color" value="801" type="range" min="0" max="22050" step="1"></td>
+                    <td><span id="overdrive-color-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="overdrive-preband">Pre-band</label></td>
+                    <td><input id="overdrive-preband" value="0.5" type="range" min="0.0" max="1.0" step="0.01"></td>
+                    <td><span id="overdrive-preband-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="overdrive-postcut">Post-cut</label></td>
+                    <td><input id="overdrive-postcut" value="3000" type="range" min="0" max="22050" step="1"></td>
+                    <td><span id="overdrive-postcut-meter"></span></td>
+                </tr>
+            </table>
+        </div>
+        <div id="delay" class="fxnode">
             <h2>Delay</h2>
             <table>
+                <tr>
+                    <td><label for="delay-active">Active</label></td>
+                    <td><input id="delay-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
                 <tr>
                     <td><label for="delay-time">Time</label></td>
                     <td><input id="delay-time" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
@@ -102,7 +150,47 @@
                 </tr>
             </table>
         </div>
-        <div id="compressor">
+        <div id="lowpass" class="fxnode">
+            <h2>Low Pass</h2>
+            <table>
+                <tr>
+                    <td><label for="lowpass-active">Active</label></td>
+                    <td><input id="lowpass-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="lowpass-frequency">Cutoff</label></td>
+                    <td><input id="lowpass-frequency" value="1000" type="range" min="40" max="3000" step="1"></td>
+                    <td><span id="lowpass-frequency-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="lowpass-quality">Quality</label></td>
+                    <td><input id="lowpass-quality" value="1" type="range" min="0" max="10" step="1"></td>
+                    <td><span id="lowpass-quality-meter"></span></td>
+                </tr>
+            </table>
+        </div>
+        <div id="highpass" class="fxnode">
+            <h2>High Pass</h2>
+            <table>
+                <tr>
+                    <td><label for="highpass-active">Active</label></td>
+                    <td><input id="highpass-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="highpass-frequency">Cutoff</label></td>
+                    <td><input id="highpass-frequency" value="1000" type="range" min="40" max="3000" step="1"></td>
+                    <td><span id="highpass-frequency-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="highpass-quality">Quality</label></td>
+                    <td><input id="highpass-quality" value="1" type="range" min="0" max="10" step="1"></td>
+                    <td><span id="highpass-quality-meter"></span></td>
+                </tr>
+            </table>
+        </div>
+        <div id="compressor" class="fxnode">
             <h2>Compressor</h2>
             <table>
                 <tr>
