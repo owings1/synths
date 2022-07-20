@@ -82,36 +82,58 @@ Compressor.Meta = {
             max: 3.0,
             default: 1.0,
             type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         threshold: {
             min: -100,
             max: 0,
             default: -50,
             type: "integer",
+            step: 1,
+            label: "Threshold",
+            unit: "dB",
+            helpText: "decibel value above which the compression will start taking effect"
         },
         knee: {
             min: 0.0,
             max: 40.0,
             default: 40.0,
             type: "float",
+            step: 0.1,
+            label: "Knee",
+            unit: "dB",
+            helpText: "decibel range above the threshold where the curve smoothly transitions to the compressed portion",
         },
         ratio: {
             min: 1.0,
             max: 20.0,
             default: 12.0,
             type: "float",
+            step: 0.1,
+            label: "Ratio",
+            unit: 'dB',
+            helpText: "amount of change, in dB, needed in the input for a 1 dB change in the output",
         },
         attack: {
             min: 0.0,
             max: 1.0,
             default: 0.0,
             type: "float",
+            step: 0.01,
+            label: "Attack",
+            unit: 's',
+            helpText: "the amount of time, in seconds, required to reduce the gain by 10 dB",
         },
         release: {
             min: 0.0,
             max: 1.0,
             default: 0.25,
             type: "float",
+            step: 0.01,
+            label: "Release",
+            unit: 's',
+            helpText: "the amount of time, in seconds, required to increase the gain by 10 dB",
         },
     },
 }
@@ -157,18 +179,25 @@ Lowpass.Meta = {
             max: 3.0,
             default: 1.0,
             type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         cutoff: {
-            min: 40.0,
-            max: 3000.0,
-            default: 1000.0,
-            type: "float",
+            min: 40,
+            max: 3000,
+            default: 1000,
+            type: "integer",
+            step: 1,
+            label: "Cutoff",
+            unit: 'Hz',
         },
         quality: {
             min: 0,
             max: 10,
             default: 1,
             type: "integer",
+            step: 1,
+            label: "Quality",
         },
     },
 }
@@ -214,18 +243,25 @@ Highpass.Meta = {
             max: 3.0,
             default: 1.0,
             type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         cutoff: {
-            min: 40.0,
-            max: 2000.0,
-            default: 100.0,
-            type: "float",
+            min: 40,
+            max: 2000,
+            default: 100,
+            type: "integer",
+            step: 1,
+            label: "Cutoff",
+            unit: 'Hz',
         },
         quality: {
             min: 0,
             max: 10,
             default: 1,
             type: "integer",
+            step: 1,
+            label: "Quality",
         },
     },
 }
@@ -249,8 +285,8 @@ export class Delay extends EffectsNode {
         const fb = new GainNode(context)
 
         Object.defineProperties(this, {
-            feedback: {value: fb.gain},
             delayTime: {value: dy.delayTime},
+            feedback: {value: fb.gain},
         })
 
         gnconnect(this, dy)
@@ -272,18 +308,25 @@ Delay.Meta = {
             max: 3.0,
             default: 1.0,
             type: "float",
-        },
-        feedback: {
-            min: 0.0,
-            max: 1.0,
-            default: 0.5,
-            type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         delayTime: {
             min: 0.0,
             max: 1.0,
             default: 0.5,
             type: "float",
+            step: 0.01,
+            label: "Time",
+            unit: 's',
+        },
+        feedback: {
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            type: "float",
+            step: 0.01,
+            label: "Feedback",
         },
     }
 }
@@ -304,6 +347,7 @@ export class Distortion extends EffectsNode {
         opts = optsMerge(this.meta.params, opts)
         
         const ws = new WaveShaperNode(context)
+        const fb = new GainNode(context)
 
         let drive
 
@@ -312,15 +356,19 @@ export class Distortion extends EffectsNode {
                 drive = Number(value)
                 ws.curve = makeDistortionCurve(drive * 1000)
             }),
+            feedback: {value: fb.gain},
         })
 
         gnconnect(this, ws)
+        ws.connect(fb)
+        fb.connect(ws)
         ws.connect(this.output)
         
         ws.oversample = '4x'
 
         this.drive.value = opts.drive
         this.gain.value = opts.gain
+        this.feedback.value = opts.feedback
     }
 }
 
@@ -332,12 +380,24 @@ Distortion.Meta = {
             max: 3.0,
             default: 1.2,
             type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         drive: {
             min: 0.0,
             max: 1.0,
             default: 0.4,
             type: "float",
+            step: 0.01,
+            label: "Drive",
+        },
+        feedback: {
+            min: 0.0,
+            max: 1.0,
+            default: 0.0,
+            type: "float",
+            step: 0.01,
+            label: "Feedback",
         },
     }
 }
@@ -382,21 +442,23 @@ export class Overdrive extends EffectsNode {
         const bpDry = new GainNode(context)
         const ws = new WaveShaperNode(context)
         const lp = new BiquadFilterNode(context)
-
+        const fb = new GainNode(context)
+        
         let drive
 
         Object.defineProperties(this, {
             color: paramProp(() => bp.frequency.value, value => {
                 bp.frequency.setValueAtTime(value, 0)
             }),
+            drive: paramProp(() => drive, value => {
+                drive = Number(value)
+                ws.curve = makeDistortionCurve(drive * 100, 22050)
+            }),
+            feedback: {value: fb.gain},
             preBand: paramProp(() => bpWet.gain.value, value => {
                 value = Number(value)
                 bpWet.gain.setValueAtTime(value, 0)
                 bpDry.gain.setValueAtTime(1 - value, 0)
-            }),
-            drive: paramProp(() => drive, value => {
-                drive = Number(value)
-                ws.curve = makeDistortionCurve(drive * 100, 22050)
             }),
             postCut: paramProp(() => lp.frequency.value, value => {
                 lp.frequency.setValueAtTime(value, 0)
@@ -409,6 +471,8 @@ export class Overdrive extends EffectsNode {
         bpWet.connect(ws)
         bpDry.connect(ws)
         ws.connect(lp)
+        lp.connect(fb) // feedback
+        fb.connect(bp)
         lp.connect(this.output)
 
         bp.frequency.value = opts.color
@@ -418,6 +482,7 @@ export class Overdrive extends EffectsNode {
     
         this.gain.value = opts.gain
         this.drive.value = opts.drive
+        this.feedback.value = opts.feedback
     }
 }
 
@@ -429,30 +494,49 @@ Overdrive.Meta = {
             max: 3.0,
             default: 2.0,
             type: "float",
-        },
-        preBand: {
-            min: 0,
-            max: 1.0,
-            default: 0.5,
-            type: "float",
-        },
-        color: {
-            min: 0,
-            max: 22050,
-            default: 800,
-            type: "float",
+            step: 0.01,
+            label: "Gain",
         },
         drive: {
             min: 0.0,
             max: 1.0,
             default: 0.5,
             type: "float",
+            step: 0.01,
+            label: "Drive",
+        },
+        feedback: {
+            min: 0.0,
+            max: 1.0,
+            default: 0.0,
+            type: "float",
+            step: 0.01,
+            label: "Feedback",
+        },
+        color: {
+            min: 0,
+            max: 22050,
+            default: 800,
+            type: "integer",
+            step: 1,
+            label: "Color",
+        },
+        preBand: {
+            min: 0,
+            max: 1.0,
+            default: 0.5,
+            type: "float",
+            step: 0.01,
+            label: "Pre-band",
         },
         postCut: {
             min: 0,
             max: 22050,
             default: 3000,
-            type: "float",
+            type: "integer",
+            step: 1,
+            label: "Post-cut",
+            unit: 'Hz',
         },
     },
 }
