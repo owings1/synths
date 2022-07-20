@@ -48,18 +48,21 @@ const ParamValueSetters = {
     'oscillator-dry': Dry.gain,
     'oscillator-fxsend': FxSend.gain,
     'oscillator-frequency': Oscillator.frequency,
+    'distortion-gain': Distortion.gain,
+    'distortion-drive': Distortion.drive,
     'overdrive-gain': Overdrive.gain,
     'overdrive-drive': Overdrive.drive,
     'overdrive-color': Overdrive.color,
-    'overdrive-preband': Overdrive.preBand,
-    'overdrive-postcut': Overdrive.postCut,
+    'overdrive-preBand': Overdrive.preBand,
+    'overdrive-postCut': Overdrive.postCut,
     'delay-gain': Delay.gain,
     'delay-time': Delay.delayTime,
     'delay-feedback': Delay.feedback,
-    'lowpass-frequency': Lowpass.frequency,
-    'lowpass-quality': Lowpass.Q,
-    'highpass-frequency': Highpass.frequency,
-    'highpass-quality': Highpass.Q,
+    'lowpass-cutoff': Lowpass.cutoff,
+    'lowpass-quality': Lowpass.quality,
+    'highpass-cutoff': Highpass.cutoff,
+    'highpass-quality': Highpass.quality,
+    'compressor-gain': Compressor.gain,
     'compressor-threshold': Compressor.threshold,
     'compressor-knee': Compressor.knee,
     'compressor-ratio': Compressor.ratio,
@@ -145,7 +148,7 @@ function updateMeters() {
         }
     })
 }
- 
+
 /**
  * Read param setters from elements.
  */

@@ -5,74 +5,235 @@
  */
 
 /**
- * Compressor.
+ * Effects base class.
  */
-export class Compressor extends DynamicsCompressorNode {
+class EffectsNode extends GainNode {
+
     /**
      * @param {AudioContext} context
      * @param {object} opts
      */
-    constructor(context, opts) {
+    constructor(context, opts = {}) {
         super(context, opts)
+        this.output = new GainNode(context)
     }
-    get meta() { return this.constructor.Meta }
+    /**
+     * @param {AudioNode} dest
+     */
+    connect(dest) {
+        return this.output.connect(dest)
+    }
+    disconnect(...args) {
+        this.output.disconnect(...args)
+    }
+    /** @type {object} */
+    get meta() {
+        return this.constructor.Meta
+    }
+}
+
+
+/**
+ * Compressor.
+ */
+export class Compressor extends EffectsNode {
+
+    /**
+     * @param {AudioContext} context
+     * @param {object} opts
+     * @param {Number} opts.gain
+     * @param {Number} opts.threshold
+     * @param {Number} opts.ratio
+     * @param {Number} opts.knee
+     * @param {Number} opts.attack
+     * @param {Number} opts.release
+     */
+    constructor(context, opts = {}) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+
+        const cp = new DynamicsCompressorNode(context)
+
+        Object.defineProperties(this, {
+            threshold: {value: cp.threshold},
+            knee: {value: cp.knee},
+            ratio: {value: cp.ratio},
+            attack: {value: cp.attack},
+            release: {value: cp.release},
+        })
+
+        gnconnect(this, cp)
+        cp.connect(this.output)
+
+        this.gain.value = opts.gain
+        this.threshold.value = opts.threshold
+        this.knee.value = opts.knee
+        this.ratio.value = opts.ratio
+        this.attack.value = opts.attack
+        this.release.value = opts.release
+    }
 }
 
 Compressor.Meta = {
     name: 'Compressor',
     params: {
-        // TODO
+        gain: {
+            min: 0.0,
+            max: 3.0,
+            default: 1.0,
+            type: "float",
+        },
+        threshold: {
+            min: -100,
+            max: 0,
+            default: -50,
+            type: "integer",
+        },
+        knee: {
+            min: 0.0,
+            max: 40.0,
+            default: 40.0,
+            type: "float",
+        },
+        ratio: {
+            min: 1.0,
+            max: 20.0,
+            default: 12.0,
+            type: "float",
+        },
+        attack: {
+            min: 0.0,
+            max: 1.0,
+            default: 0.0,
+            type: "float",
+        },
+        release: {
+            min: 0.0,
+            max: 1.0,
+            default: 0.25,
+            type: "float",
+        },
     },
 }
 
 /**
  * Basic lowpass filter
  */
-export class Lowpass extends BiquadFilterNode {
+export class Lowpass extends EffectsNode {
     /**
      * @param {AudioContext} context
      * @param {object} opts
+     * @param {Number} opts.gain
+     * @param {Number} opts.cutoff
+     * @param {Number} opts.quality
      */
-    constructor(context, opts) {
-        super(context, opts)
-        this.type = 'lowpass'
+    constructor(context, opts = {}) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+
+        const bq = new BiquadFilterNode(context)
+
+        Object.defineProperties(this, {
+            cutoff: {value: bq.frequency},
+            quality: {value: bq.Q},
+        })
+
+        gnconnect(this, bq)
+        bq.connect(this.output)
+
+        bq.type = 'lowpass'
+
+        this.gain.value = opts.gain
+        this.cutoff.value = opts.cutoff
+        this.quality.value = opts.quality
     }
-    get meta() { return this.constructor.Meta }
 }
 
 Lowpass.Meta = {
     name: 'Lowpass',
     params: {
-        // TODO
+        gain: {
+            min: 0.0,
+            max: 3.0,
+            default: 1.0,
+            type: "float",
+        },
+        cutoff: {
+            min: 40.0,
+            max: 3000.0,
+            default: 1000.0,
+            type: "float",
+        },
+        quality: {
+            min: 0,
+            max: 10,
+            default: 1,
+            type: "integer",
+        },
     },
 }
 
 /**
  * Basic highpass filter.
  */
-export class Highpass extends BiquadFilterNode {
+export class Highpass extends EffectsNode {
     /**
      * @param {AudioContext} context
      * @param {object} opts
+     * @param {Number} opts.gain
+     * @param {Number} opts.cutoff
+     * @param {Number} opts.quality
      */
-    constructor(context, opts) {
-        super(context, opts)
-        this.type = 'highpass'
+     constructor(context, opts = {}) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+
+        const bq = new BiquadFilterNode(context)
+
+        Object.defineProperties(this, {
+            cutoff: {value: bq.frequency},
+            quality: {value: bq.Q},
+        })
+
+        gnconnect(this, bq)
+        bq.connect(this.output)
+
+        bq.type = 'highpass'
+
+        this.gain.value = opts.gain
+        this.cutoff.value = opts.cutoff
+        this.quality.value = opts.quality
     }
-    get meta() { return this.constructor.Meta }
 }
 
 Highpass.Meta = {
     name: 'Highpass',
     params: {
-        // TODO
+        gain: {
+            min: 0.0,
+            max: 3.0,
+            default: 1.0,
+            type: "float",
+        },
+        cutoff: {
+            min: 40.0,
+            max: 2000.0,
+            default: 100.0,
+            type: "float",
+        },
+        quality: {
+            min: 0,
+            max: 10,
+            default: 1,
+            type: "integer",
+        },
     },
 }
 
 /**
  * Delay with feedback.
  */
-export class Delay extends GainNode {
+export class Delay extends EffectsNode {
 
     /**
      * @param {AudioContext} context
@@ -92,9 +253,7 @@ export class Delay extends GainNode {
             delayTime: {value: dy.delayTime},
         })
 
-        this.output = new GainNode(context)
-
-        super.connect(dy)
+        gnconnect(this, dy)
         dy.connect(fb)
         fb.connect(dy)
         dy.connect(this.output)
@@ -103,11 +262,6 @@ export class Delay extends GainNode {
         this.feedback.value = opts.feedback
         this.delayTime.value = opts.delayTime
     }
-
-    /** @param {AudioNode} dest */
-    connect(dest) { return this.output.connect(dest) }
-    disconnect(...args) { this.output.disconnect(...args)}
-    get meta() { return this.constructor.Meta }
 }
 
 Delay.Meta = {
@@ -137,7 +291,7 @@ Delay.Meta = {
 /**
  * Basic distortion effect.
  */
-export class Distortion extends GainNode {
+export class Distortion extends EffectsNode {
 
     /**
      * @param {AudioContext} context
@@ -160,9 +314,7 @@ export class Distortion extends GainNode {
             }),
         })
 
-        this.output = new GainNode(context)
-
-        super.connect(ws)
+        gnconnect(this, ws)
         ws.connect(this.output)
         
         ws.oversample = '4x'
@@ -170,11 +322,6 @@ export class Distortion extends GainNode {
         this.drive.value = opts.drive
         this.gain.value = opts.gain
     }
-
-    /** @param {AudioNode} dest */
-    connect(dest) { return this.output.connect(dest) }
-    disconnect(...args) { this.output.disconnect(...args)}
-    get meta() { return this.constructor.Meta }
 }
 
 Distortion.Meta = {
@@ -215,14 +362,15 @@ Distortion.Meta = {
  * -----
  * Adapted to class.
  */
-export class Overdrive extends GainNode {
+export class Overdrive extends EffectsNode {
 
     /**
      * @param {AudioContext} context
      * @param {object} opts
-     * @param {Number} opts.preBand
-     * @param {Number} opts.color
+     * @param {Number} opts.gain
      * @param {Number} opts.drive
+     * @param {Number} opts.color
+     * @param {Number} opts.preBand
      * @param {Number} opts.postCut
      */
     constructor(context, opts = {}) {
@@ -255,9 +403,7 @@ export class Overdrive extends GainNode {
             }),
         })
 
-        this.output = new GainNode(context)
-      
-        super.connect(bp)
+        gnconnect(this, bp)
         bp.connect(bpWet)
         bp.connect(bpDry)
         bpWet.connect(ws)
@@ -273,11 +419,6 @@ export class Overdrive extends GainNode {
         this.gain.value = opts.gain
         this.drive.value = opts.drive
     }
-
-    /** @param {AudioNode} dest */
-    connect(dest) { return this.output.connect(dest) }
-    disconnect(...args) { this.output.disconnect(...args)}
-    get meta() { return this.constructor.Meta }
 }
 
 Overdrive.Meta = {
@@ -317,7 +458,7 @@ Overdrive.Meta = {
 }
 
 /**
- * Build chain with `receiver`, `prev`, `next`, `active` properties.
+ * Build chain with `receiver`, `prev`, `next`, `active`, `bypass` properties.
  * 
  * @param {AudioNode} input The input node.
  * @param {AudioNode} output The output node.
@@ -378,15 +519,15 @@ Overdrive.Meta = {
 
 /**
  * @param {Number} amount
- * @param {integer} n
+ * @param {integer} samples
  * @return {Float32Array}
  */
-export function makeDistortionCurve(amount = 50, n = 44100) {
+export function makeDistortionCurve(amount = 50, samples = 44100) {
     const k = Number(amount)
-    const curve = new Float32Array(n)
+    const curve = new Float32Array(samples)
     const DEG = Math.PI / 180
-    for (let i = 0; i < n; i++) {
-        const x = i * 2 / n - 1
+    for (let i = 0; i < samples; i++) {
+        const x = i * 2 / samples - 1
         curve[i] = (3 + k) * x * 20 * DEG / (Math.PI + k + Math.abs(x))
     }
     return curve
@@ -428,3 +569,12 @@ function paramProp(vget, vset) {
         value: paramObject(vget, vset),
     }
 }
+
+/**
+ * @param {GainNode} node
+ * @param {AudioNode} dest
+ */
+function gnconnect(node, dest) {
+    GainNode.prototype.connect.call(node, dest)
+}
+
