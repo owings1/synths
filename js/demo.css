@@ -23,8 +23,8 @@ td:last-child, th:last-child {
 fieldset, .fxnode {
     border: 1px solid #ccc;
 }
-.fxnode {
-    float: left;
+fieldset, .fxnode {
+    display: inline-block;
 }
 .fxnode h2 {
     margin: 3px 0;
