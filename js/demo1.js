@@ -78,7 +78,6 @@ const ParamValueSetters = {
 
 // Element IDs to node.
 const NodeActiveCheckboxes = {
-    'oscillator-active': Oscillator,
     'compressor-active': Compressor,
 }
 
@@ -129,7 +128,8 @@ $(document).on('click', function(e) {
             return
     }
 
-}).ready(() => {
+})
+$(() => {
     // Initial state.
     $('#oscillator-type').controlgroup()
     readParams()
