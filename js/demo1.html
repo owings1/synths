@@ -1,121 +1,145 @@
 <!doctype HTML>
 <html>
     <head>
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <title>Demo1</title>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="./demo.css">
         <script type="module" src="./demo1.js"></script>
     </head>
     <body>
-        <div id="main">
-            <h2>Main</h2>
-            <div>
-                <label for="volume">Volume</label>
-                <input id="volume" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="volume-meter"></span>
-            </div>
+        <h1>Demo1</h1>
+        <div>
+            <button id="start">Start</button>
+            <button id="stop" disabled>Stop</button>
+        </div>
+        <div id="mixer">
+            <h2>Mixer</h2>
+            <table>
+                <tr>
+                    <td><label for="volume">Main</label></td>
+                    <td><input id="volume" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="volume-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="oscillator-dry">Dry</label></td>
+                    <td><input id="oscillator-dry" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="oscillator-dry-meter"></span></td>
+                </tr>
+            </table>
         </div>
         <div id="oscillator">
             <h2>Oscillator</h2>
             <div>
-                <button id="start">Start</button>
-                <button id="stop">Stop</button>
-            </div>
-            <div>
-                <label for="oscillator-dry">Dry</label>
-                <input id="oscillator-dry" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="oscillator-dry-meter"></span>
-            </div>
-            <div>
-                <label>Wave</label>
-                <button data-name="waveform" data-value="sine">Sine</button>
-                <button data-name="waveform" data-value="square">Square</button>
-                <button data-name="waveform" data-value="sawtooth">Sawtooth</button>
-                <button data-name="waveform" data-value="triangle">Triangle</button>
-            </div>
-            <div>
-                <label>Frequency</label>
-                <span id="oscillator-frequency-meter"></span>
-                <div>
+                <table>
+                    <tr>
+                        <td><label>Frequency</label></td>
+                        <td></td>
+                        <td><span id="oscillator-frequency-meter"></span></td>
+                    </tr>
+                </table>
+                <fieldset>
+                    <legend>Interval</legend>
                     <div>
                         +
-                        <button data-name="interval" data-value="1">min 2nd</button>
-                        <button data-name="interval" data-value="2">Maj 2nd</button>
-                        <button data-name="interval" data-value="3">min 3rd</button>
-                        <button data-name="interval" data-value="4">Maj 3th</button>
-                        <button data-name="interval" data-value="5">4th</button>
-                        <button data-name="interval" data-value="6">Tritone</button>
-                        <button data-name="interval" data-value="7">5th</button>
-                        <button data-name="interval" data-value="8">min 6th</button>
-                        <button data-name="interval" data-value="9">Maj 6th</button>
-                        <button data-name="interval" data-value="10">min 7th</button>
-                        <button data-name="interval" data-value="11">Maj 7th</button>
-                        <button data-name="interval" data-value="12">Octave</button>
+                        <button name="oscillator-interval" value="1">min 2nd</button>
+                        <button name="oscillator-interval" value="2">Maj 2nd</button>
+                        <button name="oscillator-interval" value="3">min 3rd</button>
+                        <button name="oscillator-interval" value="4">Maj 3th</button>
+                        <button name="oscillator-interval" value="5">4th</button>
+                        <button name="oscillator-interval" value="6">Tritone</button>
+                        <button name="oscillator-interval" value="7">5th</button>
+                        <button name="oscillator-interval" value="8">min 6th</button>
+                        <button name="oscillator-interval" value="9">Maj 6th</button>
+                        <button name="oscillator-interval" value="10">min 7th</button>
+                        <button name="oscillator-interval" value="11">Maj 7th</button>
+                        <button name="oscillator-interval" value="12">Octave</button>
                     </div>
                     <div>
                         -&nbsp;
-                        <button data-name="interval" data-value="-1">min 2nd</button>
-                        <button data-name="interval" data-value="-2">Maj 2nd</button>
-                        <button data-name="interval" data-value="-3">min 3rd</button>
-                        <button data-name="interval" data-value="-4">Maj 3th</button>
-                        <button data-name="interval" data-value="-5">4th</button>
-                        <button data-name="interval" data-value="-6">Tritone</button>
-                        <button data-name="interval" data-value="-7">5th</button>
-                        <button data-name="interval" data-value="-8">min 6th</button>
-                        <button data-name="interval" data-value="-9">Maj 6th</button>
-                        <button data-name="interval" data-value="-10">min 7th</button>
-                        <button data-name="interval" data-value="-11">Maj 7th</button>
-                        <button data-name="interval" data-value="-12">Octave</button>
+                        <button name="oscillator-interval" value="-1">min 2nd</button>
+                        <button name="oscillator-interval" value="-2">Maj 2nd</button>
+                        <button name="oscillator-interval" value="-3">min 3rd</button>
+                        <button name="oscillator-interval" value="-4">Maj 3th</button>
+                        <button name="oscillator-interval" value="-5">4th</button>
+                        <button name="oscillator-interval" value="-6">Tritone</button>
+                        <button name="oscillator-interval" value="-7">5th</button>
+                        <button name="oscillator-interval" value="-8">min 6th</button>
+                        <button name="oscillator-interval" value="-9">Maj 6th</button>
+                        <button name="oscillator-interval" value="-10">min 7th</button>
+                        <button name="oscillator-interval" value="-11">Maj 7th</button>
+                        <button name="oscillator-interval" value="-12">Octave</button>
                     </div>
-                </div>
+                </fieldset>
+            </div>
+            <div>
+                <fieldset>
+                    <legend>Wave</legend>
+                    <div id="oscillator-type">
+                        <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
+                        <label for="oscillator-type-sine">Sine</label>
+                        <input type="radio" name="oscillator-type" value="square" id="oscillator-type-square">
+                        <label for="oscillator-type-square">Square</label>
+                        <input type="radio" name="oscillator-type" value="sawtooth" id="oscillator-type-sawtooth">
+                        <label for="oscillator-type-sawtooth">Sawtooth</label>
+                        <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
+                        <label for="oscillator-type-triangle">Triangle</label>
+                    </div>
+                </fieldset>
             </div>
         </div>
         <div id="delay">
             <h2>Delay</h2>
-            <div>
-                <label for="delay-time">Time</label>
-                <input id="delay-time" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="delay-time-meter"></span>
-            </div>
-            <div>
-                <label for="delay-feedback">Feedback</label>
-                <input id="delay-feedback" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="delay-feedback-meter"></span>
-            </div>
+            <table>
+                <tr>
+                    <td><label for="delay-time">Time</label></td>
+                    <td><input id="delay-time" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="delay-time-meter"></span></td>
+                </tr>
+                <tr>
+                    <td><label for="delay-feedback">Feedback</label></td>
+                    <td><input id="delay-feedback" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="delay-feedback-meter"></span></td>
+                </tr>
+            </table>
         </div>
         <div id="compressor">
             <h2>Compressor</h2>
-            <div>
-                <label for="compressor-active">Active</label>
-                <input id="compressor-active" type="checkbox">
-            </div>
-            <div>
-                <label for="compressor-threshold">Threshold</label>
-                <input id="compressor-threshold" value="-50" type="range" min="-100" max="0" step="1">
-                <span id="compressor-threshold-meter"></span>
-            </div>
-            <div>
-                <!-- decibel range above the threshold where the curve smoothly transitions to the compressed portion -->
-                <label for="compressor-knee">Knee</label>
-                <input id="compressor-knee" value="40" type="range" min="0" max="40" step="0.1">
-                <span id="compressor-knee-meter"></span>
-            </div>
-            <div>
-                <!-- amount of change, in dB, needed in the input for a 1 dB change in the output. -->
-                <label for="compressor-ratio">Ratio</label>
-                <input id="compressor-ratio" value="12" type="range" min="1" max="20" step="0.1">
-                <span id="compressor-ratio-meter"></span>
-            </div>
-            <div>
-                <!-- the amount of time, in seconds, required to reduce the gain by 10 dB. -->
-                <label for="compressor-attack">Attack</label>
-                <input id="compressor-attack" value="0.0" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="compressor-attack-meter"></span>
-            </div>
-            <div>
-                <!-- the amount of time, in seconds, required to increase the gain by 10 dB. -->
-                <label for="compressor-release">Release</label>
-                <input id="compressor-release" value="0.25" type="range" min="0.0" max="1.0" step="0.01" list="range1">
-                <span id="compressor-release-meter"></span>
-            </div>
+            <table>
+                <tr>
+                    <td><label for="compressor-active">Active</label></td>
+                    <td><input id="compressor-active" type="checkbox"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="compressor-threshold">Threshold</label></td>
+                    <td><input id="compressor-threshold" value="-50" type="range" min="-100" max="0" step="1"></td>
+                    <td><span id="compressor-threshold-meter"></span></td>
+                </tr>
+                <tr>
+                    <!-- decibel range above the threshold where the curve smoothly transitions to the compressed portion -->
+                    <td><label for="compressor-knee">Knee</label></td>
+                    <td><input id="compressor-knee" value="40" type="range" min="0" max="40" step="0.1"></td>
+                    <td><span id="compressor-knee-meter"></span></td>
+                </tr>
+                <tr>
+                    <!-- amount of change, in dB, needed in the input for a 1 dB change in the output. -->
+                    <td><label for="compressor-ratio">Ratio</label></td>
+                    <td><input id="compressor-ratio" value="12" type="range" min="1" max="20" step="0.1"></td>
+                    <td><span id="compressor-ratio-meter"></span></td>
+                </tr>
+                <tr>
+                    <!-- the amount of time, in seconds, required to reduce the gain by 10 dB. -->
+                    <td><label for="compressor-attack">Attack</label></td>
+                    <td><input id="compressor-attack" value="0.0" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="compressor-attack-meter"></span></td>
+                </tr>
+                <tr>
+                    <!-- the amount of time, in seconds, required to increase the gain by 10 dB. -->
+                    <td><label for="compressor-release">Release</label></td>
+                    <td><input id="compressor-release" value="0.25" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><span id="compressor-release-meter"></span></td>
+                </tr>
+            </table>
         </div>
         <datalist id="range1">
             <option value="0.0" label="None"></option>

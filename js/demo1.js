@@ -5,13 +5,13 @@
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
  *  - https://github.com/mdn/webaudio-examples/
  */
+import $ from './jquery.js'
 import { stepFreq } from './music.js'
 
 const Ctx = new AudioContext()
 
 // Main volume.
 const Main = Ctx.createGain()
-Main.connect(Ctx.destination)
 
 // Delay with gain control.
 const Delay = Ctx.createDelay()
@@ -78,6 +78,7 @@ const ParamValueSetters = {
 
 // Element IDs to node.
 const NodeActiveCheckboxes = {
+    'oscillator-active': Oscillator,
     'compressor-active': Compressor,
 }
 
@@ -87,23 +88,21 @@ $(document).on('click', function(e) {
     switch (id) {
         case 'start':
             $('#stop').prop('disabled', false)
+            Main.connect(Ctx.destination)
         case 'stop':
             Oscillator[id]()
             $target.prop('disabled', true)
             return
     }
-    const data = $target.data()
-    const {name, value} = data
+    let name = $target.attr('name')
+    let value = $target.val()
     if (!name) {
         return
     }
     switch (name) {
-        case 'interval':
+        case 'oscillator-interval':
             let param = Oscillator.frequency
             param.value = stepFreq(param.value, value) || param.value
-            break
-        case 'waveform':
-            Oscillator.type = data.value
             break
     }
     updateMeters()
@@ -116,15 +115,23 @@ $(document).on('click', function(e) {
         node.active = $target.prop('checked')
         return
     }
+    let value = $target.val()
     let param = ParamValueSetters[id]
     if (param) {
-        param.value =  $target.val()
+        param.value = value
         updateMeters()
+        return
+    }
+    let name = $target.attr('name')
+    switch (name) {
+        case 'oscillator-type':
+            Oscillator.type = value
+            return
     }
 
 }).ready(() => {
     // Initial state.
-    $('#stop').prop('disabled', true)
+    $('#oscillator-type').controlgroup()
     readParams()
     updateMeters()
 })
@@ -146,9 +153,9 @@ function updateMeters() {
  */
 function readParams() {
     Object.entries(ParamValueSetters).forEach(([id, param]) => {
-        const value = $(`#${id}`).val()
-        if (value) {
-            param.value = value
+        const $el = $(`#${id}`)
+        if ($el.length) {
+            param.value = $el.val()
         }
     })
     Object.entries(NodeActiveCheckboxes).forEach(([id, node]) => {

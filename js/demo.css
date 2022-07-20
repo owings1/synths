@@ -1,0 +1,20 @@
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+th, td {
+    padding: 5px;
+    border-width: 1px 0;
+    border-style: solid;
+    border-color: #ccc;
+}
+table {
+    border-collapse: collapse;
+    border: 1px solid #ccc;
+}
+td:first-child, th:first-child {
+    text-align: right;
+}
+fieldset {
+    border: 1px solid #ccc;
+}
