@@ -2,12 +2,15 @@
  * WebAudio effects.
  * 
  * @author Doug Owings <doug@dougowings.net>
+ * @license MIT
+ * 
+ * `Overdrive` class adapted from code by Nick Thompson.
  */
 
 /**
  * Effects base class.
  */
-class EffectsNode extends GainNode {
+export class EffectsNode extends GainNode {
 
     /**
      * @param {AudioContext} context
@@ -17,21 +20,37 @@ class EffectsNode extends GainNode {
         super(context, opts)
         this.output = new GainNode(context)
     }
+
     /**
      * @param {AudioNode} dest
      */
     connect(dest) {
         return this.output.connect(dest)
     }
+
     disconnect(...args) {
         this.output.disconnect(...args)
     }
+
+    /**
+     * Update parameter values.
+     * 
+     * @param {object} opts
+     */
+    update(opts) {
+        Object.keys(this.meta.params).forEach(key => {
+            const value = opts[key]
+            if (value !== undefined) {
+                this[key].value = value
+            }
+        })
+    }
+
     /** @type {object} */
     get meta() {
         return this.constructor.Meta
     }
 }
-
 
 /**
  * Compressor.
@@ -62,15 +81,10 @@ export class Compressor extends EffectsNode {
             release: {value: cp.release},
         })
 
-        gnconnect(this, cp)
+        setOrigin(this, cp)
         cp.connect(this.output)
 
-        this.gain.value = opts.gain
-        this.threshold.value = opts.threshold
-        this.knee.value = opts.knee
-        this.ratio.value = opts.ratio
-        this.attack.value = opts.attack
-        this.release.value = opts.release
+        this.update(opts)
     }
 }
 
@@ -93,7 +107,7 @@ Compressor.Meta = {
             step: 1,
             label: "Threshold",
             unit: "dB",
-            helpText: "decibel value above which the compression will start taking effect"
+            help: "decibel value above which the compression will start taking effect"
         },
         knee: {
             min: 0.0,
@@ -103,7 +117,7 @@ Compressor.Meta = {
             step: 0.1,
             label: "Knee",
             unit: "dB",
-            helpText: "decibel range above the threshold where the curve smoothly transitions to the compressed portion",
+            help: "decibel range above the threshold where the curve smoothly transitions to the compressed portion",
         },
         ratio: {
             min: 1.0,
@@ -113,7 +127,7 @@ Compressor.Meta = {
             step: 0.1,
             label: "Ratio",
             unit: 'dB',
-            helpText: "amount of change, in dB, needed in the input for a 1 dB change in the output",
+            help: "amount of change, in dB, needed in the input for a 1 dB change in the output",
         },
         attack: {
             min: 0.0,
@@ -123,7 +137,7 @@ Compressor.Meta = {
             step: 0.01,
             label: "Attack",
             unit: 's',
-            helpText: "the amount of time, in seconds, required to reduce the gain by 10 dB",
+            help: "the amount of time, in seconds, required to reduce the gain by 10 dB",
         },
         release: {
             min: 0.0,
@@ -133,7 +147,7 @@ Compressor.Meta = {
             step: 0.01,
             label: "Release",
             unit: 's',
-            helpText: "the amount of time, in seconds, required to increase the gain by 10 dB",
+            help: "the amount of time, in seconds, required to increase the gain by 10 dB",
         },
     },
 }
@@ -142,6 +156,7 @@ Compressor.Meta = {
  * Basic lowpass filter
  */
 export class Lowpass extends EffectsNode {
+
     /**
      * @param {AudioContext} context
      * @param {object} opts
@@ -160,14 +175,12 @@ export class Lowpass extends EffectsNode {
             quality: {value: bq.Q},
         })
 
-        gnconnect(this, bq)
+        setOrigin(this, bq)
         bq.connect(this.output)
 
         bq.type = 'lowpass'
 
-        this.gain.value = opts.gain
-        this.cutoff.value = opts.cutoff
-        this.quality.value = opts.quality
+        this.update(opts)
     }
 }
 
@@ -206,6 +219,7 @@ Lowpass.Meta = {
  * Basic highpass filter.
  */
 export class Highpass extends EffectsNode {
+
     /**
      * @param {AudioContext} context
      * @param {object} opts
@@ -224,14 +238,12 @@ export class Highpass extends EffectsNode {
             quality: {value: bq.Q},
         })
 
-        gnconnect(this, bq)
+        setOrigin(this, bq)
         bq.connect(this.output)
 
         bq.type = 'highpass'
 
-        this.gain.value = opts.gain
-        this.cutoff.value = opts.cutoff
-        this.quality.value = opts.quality
+        this.update(opts)
     }
 }
 
@@ -289,14 +301,12 @@ export class Delay extends EffectsNode {
             feedback: {value: fb.gain},
         })
 
-        gnconnect(this, dy)
+        setOrigin(this, dy)
         dy.connect(fb)
         fb.connect(dy)
         dy.connect(this.output)
 
-        this.gain.value = opts.gain
-        this.feedback.value = opts.feedback
-        this.delayTime.value = opts.delayTime
+        this.update(opts)
     }
 }
 
@@ -359,16 +369,14 @@ export class Distortion extends EffectsNode {
             feedback: {value: fb.gain},
         })
 
-        gnconnect(this, ws)
+        setOrigin(this, ws)
         ws.connect(fb)
         fb.connect(ws)
         ws.connect(this.output)
         
         ws.oversample = '4x'
 
-        this.drive.value = opts.drive
-        this.gain.value = opts.gain
-        this.feedback.value = opts.feedback
+        this.update(opts)
     }
 }
 
@@ -465,7 +473,7 @@ export class Overdrive extends EffectsNode {
             }),
         })
 
-        gnconnect(this, bp)
+        setOrigin(this, bp)
         bp.connect(bpWet)
         bp.connect(bpDry)
         bpWet.connect(ws)
@@ -480,9 +488,7 @@ export class Overdrive extends EffectsNode {
         bpDry.gain.value = 1 - opts.preBand
         lp.frequency.value = opts.postCut
     
-        this.gain.value = opts.gain
-        this.drive.value = opts.drive
-        this.feedback.value = opts.feedback
+        this.update(opts)
     }
 }
 
@@ -542,7 +548,8 @@ Overdrive.Meta = {
 }
 
 /**
- * Build chain with `receiver`, `prev`, `next`, `active`, `bypass` properties.
+ * Build chain with `receiver`, `prev`, `next`, `active` properties.
+ * All nodes in `chain` will be disconnected and setup as inactive.
  * 
  * @param {AudioNode} input The input node.
  * @param {AudioNode} output The output node.
@@ -556,41 +563,46 @@ Overdrive.Meta = {
     
     chain.forEach((node, i) => {
  
+        node.disconnect()
+
         node.prev = chain[i - 1] || input
         node.next = chain[i + 1] || output
-        node.bypass = node.receiver = new GainNode(context)
+        const bypass = new GainNode(context)
+        node.receiver = bypass
         let active = false
      
-        Object.defineProperty(node, 'active', {
-            get: () => active,
-            set: function(value) {
-                value = Boolean(value)
-                if (value === active) {
-                    return
-                }
-                active = value
-                const {prev, next} = this
-                // Disconnect
-                if (prev) {
-                    prev.receiver.disconnect(this.receiver)
-                }
-                if (next) {
-                    this.receiver.disconnect(next.receiver)
-                }
-                // Change receiver
-                this.receiver = active ? this : this.bypass
-                // Reconnect
-                if (prev) {
-                    prev.receiver.connect(this.receiver)
-                }
-                if (next) {
-                    this.receiver.connect(next.receiver)
-                }
+        Object.defineProperties(node, {
+            active : {
+                get: () => active,
+                set: function(value) {
+                    value = Boolean(value)
+                    if (value === active) {
+                        return
+                    }
+                    active = value
+                    const {prev, next} = this
+                    // Disconnect
+                    if (prev) {
+                        prev.receiver.disconnect(this.receiver)
+                    }
+                    if (next) {
+                        this.receiver.disconnect(next.receiver)
+                    }
+                    // Change receiver
+                    this.receiver = active ? this : bypass
+                    // Reconnect
+                    if (prev) {
+                        prev.receiver.connect(this.receiver)
+                    }
+                    if (next) {
+                        this.receiver.connect(next.receiver)
+                    }
+                },
             },
         })
     })
     
-    // Initialize FX connections.
+    // Initialize connections.
     chain.forEach(node => {
         if (node.prev) {
             node.prev.receiver.connect(node.receiver)
@@ -602,11 +614,18 @@ Overdrive.Meta = {
 }
 
 /**
+ * Make a distortion curve array.
+ * 
+ * From:
+ *  - https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper
+ *  - https://stackoverflow.com/a/22313408
+ *  - https://alexanderleon.medium.com/web-audio-series-part-2-designing-distortion-using-javascript-and-the-web-audio-api-446301565541
+ * 
  * @param {Number} amount
  * @param {integer} samples
  * @return {Float32Array}
  */
-export function makeDistortionCurve(amount = 50, samples = 44100) {
+function makeDistortionCurve(amount = 50, samples = 44100) {
     const k = Number(amount)
     const curve = new Float32Array(samples)
     const DEG = Math.PI / 180
@@ -618,6 +637,8 @@ export function makeDistortionCurve(amount = 50, samples = 44100) {
 }
 
 /**
+ * Merge user options from param definitions.
+ * 
  * @param {object[]} defs Param definitions with `default`.
  * @param {*} opts User options.
  * @return {object} Modified `opts` or new object.
@@ -631,6 +652,8 @@ function optsMerge(defs, opts) {
 }
 
 /**
+ * Make a stub object like an `AudioParam`.
+ * 
  * @param {Function} vget Setter for `value` property.
  * @param {Function} vset Getter for `value` property.
  * @return {object}
@@ -643,6 +666,8 @@ function paramObject(vget, vset) {
 }
 
 /**
+ * Make a property definition for a stub param object.
+ * 
  * @param {Function} vget Setter for `value` property.
  * @param {Function} vset Getter for `value` property.
  * @return {object}
@@ -655,10 +680,11 @@ function paramProp(vget, vset) {
 }
 
 /**
- * @param {GainNode} node
- * @param {AudioNode} dest
+ * Setup `EffectsNode` wrapper origin.
+ * 
+ * @param {EffectsNode} node The `EffectsNode` instance.
+ * @param {AudioNode} dest The `AudioNode` destination.
  */
-function gnconnect(node, dest) {
+function setOrigin(node, dest) {
     GainNode.prototype.connect.call(node, dest)
 }
-

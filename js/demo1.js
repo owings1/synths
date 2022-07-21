@@ -132,9 +132,9 @@ $(() => {
     }
 
     /**
-     * @param {string} effect
-     * @param {Effects.EffectNode} node
-     * @return {object}
+     * @param {string} effect The effect ID.
+     * @param {Effects.EffectsNode} node
+     * @return {object} jQuery object
      */
     function effectWidget(effect, node) {
         effect = esc(effect)
@@ -156,12 +156,21 @@ $(() => {
             const type = 'range'
             const pid = [effect, esc(key)].join('-')
             const $input = $('<input/>').attr({id: pid, type, value, min, max, step})
+            let unitHtml = ''
+            if (unit) {
+                unitHtml = $('<span/>')
+                    .addClass('unit')
+                    .data({unit})
+                    .text(unit)
+                    .get(0)
+                    .outerHTML
+            }
             $table.append(`
                 <tr>
                     <td><label for="${pid}">${esc(label)}</label></td>
                     <td>${$input.get(0).outerHTML}</td>
                     <td>
-                        <span id="${pid}-meter" data-type="${esc(def.type)}"></span>${unit || ''}
+                        <span id="${pid}-meter" data-type="${esc(def.type)}"></span>${unitHtml}
                     </td>
                 </tr>
             `)

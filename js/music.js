@@ -1,17 +1,50 @@
 /**
- * Adjust a frequency by a number of half-steps. Performs internal
- * floor rounding to get a valid value.
+ * Western 12-tone music module.
  * 
- * @param {float} value
- * @param {integer} halfSteps
- * @return {float}
+ * @author Doug Owings <doug@dougowings.net>
+ * @license MIT
  */
-export function stepFreq(value, halfSteps = 0) {
-    return FREQS[FREQI[Math.floor(Number(value))] + Number(halfSteps)]
+import * as Utils from './utils.js'
+
+/**
+ * Adjust a frequency by a number of half-steps. 
+ * 
+ * @param {Number} base The base frequency. Performs internal floor rounding
+ *   to get a valid value. If a valid value is not found, and `strict` is not
+ *   specified, the closest frequency is used.
+ * @param {Number} degrees The number of half-steps (+/-).
+ * @param {Boolean} strict Do not adjust base to closest known frequency.
+ * @return {Number|undefined} The frequency, or undefined if out of range.
+ */
+export function stepFreq(base, degrees = 0, strict = false) {
+    let baseData = FREQS_DATA[getFreqId(base)]
+    if (!baseData && !strict) {
+        baseData = FREQS_DATA[getFreqId(closestFreq(base))]
+    }
+    if (baseData) {
+        return FREQS[baseData.freqIndex + Number(degrees)]
+    }
 }
 
-const FREQS = []
-const FREQI = Object.create(null)
+/**
+ * Find the closest known frequency.
+ * 
+ * @param {Number} target The search value.
+ * @return {Number} The closest known frequency.
+ */
+export function closestFreq(target) {
+    const {value} = Utils.closest(target, FREQS)
+    return value
+}
+
+/**
+ * @param {String|Number}
+ * @return {String}
+ */
+function getFreqId(value) {
+    return String(Math.floor(Number(value)))
+}
+
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],
     [32.70, 34.65, 36.71, 38.89, 41.20, 43.65, 46.25, 49.00, 51.91, 55.00, 58.27, 61.74],
@@ -23,5 +56,32 @@ const OCTAVES = [
     [2093.00, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520.00, 3729.31, 3951.07],
     [4186.01, 4434.92, 4698.63, 4978.03, 5274.04, 5587.65, 5919.91, 6271.93, 6644.88, 7040.00, 7458.62, 7902.13],
 ]
-OCTAVES.forEach(octave => octave.forEach(freq => FREQS.push(freq)))
-FREQS.forEach((freq, i) => FREQI[Math.floor(freq)] = i)
+
+/**
+ * Flat list of frequency values.
+ */
+const FREQS = new Float32Array(OCTAVES.length * 12)
+
+/**
+ * Frequency data, keyed by frequency ID.
+ */
+const FREQS_DATA = Object.create(null)
+
+const DEG_LETTERS = 'CCDDEFFGGAAB'
+
+OCTAVES.forEach((freqs, octave) => {
+    freqs.forEach((freq, degree) => {
+        const freqIndex = octave * 12 + degree
+        const freqId = getFreqId(freq)
+        const letter = DEG_LETTERS[degree]
+        const raised = DEG_LETTERS[degree - 1] === letter
+        FREQS[freqIndex] = freq
+        FREQS_DATA[freqId] = {
+            freq, freqIndex, freqId, octave,
+            letter, raised, degree,
+        }
+    })
+})
+
+export const FREQ_MIN = FREQS[0]
+export const FREQ_MAX = FREQS[FREQS.length - 1]
