@@ -8,23 +8,25 @@
 import $ from '../src/jquery.js'
 import * as Music from '../src/music.js'
 import * as Effects from '../src/effects.js'
+import * as Widgets from '../src/widgets.js'
 
 $(() => {
+
+    $('#oscillator-type').controlgroup()
+    $(document).on({click, change})
+
     const Context = new AudioContext()
-
-    // Oscillator.
-    const Oscillator = new OscillatorNode(Context, {frequency: Music.stepFreq(440)})
-
-    // Main volume.
+    
     const Main = new GainNode(Context)
-    // Oscillator dry signal.
     const Dry = new GainNode(Context)
-    // Oscillator FX send
     const FxSend = new GainNode(Context)
+
+    const Oscillator = new OscillatorNode(Context, {frequency: 440})
 
     Oscillator.connect(Dry)
     Oscillator.connect(FxSend)
     Dry.connect(Main)
+    Main.connect(Context.destination)
 
     const effects = {
         distortion: new Effects.Distortion(Context),
@@ -37,6 +39,9 @@ $(() => {
 
     Effects.initChain(FxSend, Main, Object.values(effects))
     
+    // Element IDs to effects node.
+    const Activators = {}
+
     // Element IDs to parameter.
     const Params = {
         'volume': Main.gain,
@@ -44,33 +49,53 @@ $(() => {
         'oscillator-fxsend': FxSend.gain,
         'oscillator-frequency': Oscillator.frequency,
     }
-    // Element IDs to node.
-    const Activators = {}
-    Object.entries(effects).forEach(([effect, node]) => {
-        Activators[[esc(effect), 'active'].join('-')] = node
-        $('#effects').append(effectWidget(effect, node))
-        Object.keys(node.meta.params).forEach(key => {
-            Params[[esc(effect), key].join('-')] = node[key]
-        })
-    })
 
-    $(document).on('click', function(e) {
+    ;(() => {
+
+        // Populate Activators and Params, and create widgets.
+        const $effects = $('#effects')
+        Object.entries(effects).forEach(([id, node]) => {
+            const {params, name} = node.meta
+            Activators[`${id}-active`] = node
+            Object.keys(params).forEach(key => {
+                Params[`${id}-${key}`] = node[key]
+            })
+            $(Widgets.effectWidget(id, params, name))
+                .addClass('fxnode inactive')
+                .appendTo($effects)
+        })
+
+        updateMeters()
+
+        // Make all effects widgets the same size.
+        const arr = Object.keys(effects).map(id => $(`#${id}`))
+        $('.fxnode').css({
+            width: Math.max.apply(null, arr.map(it => it.width())),
+            height: Math.max.apply(null, arr.map(it => it.height())),
+        })
+    })();
+
+    /**
+     * Click event handler.
+     * 
+     * @param {event} e
+     */
+    function click(e) {
         const $target = $(e.target)
         const id = $target.attr('id')
         switch (id) {
             case 'start':
                 $('#stop').prop('disabled', false)
-                Main.connect(Context.destination)
             case 'stop':
                 Oscillator[id]()
                 $target.prop('disabled', true)
                 return
         }
-        let name = $target.attr('name')
-        let value = $target.val()
+        const name = $target.attr('name')
         if (!name) {
             return
         }
+        const value = $target.val()
         switch (name) {
             case 'oscillator-interval':
                 let param = Oscillator.frequency
@@ -78,113 +103,64 @@ $(() => {
                 updateMeters()
                 break
         }
-    }).on('change', function(e) {
+    }
+
+    /**
+     * Change event handler.
+     * 
+     * @param {event} e
+     */
+    function change(e) {
         const $target = $(e.target)
         const id = $target.attr('id')
-        let node = Activators[id]
+        const node = Activators[id]
         if (node) {
-            node.active = $target.is(':checked')
+            let active = $target.is(':checked')
+            node.active = active
+            $target.closest('.fxnode')
+                .toggleClass('active', active)
+                .toggleClass('inactive', !active)
             return
         }
-        let value = $target.val()
-        let param = Params[id]
+        const value = $target.val()
+        const param = Params[id]
         if (param) {
             param.value = value
             updateMeters()
             return
         }
-        let name = $target.attr('name')
+        const name = $target.attr('name')
         switch (name) {
             case 'oscillator-type':
                 Oscillator.type = value
                 return
         }
-    })
-
-    // Initial state.
-    $('#oscillator-type').controlgroup()
-    updateMeters()
+    }
 
     /**
      * Update meter text values.
      */
     function updateMeters() {
-        Object.entries(Params).forEach(([id, param]) => {
-            const {value} = param
-            if (value !== undefined) {
-                const $el = $(`#${id}-meter`)
-                if ($el.length) {
-                    const {type} = $el.data()
-                    let text
-                    switch (type) {  
-                        case 'integer':
-                            text = Number(value).toFixed(0)
-                            break
-                        case 'float':
-                        default:
-                            text = Number(value).toFixed(2)
-                            break
-                    }
-                    $el.text(text)
-                }
+        Object.entries(Params).forEach(([id, {value}]) => {
+            if (value === undefined) {
+                return
             }
+            const $meter = $(`#${id}-meter`)
+            if (!$meter.length) {
+                return
+            }
+            const {type} = $meter.data()
+            let text
+            switch (type) {  
+                case 'integer':
+                    text = Number(value).toFixed(0)
+                    break
+                case 'float':
+                default:
+                    text = Number(value).toFixed(2)
+                    break
+            }
+            $meter.text(text)
         })
     }
 })
- 
-/**
- * Build HTML for effects node.
- * 
- * @param {string} effect The effect ID.
- * @param {Effects.EffectsNode} node
- * @return {object} jQuery object
- */
-function effectWidget(effect, node) {
-    effect = esc(effect)
-    const $div = $(`
-    <div id="${effect}" class="fxnode">
-        <h2>${esc(node.meta.name)}</h2>
-        <table>
-            <tr>
-                <td><label for="${effect}-active">Active</label></td>
-                <td><input id="${effect}-active" type="checkbox"></td>
-                <td></td>
-            </tr>
-        </table>
-    </div>
-    `)
-    const $table = $div.find('table')
-    Object.entries(node.meta.params).forEach(([key, def]) => {
-        const {min, max, default: value, step, label, unit} = def
-        const type = 'range'
-        const pid = [effect, esc(key)].join('-')
-        const $input = $('<input/>').attr({id: pid, type, value, min, max, step})
-        let unitHtml = ''
-        if (unit) {
-            unitHtml = $('<span/>')
-                .addClass('unit')
-                .data({unit})
-                .text(unit)
-                .get(0)
-                .outerHTML
-        }
-        $table.append(`
-            <tr>
-                <td><label for="${pid}">${esc(label)}</label></td>
-                <td>${$input.get(0).outerHTML}</td>
-                <td>
-                    <span id="${pid}-meter" data-type="${esc(def.type)}"></span>${unitHtml}
-                </td>
-            </tr>
-        `)
-    })
-    return $div
-}
-
-/**
- * @param {*} value
- * @return {string}
- */
-function esc(value) {
-    return encodeURIComponent(value)
-}

@@ -13,10 +13,10 @@ fieldset, .fxnode {
     margin-bottom: 5px;
 }
 .fxnode {
-    margin-right: 10px;
+    margin-right: 5px;
 }
 .fxnode h2 {
-    margin: 3px 0;
+    margin: 5px 0;
 }
 
 th, td {
@@ -35,7 +35,10 @@ th, td, .fxnode {
     padding: 5px;
 }
 
-td:last-child, th:last-child {
+.fxnode table {
+    width: 100%;
+}
+.fxnode td:last-child, th:last-child {
     min-width: 60px;
 }
 
@@ -45,4 +48,8 @@ fieldset, .fxnode {
 
 td:first-child, th:first-child, td:last-child, th:last-child {
     text-align: right;
+}
+
+.fxnode.inactive {
+    color: #999;
 }
