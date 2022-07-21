@@ -12,6 +12,7 @@ import * as Widgets from '../src/widgets.js'
 
 $(() => {
 
+    $('#oscillator-interval-wrapper').html(Widgets.oscIntervals1('oscillator'))
     $('#oscillator-type').controlgroup()
     $(document).on({click, change})
 
@@ -78,7 +79,7 @@ $(() => {
     /**
      * Click event handler.
      * 
-     * @param {event} e
+     * @param {Event} e
      */
     function click(e) {
         const $target = $(e.target)
@@ -108,14 +109,14 @@ $(() => {
     /**
      * Change event handler.
      * 
-     * @param {event} e
+     * @param {Event} e
      */
     function change(e) {
         const $target = $(e.target)
         const id = $target.attr('id')
         const node = Activators[id]
         if (node) {
-            let active = $target.is(':checked')
+            const active = $target.is(':checked')
             node.active = active
             $target.closest('.fxnode')
                 .toggleClass('active', active)

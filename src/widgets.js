@@ -63,3 +63,35 @@ export function effectWidget(id, params, title) {
     })
     return $div.get(0).outerHTML
 }
+
+export function oscIntervals1(id) {
+    const labels = [
+        null,
+        'min 2nd',
+        'Maj 2nd',
+        'min 3rd',
+        'Maj 3rd',
+        '4th',
+        'Tritone',
+        '5th',
+        'min 6th',
+        'Maj 6th',
+        'min 7th',
+        'Maj 7th',
+        'Octave',
+    ]
+    const name = `${id}-interval`
+    const $div = $('<div/>')
+    const $divp = $('<div/>').text('+').appendTo($div)
+    const $divm = $('<div/>').html('-&nbsp;').appendTo($div)
+    for (let i = 1; i < 13; i++) {
+        $('<button/>')
+            .attr({name, value: String(i)})
+            .text(labels[i]).appendTo($divp)
+        $('<button/>')
+            .attr({name, value: String(-i)})
+            .text(labels[i]).appendTo($divm)
+
+    }
+    return $div.get(0).outerHTML
+}
