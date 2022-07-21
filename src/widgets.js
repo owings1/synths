@@ -64,7 +64,7 @@ export function effectWidget(id, params, title) {
     return $div.get(0).outerHTML
 }
 
-export function oscIntervals1(id) {
+export function intervalButtons(id) {
     const labels = [
         null,
         'min 2nd',

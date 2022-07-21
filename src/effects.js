@@ -548,7 +548,11 @@ Overdrive.Meta = {
 }
 
 /**
- * Build chain with `receiver`, `prev`, `next`, `active` properties.
+ * Build a simple linear chain. Adds `receiver`, `prev`, `next`, `active`
+ * properties to nodes in `chain`, and `receiver` property to input and
+ * output. Setting a node's `active` property connects it's prev and next
+ * to either itself, or a dummy `bypass` GainNode. 
+ * 
  * All nodes in `chain` will be disconnected and setup as inactive.
  * 
  * @param {AudioNode} input The input node.

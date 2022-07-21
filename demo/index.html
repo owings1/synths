@@ -12,56 +12,47 @@
             <button id="start">Start</button>
             <button id="stop" disabled>Stop</button>
         </div>
-        <div id="mixer">
+        <section id="mixer">
             <h2>Mixer</h2>
             <table>
                 <tr>
                     <td><label for="volume">Main</label></td>
-                    <td><input id="volume" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><input id="volume" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
                     <td><span id="volume-meter"></span></td>
                 </tr>
                 <tr>
                     <td><label for="oscillator-dry">Dry</label></td>
-                    <td><input id="oscillator-dry" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><input id="oscillator-dry" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
                     <td><span id="oscillator-dry-meter"></span></td>
                 </tr>
                 <tr>
                     <td><label for="oscillator-fxsend">FX Send</label></td>
-                    <td><input id="oscillator-fxsend" value="0.5" type="range" min="0.0" max="1.0" step="0.01" list="range1"></td>
+                    <td><input id="oscillator-fxsend" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
                     <td><span id="oscillator-fxsend-meter"></span></td>
                 </tr>
             </table>
-        </div>
+        </section>
         <hr>
-        <div id="oscillator">
+        <section id="oscillator">
             <h2>Oscillator</h2>
+            <section id="oscillator-type">
+                <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
+                <label for="oscillator-type-sine">Sine</label>
+                <input type="radio" name="oscillator-type" value="square" id="oscillator-type-square">
+                <label for="oscillator-type-square">Square</label>
+                <input type="radio" name="oscillator-type" value="sawtooth" id="oscillator-type-sawtooth">
+                <label for="oscillator-type-sawtooth">Sawtooth</label>
+                <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
+                <label for="oscillator-type-triangle">Triangle</label>
+            </section>
             <div>
                 <fieldset>
                     <legend>Frequency <span id="oscillator-frequency-meter"></span></legend>
-                    <div id="oscillator-interval-wrapper"></div>
+                    <section id="oscillator-intervals"></section>
                 </fieldset>
             </div>
-            <div>
-                <fieldset>
-                    <legend>Wave</legend>
-                    <div id="oscillator-type">
-                        <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
-                        <label for="oscillator-type-sine">Sine</label>
-                        <input type="radio" name="oscillator-type" value="square" id="oscillator-type-square">
-                        <label for="oscillator-type-square">Square</label>
-                        <input type="radio" name="oscillator-type" value="sawtooth" id="oscillator-type-sawtooth">
-                        <label for="oscillator-type-sawtooth">Sawtooth</label>
-                        <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
-                        <label for="oscillator-type-triangle">Triangle</label>
-                    </div>
-                </fieldset>
-            </div>
-        </div>
+        </section>
         <hr>
-        <div id="effects"></div>
-        <datalist id="range1">
-            <option value="0.0" label="None"></option>
-            <option value="1.0" label="100%"></option>
-        </datalist>
+        <section id="effects"></section>
     </body>
 </html>

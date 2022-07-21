@@ -1,55 +1,127 @@
+/**
+ * Some styles from
+ *    https://github.com/mdn/webaudio-examples/blob/master/step-sequencer/style.css
+ */
+:root {
+    --orange: hsla(32, 100%, 50%, 1);
+    --yellow: hsla(49, 99%, 50%, 1);
+    --lime: hsla(82, 90%, 45%, 1);
+    --green: hsla(127, 81%, 41%, 1);
+    --red: hsla(342, 93%, 53%, 1);
+    --pink: hsla(314, 85%, 45%, 1);
+    --blue: hsla(211, 92%, 52%, 1);
+    --purple: hsla(283, 92%, 44%, 1);
+    --cyan: hsla(195, 98%, 55%, 1);
+    --white: hsla(0, 0%, 95%, 1);
+    --black: hsla(0, 0%, 10%, 1);
+    --grey: #cccccc;
+    --darkgrey: #999999;
+
+    /* abstract our colours */
+    --boxMain: var(--pink);
+    --boxSecond: var(--purple);
+    --boxHigh: var(--yellow);
+    --borderRad: 2px;
+}
+
+* {
+    box-sizing: border-box;
+}
 
 body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--white);
+    font-family: sans-serif, system-ui;
+    color: var(--black);
 }
+
 .fxnode .unit {
     font-family: 'courier';
 }
-.fxnode h2 {
-    font-size: 1.2em;
-}
 
-fieldset, .fxnode {
+fieldset,
+.fxnode {
     margin-bottom: 5px;
 }
+
 .fxnode {
     margin-right: 5px;
 }
-.fxnode h2 {
-    margin: 5px 0;
-}
 
-th, td {
+th,
+td {
     border-width: 1px 0;
     border-style: solid;
-    border-color: #ccc;
+    border-color: var(--grey);
 }
-table, fieldset, .fxnode {
-    border: 1px solid #ccc;
+
+fieldset,
+.fxnode {
+    border: 1px solid var(--grey);
 }
+
 table {
     border-collapse: collapse;
 }
 
-th, td, .fxnode {
+th,
+td {
+    padding: 24px;
+}
+
+.fxnode {
     padding: 5px;
 }
 
-.fxnode table {
+table {
     width: 100%;
 }
-.fxnode td:last-child, th:last-child {
+td:nth-child(2) {
+    width: 100%;
+}
+td:last-child,
+th:last-child {
     min-width: 60px;
 }
 
-fieldset, .fxnode {
-    display: inline-block;
-}
-
-td:first-child, th:first-child, td:last-child, th:last-child {
+td:first-child,
+th:first-child,
+td:last-child,
+th:last-child {
     text-align: right;
 }
 
 .fxnode.inactive {
-    color: #999;
+    color: var(--darkgrey);
+}
+
+/* range input styling ~~~~~~~~~~~~~~~~~~~ */
+
+input[type=range] {
+    -webkit-appearance: none;
+    background: transparent;
+    width: 100%;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    margin-top: -11px;
+    height: 30px;
+    width: 16px;
+    border: 1px solid var(--black);
+    border-radius: var(--borderRad);
+    background-color: var(--boxSecond);
+    cursor: pointer;
+}
+
+
+input[type=range]::-webkit-slider-runnable-track {
+    height: 8px;
+    cursor: pointer;
+    background-color: var(--black);
+    border-radius: var(--borderRad);
+}
+
+
+input[type=range]:focus::-webkit-slider-thumb {
+    background-color: var(--boxHigh);
 }

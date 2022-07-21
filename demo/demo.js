@@ -12,10 +12,6 @@ import * as Widgets from '../src/widgets.js'
 
 $(() => {
 
-    $('#oscillator-interval-wrapper').html(Widgets.oscIntervals1('oscillator'))
-    $('#oscillator-type').controlgroup()
-    $(document).on({click, change})
-
     const Context = new AudioContext()
     
     const Main = new GainNode(Context)
@@ -53,6 +49,15 @@ $(() => {
 
     ;(() => {
 
+        $('#oscillator-intervals')
+            .html(Widgets.intervalButtons('oscillator'))
+
+        $('#oscillator-type').controlgroup()
+
+        $('button').button()
+
+        $(document).on({click, change})
+
         // Populate Activators and Params, and create widgets.
         const $effects = $('#effects')
         Object.entries(effects).forEach(([id, node]) => {
@@ -68,12 +73,6 @@ $(() => {
 
         updateMeters()
 
-        // Make all effects widgets the same size.
-        const arr = Object.keys(effects).map(id => $(`#${id}`))
-        $('.fxnode').css({
-            width: Math.max.apply(null, arr.map(it => it.width())),
-            height: Math.max.apply(null, arr.map(it => it.height())),
-        })
     })();
 
     /**
@@ -86,10 +85,10 @@ $(() => {
         const id = $target.attr('id')
         switch (id) {
             case 'start':
-                $('#stop').prop('disabled', false)
+                $('#stop').button({disabled: false})
             case 'stop':
                 Oscillator[id]()
-                $target.prop('disabled', true)
+                $target.button({disabled: true})
                 return
         }
         const name = $target.attr('name')
