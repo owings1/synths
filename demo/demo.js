@@ -5,23 +5,23 @@
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
  *  - https://github.com/mdn/webaudio-examples/
  */
-import $ from './jquery.js'
-import * as Music from './music.js'
-import * as Effects from './effects.js'
+import $ from '../src/jquery.js'
+import * as Music from '../src/music.js'
+import * as Effects from '../src/effects.js'
 
 $(() => {
     const Context = new AudioContext()
 
     // Oscillator.
     const Oscillator = new OscillatorNode(Context, {frequency: Music.stepFreq(440)})
-    
+
     // Main volume.
     const Main = new GainNode(Context)
     // Oscillator dry signal.
     const Dry = new GainNode(Context)
     // Oscillator FX send
     const FxSend = new GainNode(Context)
-    
+
     Oscillator.connect(Dry)
     Oscillator.connect(FxSend)
     Dry.connect(Main)
@@ -34,7 +34,7 @@ $(() => {
         highpass: new Effects.Highpass(Context),
         compressor: new Effects.Compressor(Context),
     }
-    
+
     Effects.initChain(FxSend, Main, Object.values(effects))
     
     // Element IDs to parameter.
@@ -130,60 +130,61 @@ $(() => {
             }
         })
     }
-
-    /**
-     * @param {string} effect The effect ID.
-     * @param {Effects.EffectsNode} node
-     * @return {object} jQuery object
-     */
-    function effectWidget(effect, node) {
-        effect = esc(effect)
-        const $div = $(`
-        <div id="${effect}" class="fxnode">
-            <h2>${esc(node.meta.name)}</h2>
-            <table>
-                <tr>
-                    <td><label for="${effect}-active">Active</label></td>
-                    <td><input id="${effect}-active" type="checkbox"></td>
-                    <td></td>
-                </tr>
-            </table>
-        </div>
-        `)
-        const $table = $div.find('table')
-        Object.entries(node.meta.params).forEach(([key, def]) => {
-            const {min, max, default: value, step, label, unit} = def
-            const type = 'range'
-            const pid = [effect, esc(key)].join('-')
-            const $input = $('<input/>').attr({id: pid, type, value, min, max, step})
-            let unitHtml = ''
-            if (unit) {
-                unitHtml = $('<span/>')
-                    .addClass('unit')
-                    .data({unit})
-                    .text(unit)
-                    .get(0)
-                    .outerHTML
-            }
-            $table.append(`
-                <tr>
-                    <td><label for="${pid}">${esc(label)}</label></td>
-                    <td>${$input.get(0).outerHTML}</td>
-                    <td>
-                        <span id="${pid}-meter" data-type="${esc(def.type)}"></span>${unitHtml}
-                    </td>
-                </tr>
-            `)
-        })
-        return $div
-    }
-
-    /**
-     * @param {*} value
-     * @return {string}
-     */
-    function esc(value) {
-        return encodeURIComponent(value)
-    }
 })
  
+/**
+ * Build HTML for effects node.
+ * 
+ * @param {string} effect The effect ID.
+ * @param {Effects.EffectsNode} node
+ * @return {object} jQuery object
+ */
+function effectWidget(effect, node) {
+    effect = esc(effect)
+    const $div = $(`
+    <div id="${effect}" class="fxnode">
+        <h2>${esc(node.meta.name)}</h2>
+        <table>
+            <tr>
+                <td><label for="${effect}-active">Active</label></td>
+                <td><input id="${effect}-active" type="checkbox"></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+    `)
+    const $table = $div.find('table')
+    Object.entries(node.meta.params).forEach(([key, def]) => {
+        const {min, max, default: value, step, label, unit} = def
+        const type = 'range'
+        const pid = [effect, esc(key)].join('-')
+        const $input = $('<input/>').attr({id: pid, type, value, min, max, step})
+        let unitHtml = ''
+        if (unit) {
+            unitHtml = $('<span/>')
+                .addClass('unit')
+                .data({unit})
+                .text(unit)
+                .get(0)
+                .outerHTML
+        }
+        $table.append(`
+            <tr>
+                <td><label for="${pid}">${esc(label)}</label></td>
+                <td>${$input.get(0).outerHTML}</td>
+                <td>
+                    <span id="${pid}-meter" data-type="${esc(def.type)}"></span>${unitHtml}
+                </td>
+            </tr>
+        `)
+    })
+    return $div
+}
+
+/**
+ * @param {*} value
+ * @return {string}
+ */
+function esc(value) {
+    return encodeURIComponent(value)
+}
