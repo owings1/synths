@@ -5,10 +5,10 @@
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
  *  - https://github.com/mdn/webaudio-examples/
  */
-import $ from '../src/jquery.js'
-import * as Music from '../src/music.js'
-import * as Effects from '../src/effects.js'
-import * as Widgets from '../src/widgets.js'
+import $ from '../../src/jquery.js'
+import * as Music from '../../src/music.js'
+import * as Effects from '../../src/effects.js'
+import * as Widgets from '../../src/widgets.js'
 
 const context = new AudioContext()
     
