@@ -14,16 +14,16 @@ $(() => {
 
     const Context = new AudioContext()
     
-    const Main = new GainNode(Context)
-    const Dry = new GainNode(Context)
-    const FxSend = new GainNode(Context)
+    const main = new GainNode(Context)
+    const dry = new GainNode(Context)
+    const fxsend = new GainNode(Context)
 
     const Oscillator = new OscillatorNode(Context, {frequency: 440})
 
-    Oscillator.connect(Dry)
-    Oscillator.connect(FxSend)
-    Dry.connect(Main)
-    Main.connect(Context.destination)
+    Oscillator.connect(dry)
+    Oscillator.connect(fxsend)
+    dry.connect(main)
+    main.connect(Context.destination)
 
     const effects = {
         distortion: new Effects.Distortion(Context),
@@ -34,23 +34,41 @@ $(() => {
         compressor: new Effects.Compressor(Context),
     }
 
-    Effects.initChain(FxSend, Main, Object.values(effects))
+    Effects.initChain(fxsend, main, Object.values(effects))
     
     // Element IDs to effects node.
     const Activators = {}
 
     // Element IDs to parameter.
     const Params = {
-        'volume': Main.gain,
-        'oscillator-dry': Dry.gain,
-        'oscillator-fxsend': FxSend.gain,
         'oscillator-frequency': Oscillator.frequency,
     }
 
+    const mixer = [
+        {
+            name: 'main',
+            label: 'Main',
+            param: main.gain,
+        },
+        {
+            name: 'dry',
+            label: 'Dry',
+            param: dry.gain,
+        },
+        {
+            name: 'fxsend',
+            label: 'FX Send',
+            param: fxsend.gain,
+        }
+    ]
+
     ;(() => {
 
+        $('#mixer-wrapper')
+            .html(Widgets.mixerWidget('mixer', 'Mixer', mixer))
+
         $('#oscillator-intervals')
-            .html(Widgets.intervalButtons('oscillator'))
+            .html(Widgets.intervalButtons('oscillator-interval'))
 
         $('#oscillator-type').controlgroup()
 
@@ -59,6 +77,9 @@ $(() => {
         $(document).on({click, change})
 
         // Populate Activators and Params, and create widgets.
+        mixer.forEach(({name, param}) => {
+            Params[`mixer-${name}`] = param
+        })
         const $effects = $('#effects')
         Object.entries(effects).forEach(([id, node]) => {
             const {params, name} = node.meta
@@ -66,7 +87,7 @@ $(() => {
             Object.keys(params).forEach(key => {
                 Params[`${id}-${key}`] = node[key]
             })
-            $(Widgets.effectWidget(id, params, name))
+            $(Widgets.effectWidget(id, node, {params, title: name}))
                 .addClass('fxnode inactive')
                 .appendTo($effects)
         })

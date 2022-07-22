@@ -1,37 +1,18 @@
 <!doctype HTML>
 <html>
     <head>
-        <title>Demo1</title>
+        <title>FX Chain Demo</title>
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
         <link rel="stylesheet" href="./demo.css">
         <script type="module" src="./demo.js"></script>
     </head>
     <body>
-        <h1>Demo1</h1>
+        <h1>FX Chain Demo</h1>
         <div>
             <button id="start">Start</button>
             <button id="stop" disabled>Stop</button>
         </div>
-        <section id="mixer">
-            <h2>Mixer</h2>
-            <table>
-                <tr>
-                    <td><label for="volume">Main</label></td>
-                    <td><input id="volume" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
-                    <td><span id="volume-meter"></span></td>
-                </tr>
-                <tr>
-                    <td><label for="oscillator-dry">Dry</label></td>
-                    <td><input id="oscillator-dry" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
-                    <td><span id="oscillator-dry-meter"></span></td>
-                </tr>
-                <tr>
-                    <td><label for="oscillator-fxsend">FX Send</label></td>
-                    <td><input id="oscillator-fxsend" value="1.0" type="range" min="0.0" max="1.0" step="0.01"></td>
-                    <td><span id="oscillator-fxsend-meter"></span></td>
-                </tr>
-            </table>
-        </section>
+        <div id="mixer-wrapper"></div>
         <hr>
         <section id="oscillator">
             <h2>Oscillator</h2>
