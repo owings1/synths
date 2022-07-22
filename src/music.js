@@ -11,12 +11,20 @@ export const Tonality = {
     NATURAL_MINOR: 2,
     HARMONIC_MINOR: 3,
     MELODIC_MINOR: 4,
-    DIMINISHED: 5,
-    AUGMENTED: 6,
-    WHOLE_TONE: 7,
-    PROMETHEUS: 8,
-    BLUES: 9,
-    TRITONE: 10,
+    DORIAN: 5,
+    PHRYGIAN: 6,
+    LYDIAN: 7,
+    MIXOLYDIAN: 8,
+    LOCRIAN: 9,
+    DIMINISHED: 10,
+    AUGMENTED: 11,
+    WHOLE_TONE: 12,
+    PROMETHEUS: 13,
+    BLUES: 14,
+    TRITONE: 15,
+    MAJOR_PENTATONIC: 16,
+    MINOR_PENTATONIC: 17,
+    JAPANESE: 18,
 }
 
 /**
@@ -52,9 +60,6 @@ export function scaleFreqs(tonic, opts = {}) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
     let {tonality, descend} = opts
-    if (Number.isInteger(Tonality[tonality])) {
-        tonality = Tonality[tonality]
-    }
     const base = SCALE_INTERVALS[tonality || Tonality.MAJOR]
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
@@ -63,7 +68,7 @@ export function scaleFreqs(tonic, opts = {}) {
     let freq = tonic
     const dir = descend ? -1 : 1
     const freqs = [tonic]
-    intervals.forEach((degrees, i) => {
+    intervals.forEach(degrees => {
         freq = stepFreq(freq, dir * degrees, {strict: true})
         if (!freq) {
             throw new ValueError(`Scale out of bounds`)
@@ -105,7 +110,7 @@ export function closestFreq(target) {
 }
 
 /**
- * @param {String|Number}
+ * @param {String|Number} value
  * @return {String}
  */
 function getFreqId(value) {
@@ -123,6 +128,11 @@ Object.entries(Tonality).forEach(([name, value]) => {
         writable: false,
     })
 })
+Object.defineProperty(Tonality, 'AEOLIAN', {
+    value: Tonality.NATURAL_MINOR,
+    enumerable: false,
+    writable: false,
+})
 
 /**
  * Scale intervals, value is a pair of arrays [ascending, descending].
@@ -134,12 +144,20 @@ const SCALE_INTERVALS = Object.fromEntries([
     [Tonality.NATURAL_MINOR, [[2, 1, 2, 2, 1, 2, 2]]],
     [Tonality.HARMONIC_MINOR, [[2, 1, 2, 2, 1, 3, 1]]],
     [Tonality.MELODIC_MINOR, [[2, 1, 2, 2, 2, 2, 1], [2, 2, 1, 2, 2, 1, 2]]],
+    [Tonality.DORIAN, [[2, 1, 2, 2, 2, 1, 2]]],
+    [Tonality.PHRYGIAN, [[1, 2, 2, 2, 1, 2, 2]]],
+    [Tonality.LYDIAN, [[2, 2, 2, 1, 2, 2, 1]]],
+    [Tonality.MIXOLYDIAN, [[2, 2, 1, 2, 2, 1, 2]]],
+    [Tonality.LOCRIAN, [[1, 2, 2, 1, 2, 2, 2]]],
     [Tonality.DIMINISHED, [[1, 2, 1, 2, 1, 2, 1, 2]]],
     [Tonality.WHOLE_TONE, [[2, 2, 2, 2, 2, 2]]],
     [Tonality.AUGMENTED, [[3, 1, 3, 1, 3, 1]]],
     [Tonality.PROMETHEUS, [[2, 2, 2, 3, 1, 2]]],
     [Tonality.BLUES, [[3, 2, 1, 1, 3, 2]]],
     [Tonality.TRITONE, [[1, 3, 2, 1, 3, 2]]],
+    [Tonality.MAJOR_PENTATONIC, [[2, 2, 3, 2, 3]]],
+    [Tonality.MINOR_PENTATONIC, [[3, 2, 2, 3, 2]]],
+    [Tonality.JAPANESE, [[1, 4, 2, 1, 4]]],
 ])
 
 Object.values(SCALE_INTERVALS).forEach(arr => {
@@ -186,5 +204,7 @@ OCTAVES.forEach((freqs, octave) => {
     })
 })
 
+export const OCTAVE_COUNT = OCTAVES.length
+export const FREQ_COUNT = FREQS.length
 export const FREQ_MIN = FREQS[0]
 export const FREQ_MAX = FREQS[FREQS.length - 1]

@@ -8,43 +8,60 @@
 import $ from '../../src/jquery.js'
 import * as Music from '../../src/music.js'
 // import * as Effects from '../../src/effects.js'
+import * as Utils from '../../src/utils.js'
 import * as Widgets from '../../src/widgets.js'
 
 const context = new AudioContext()
     
 const volume = new GainNode(context)
 volume.gain.value = 0.5
-
-const mixer = [
-    {
-        name: 'volume',
-        label: 'Volume',
-        param: volume.gain,
-    },
-]
-
 volume.connect(context.destination)
 
-const noteDuration = {
+// note duration
+const duration = {
     value: 0.25
 }
-
-$(() => {
-    $('#mixer-wrapper')
-        .append(Widgets.mixerWidget('mixer', null, mixer))
-    $('#scale-noteDuration, #scale-noteDuration-meter')
-        .data({param: noteDuration})
-    $('#scale-noteDuration').val(noteDuration.value)
-    $('#mixer').addClass('fx1')
-    $('#scale').addClass('fx2')
-    $(document).on({click, change})
-    $('button').button()
-    updateMeters()
-})
-
 let playing
 let stopId
 let osc
+
+$(() => {
+    $('#mixer-wrapper')
+        .append(Widgets.mixerWidget('mixer', null, [
+            {
+                name: 'volume',
+                label: 'Volume',
+                param: volume.gain,
+            },
+        ]))
+
+    $('#scale-duration, #scale-duration-meter')
+        .data({param: duration})
+    $('#scale-duration-meter').data({
+        update: () => {
+            $('#scale-duration-meter')
+                .text(Number(duration.value).toFixed(2))
+        }
+    })
+    $('#scale-duration').val(duration.value)
+
+    Object.entries(Music.Tonality).forEach(([name, value]) => {
+        $('<option/>').attr({value}).text(name).appendTo('#scale-tonality')
+    })
+    $('#scale-play').on({click: play})
+    $('#scale-stop').on({click: stop})
+
+    $('#mixer').addClass('fx1')
+    $('#scale').addClass('fx2')
+
+    $(document).on({change})
+
+    $('button').button()
+
+    updateMeters()
+})
+
+
 function stop() {
     if (!playing) {
         return
@@ -55,55 +72,63 @@ function stop() {
     osc = null
     clearTimeout(stopId)
 }
+
 function play() {
     if (playing) {
         stop()
     }
+    const dur = Number(duration.value)
+    const freqs = getFreqs()
+    // clean
+    freqs.push(0)
+
     osc = new OscillatorNode(context)
     const param = osc.frequency
-    const dur = Number(noteDuration.value)
-    const tonic = Music.freqAtDegree(
-        $('#scale-degree').val(),
-        $('#scale-octave').val(),
-    )
-    const tonality = $('#scale-tonality').val()
-    const freqs = Music.scaleFreqs(tonic, {tonality})
-    Music.scaleFreqs(freqs.pop(), {tonality, descend: true})
-        .forEach(freq => freqs.push(freq))
-
     const start = context.currentTime
     let time = start
     freqs.forEach(freq => {
         param.setValueAtTime(freq, time)
         time += dur
     })
-    param.setValueAtTime(0, time)
-    time += dur
+
     playing = true
     osc.connect(volume)
     osc.start()
     stopId = setTimeout(stop, (time - start) * 1000)
 }
-/**
- * Click event handler.
- * 
- * @param {Event} e
- */
-function click(e) {
-    const $target = $(e.target)
-    const id = $target.attr('id')
-    switch (id) {
-        case 'play':
-            play()
+
+function getFreqs() {
+    const tonic = Music.freqAtDegree(
+        $('#scale-degree').val(),
+        $('#scale-octave').val(),
+    )
+    const tonality = $('#scale-tonality').val()
+    let left, right
+    switch ($('#scale-direction').val()) {
+        case 'downup':
+            left = Music.scaleFreqs(tonic, {tonality, descend: true})
+            right = Music.scaleFreqs(left.pop(), {tonality})
             break
-        case 'stop':
-            stop()
+        case 'updown':
+            left = Music.scaleFreqs(tonic, {tonality})
+            right = Music.scaleFreqs(left.pop(), {tonality, descend: true})
             break
+        case 'descend':
+            left = Music.scaleFreqs(tonic, {tonality, descend: true})
+            right = []
+            break
+        case 'ascend':
         default:
+            left = Music.scaleFreqs(tonic, {tonality})
+            right = []
             break
     }
+    const freqs = left.concat(right)
+    if ($('#scale-shuffle').is(':checked')) {
+        Utils.shuffle(freqs)
+    }
+    return freqs
 }
-
 /**
  * Change event handler.
  * 
@@ -118,16 +143,6 @@ function change(e) {
         updateMeters()
         return
     }
-    // const id = $target.attr('id')
-    // switch (id) {
-    //     default:
-    //         break
-    // }
-    // const name = $target.attr('name')
-    // switch (name) {
-    //     default:
-    //         break
-    // }
 }
 
 /**
@@ -135,23 +150,9 @@ function change(e) {
  */
 function updateMeters() {
     $('.meter').each(function() {
-        const $meter = $(this)
-        const {def, param} = $meter.data()
-        if (!param) {
-            return
+        const {update} = $(this).data()
+        if (update) {
+            update()
         }
-        const {type} = def || {}
-        const {value} = param
-        let text
-        switch (type) {  
-            case 'integer':
-                text = Number(value).toFixed(0)
-                break
-            case 'float':
-            default:
-                text = Number(value).toFixed(2)
-                break
-        }
-        $meter.text(text)
     })
 }

@@ -108,7 +108,8 @@ export function paramWidget(id, param, def) {
         case 'integer':
         case 'float':
             let {min, max, step} = def
-            let display = Number(value).toFixed(2 * (def.type === 'float'))
+            let fixed = 2 * (def.type === 'float')
+            let display = Number(value).toFixed(fixed)
             $('<input/>')
                 .attr({id, type: 'range', value, min, max, step})
                 .val(value)
@@ -117,7 +118,14 @@ export function paramWidget(id, param, def) {
             $('<span/>')
                 .attr({id: `${id}-meter`})
                 .addClass('meter')
-                .data({param, def})
+                .data({
+                    param,
+                    def,
+                    update: () => {
+                        $(`#${id}-meter`)
+                            .text(Number(param.value).toFixed(fixed))
+                    }
+                })
                 .text(display)
                 .appendTo($meterTd)
             if (unit) {
