@@ -10,6 +10,9 @@ import $ from './jquery.js'
  * @param {String} id The mixer ID.
  * @param {String} title
  * @param {object[]} infos Gain param infos with `name`, `label`, `param`.
+ * @param {String} infos[].name
+ * @param {String} infos[].label
+ * @param {AudioParam} infos[].param
  * @return {object} A jQuery object
  */
 export function mixerWidget(id, title, infos) {
@@ -18,30 +21,32 @@ export function mixerWidget(id, title, infos) {
         ({name, param}) => [name, param]
     ))
     const params = Object.fromEntries(
-        infos.map(({name, label}) => [name, {
-            label: label || name,
-            type: 'float',
-            min: 0.0,
-            max: 1.0,
-            step: 0.01,
-        }])
+        infos.map(({name, label, min, max, step}) => {
+            return [name, {
+                label,
+                type: 'float',
+                min: min || 0.0,
+                max: max || 1.0,
+                step: step || 0.01,
+            }]
+        })
     )
-    return effectWidget(id, node, {title, params})
+    return nodeWidget(id, node, {title, params}).addClass('mixer')
 }
 
 /**
  * Build HTML for AudioNode.
  * 
- * @param {String} id The effect ID.
- * @param {AudioNode} node The audio node.
+ * @param {String} id The node ID.
+ * @param {AudioNode|object} node Node object with properties for each param.
  * @param {object} opts The options
- * @param {object} opts.params The parameter definitions.
+ * @param {object} opts.params The parameter definitions. See `paramWidget()`.
  * @param {String} opts.title The title.
  * @return {object} A jQuery object
  */
-export function effectWidget(id, node, opts) {
+export function nodeWidget(id, node, opts) {
     const {params, title} = opts
-    const $section = $('<section/>').attr({id})
+    const $section = $('<section/>').attr({id}).addClass('node')
     // Heading
     if (title) {
         $('<h2/>').text(title).appendTo($section)
@@ -52,7 +57,10 @@ export function effectWidget(id, node, opts) {
     if (node.active !== undefined) {
         $table.append(paramWidget(
             [id, 'active'].join('-'),
-            {value: node.active},
+            {
+                get value() {return node.active},
+                set value(v) { node.active = v },
+            },
             {label: 'Active', type: 'boolean'},
         ))
     }
@@ -79,48 +87,51 @@ export function effectWidget(id, node, opts) {
 export function paramWidget(id, param, def) {
     const {value} = param
     const {label, unit} = def
-    let inputHtml
-    let labelHtml = ''
-    let meterHtml = ''
-    let unitHtml = ''
+    const $tr = $('<tr/>').addClass('param')
+    const $labelTd = $('<td/>').appendTo($tr)
+    const $inputTd = $('<td/>').appendTo($tr)
+    const $meterTd = $('<td/>').appendTo($tr)
     if (label) {
-        labelHtml = $('<label/>')
-            .attr({for: id}).text(label)
-            .get(0).outerHTML
+        $('<label/>')
+            .attr({for: id})
+            .text(label)
+            .appendTo($labelTd)
     }
     switch (def.type) {
         case 'boolean':
-            inputHtml = $('<input/>')
-                .prop('checked', Boolean(value))
+            $('<input/>')
                 .attr({id, type: 'checkbox'})
-                .get(0).outerHTML
+                .prop('checked', Boolean(value))
+                .data({param, def})
+                .appendTo($inputTd)
             break
         case 'integer':
         case 'float':
             let {min, max, step} = def
-            inputHtml = $('<input/>')
+            let display = Number(value).toFixed(2 * (def.type === 'float'))
+            $('<input/>')
                 .attr({id, type: 'range', value, min, max, step})
+                .val(value)
                 .data({param, def})
-                .get(0).outerHTML
-            meterHtml = $('<span/>')
-                .attr({id: `${id}-meter`}).data({def})
-                .get(0).outerHTML
+                .appendTo($inputTd)
+            $('<span/>')
+                .attr({id: `${id}-meter`})
+                .addClass('meter')
+                .data({param, def})
+                .text(display)
+                .appendTo($meterTd)
+            if (unit) {
+                $('<span/>')
+                    .addClass('unit')
+                    .data({unit})
+                    .text(unit)
+                    .appendTo($meterTd)
+            }
             break
         default:
             $.error(`Unsupported param type: ${def.type}`)
     }
-    if (unit) {
-        unitHtml = $('<span/>')
-            .addClass('unit').data({unit}).text(unit)
-            .get(0).outerHTML
-    }
-    return $(`
-        <tr>
-            <td>${labelHtml}</td>
-            <td>${inputHtml}</td>
-            <td>${meterHtml}${unitHtml}</td>
-        </tr>
-    `)
+    return $tr
 }
 
 export function intervalButtons(name) {
@@ -139,17 +150,27 @@ export function intervalButtons(name) {
         'Maj 7th',
         'Octave',
     ]
-    const $div = $('<div/>')
-    const $divp = $('<div/>').text('+').appendTo($div)
-    const $divm = $('<div/>').html('-&nbsp;').appendTo($div)
+    const $table = $('<table/>').addClass('intervals')
+    const trs = ['Up', 'Down'].map(text =>
+        $('<tr/>')
+            .append($('<td/>').text(text))
+            .appendTo($table)
+    )
+    const [$up, $down] = trs.map($tr =>
+        $('<td/>').appendTo($tr)
+    )
+    trs.forEach($tr => $tr.append('<td/>'))
     for (let i = 1; i < 13; i++) {
         $('<button/>')
             .attr({name, value: String(i)})
-            .text(labels[i]).appendTo($divp)
+            .text(labels[i])
+            .appendTo($up)
         $('<button/>')
             .attr({name, value: String(-i)})
-            .text(labels[i]).appendTo($divm)
+            .text(labels[i])
+            .appendTo($down)
 
     }
-    return $div
+    return $table
+    // return $div
 }

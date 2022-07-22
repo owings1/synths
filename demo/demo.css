@@ -16,51 +16,47 @@
     --black: hsla(0, 0%, 10%, 1);
     --grey: #cccccc;
     --darkgrey: #999999;
-
-    /* abstract our colours */
-    --boxMain: var(--pink);
-    --boxSecond: var(--purple);
-    --boxHigh: var(--yellow);
-    --borderRad: 2px;
 }
 
 * {
     box-sizing: border-box;
+    border-radius: 2px;
+    border-collapse: collapse;
 }
 
 body {
     background-color: var(--white);
     font-family: sans-serif, system-ui;
     color: var(--black);
+    text-align: center;
 }
 
-.fxnode .unit {
+input[type="checkbox"] {
+    accent-color: var(--yellow);
+}
+
+.unit {
     font-family: 'courier';
 }
 
 fieldset,
-.fxnode {
+.node {
     margin-bottom: 5px;
 }
 
-.fxnode {
+.node {
     margin-right: 5px;
 }
 
 th,
 td {
-    border-width: 1px 0;
-    border-style: solid;
-    border-color: var(--grey);
+    border-top: 1px solid var(--grey);
+    border-bottom: 1px solid var(--grey);
 }
 
 fieldset,
-.fxnode {
+.node {
     border: 1px solid var(--grey);
-}
-
-table {
-    border-collapse: collapse;
 }
 
 th,
@@ -68,16 +64,14 @@ td {
     padding: 24px;
 }
 
-.fxnode {
-    padding: 5px;
+
+table,
+td:nth-child(2),
+input[type=range] {
+    width: 100%;
+    text-align:left;
 }
 
-table {
-    width: 100%;
-}
-td:nth-child(2) {
-    width: 100%;
-}
 td:last-child,
 th:last-child {
     min-width: 60px;
@@ -90,38 +84,134 @@ th:last-child {
     text-align: right;
 }
 
-.fxnode.inactive {
-    color: var(--darkgrey);
+input[type="checkbox"] {
+    height: 50px;
+    width: 50px;
+    position: absolute;
+    margin-top: -25px;
 }
 
-/* range input styling ~~~~~~~~~~~~~~~~~~~ */
-
-input[type=range] {
-    -webkit-appearance: none;
-    background: transparent;
-    width: 100%;
+.inactive,
+.node.inactive {
+    color: var(--grey);
+    background-color: inherit;
 }
 
+
+/*  */
+
+input[type=range],
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    margin-top: -11px;
-    height: 30px;
-    width: 16px;
-    border: 1px solid var(--black);
-    border-radius: var(--borderRad);
-    background-color: var(--boxSecond);
-    cursor: pointer;
 }
 
+input[type=range] {
+    background: transparent;
+}
 
 input[type=range]::-webkit-slider-runnable-track {
     height: 8px;
     cursor: pointer;
     background-color: var(--black);
-    border-radius: var(--borderRad);
+}
+
+input[type=range]:focus::-webkit-slider-thumb,
+.fx2 input[type=range]:focus::-webkit-slider-thumb,
+.fx4 input[type=range]:focus::-webkit-slider-thumb,
+.fx5 input[type=range]:focus::-webkit-slider-thumb,
+.fx6 input[type=range]:focus::-webkit-slider-thumb {
+    background-color: var(--yellow);
+}
+
+/*  */
+
+
+.fx1 {
+    background-color: var(--pink);
+}
+
+input[type=range]::-webkit-slider-thumb {
+    margin-top: -11px;
+    height: 30px;
+    width: 16px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: var(--black);
+    background-color: var(--purple);
+    cursor: pointer;
+}
+
+.fx1 input[type="checkbox"] {
+    accent-color: var(--purple);
 }
 
 
-input[type=range]:focus::-webkit-slider-thumb {
-    background-color: var(--boxHigh);
+/*  */
+
+.fx2 {
+    background-color: var(--lime);
+}
+
+.fx2 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--orange);
+}
+
+.fx2 input[type="checkbox"] {
+    accent-color: var(--orange);
+}
+
+/*  */
+
+.fx3 {
+    background-color: var(--blue);
+}
+
+.fx3 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--yellow);
+}
+.fx3 input[type="checkbox"] {
+    accent-color: var(--yellow);
+}
+
+.fx3 input[type=range]:focus::-webkit-slider-thumb {
+    background-color: var(--cyan);
+}
+
+/*  */
+
+.fx4 {
+    background-color: var(--purple);
+}
+
+.fx4 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--green);
+}
+.fx4 input[type="checkbox"] {
+    accent-color: var(--green);
+}
+
+/*  */
+
+.fx5 {
+    background-color: var(--orange);
+}
+
+.fx5 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--blue);
+}
+.fx5 input[type="checkbox"] {
+    accent-color: var(--blue);
+}
+
+/*  */
+
+.fx6 {
+    background-color: var(--cyan);
+}
+
+.fx6 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--pink);
+}
+.fx6 input[type="checkbox"] {
+    accent-color: var(--pink);
 }

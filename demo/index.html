@@ -8,14 +8,14 @@
     </head>
     <body>
         <h1>FX Chain Demo</h1>
-        <div>
-            <button id="start">Start</button>
-            <button id="stop" disabled>Stop</button>
-        </div>
         <div id="mixer-wrapper"></div>
-        <hr>
-        <section id="oscillator">
+        <section id="oscillator" class="node oscillator">
             <h2>Oscillator</h2>
+            <section>
+                <button id="start">Start</button>
+                <button id="stop" disabled>Stop</button>
+            </section>
+            <br>
             <section id="oscillator-type">
                 <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
                 <label for="oscillator-type-sine">Sine</label>
@@ -26,14 +26,11 @@
                 <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
                 <label for="oscillator-type-triangle">Triangle</label>
             </section>
-            <div>
-                <fieldset>
-                    <legend>Frequency <span id="oscillator-frequency-meter"></span></legend>
-                    <section id="oscillator-intervals"></section>
-                </fieldset>
-            </div>
+            <h3>
+                <span id="oscillator-frequency-meter"></span><span class="unit">Hz</span>
+            </h3>
+            <section id="oscillator-intervals"></section>
         </section>
-        <hr>
         <section id="effects"></section>
     </body>
 </html>
