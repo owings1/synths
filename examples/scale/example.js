@@ -7,7 +7,6 @@
  */
 import $ from '../../src/jquery.js'
 import * as Music from '../../src/music.js'
-// import * as Effects from '../../src/effects.js'
 import * as Utils from '../../src/utils.js'
 import * as Widgets from '../../src/widgets.js'
 
@@ -16,14 +15,6 @@ const context = new AudioContext()
 const volume = new GainNode(context)
 volume.gain.value = 0.5
 volume.connect(context.destination)
-
-// note duration
-const duration = {
-    value: 0.25
-}
-let playing
-let stopId
-let osc
 
 $(() => {
     $('#mixer-wrapper')
@@ -34,7 +25,9 @@ $(() => {
                 param: volume.gain,
             },
         ]))
-
+    $('#mixer').addClass('fx1')
+    // note duration
+    const duration = {value: 0.25}
     $('#scale-duration, #scale-duration-meter')
         .data({param: duration})
     $('#scale-duration-meter').data({
@@ -51,9 +44,6 @@ $(() => {
     $('#scale-play').on({click: play})
     $('#scale-stop').on({click: stop})
 
-    $('#mixer').addClass('fx1')
-    $('#scale').addClass('fx2')
-
     $(document).on({change})
 
     $('button').button()
@@ -61,43 +51,93 @@ $(() => {
     updateMeters()
 })
 
+/**
+ * Shared state variables.
+ */
+const state = {
+    /** @type {Number[]} */
+    sample: null,
+    /** @type {Boolean} */
+    loop: false,
+    /** @type {Number} */
+    dur: null,
+    /** @type {Boolean} */
+    playing: false,
+    /** @type {OscillatorNode} */
+    osc: null,
+    /** @type {Number} */
+    nextTime: null,
+    /** @type {Number} */
+    stopId: null,
+    /** @type {Number} */
+    scheduleId: null,
+}
 
+/**
+ * Stop handler.
+ */
 function stop() {
-    if (!playing) {
+    if (!state.playing) {
         return
     }
-    playing = false
-    osc.disconnect()
-    osc.stop()
-    osc = null
-    clearTimeout(stopId)
+    state.playing = false
+    state.osc.stop()
+    state.osc.disconnect()
+    state.osc = null
+    clearTimeout(state.stopId)
+    clearTimeout(state.scheduleId)
 }
 
+/**
+ * Play handler.
+ */
 function play() {
-    if (playing) {
-        stop()
-    }
-    const dur = Number(duration.value)
-    const freqs = getFreqs()
-    // clean
-    freqs.push(0)
-
-    osc = new OscillatorNode(context)
-    const param = osc.frequency
-    const start = context.currentTime
-    let time = start
-    freqs.forEach(freq => {
-        param.setValueAtTime(freq, time)
-        time += dur
-    })
-
-    playing = true
-    osc.connect(volume)
-    osc.start()
-    stopId = setTimeout(stop, (time - start) * 1000)
+    stop()
+    state.sample = buildSample()
+    state.dur = Number($('#scale-duration').val())
+    state.loop = $('#scale-loop').is(':checked')
+    state.osc = new OscillatorNode(context)
+    state.nextTime = context.currentTime
+    schedule()
+    state.playing = true
+    state.osc.connect(volume)
+    state.osc.start()
 }
 
-function getFreqs() {
+// how often to check for scheduling
+const LOOKAHEAD = 25.0
+
+/**
+ * Schedule new notes if needed. Reschedules itself if looping.
+ */
+function schedule() {
+    const {dur, osc, loop} = state
+    const sampleDur = state.sample.length * dur
+    while (context.currentTime + sampleDur > state.nextTime) {
+        state.sample.forEach(freq => {
+            osc.frequency.setValueAtTime(freq, state.nextTime)
+            state.nextTime += dur
+        })
+        if (!loop) {
+            break
+        }
+    }
+    if (loop) {
+        state.scheduleId = setTimeout(schedule, LOOKAHEAD)
+    } else {
+        // smooth shutoff
+        osc.frequency.setValueAtTime(0, state.nextTime)
+        const stopTime = (sampleDur + LOOKAHEAD) * 1000
+        state.stopId = setTimeout(stop, stopTime)
+    }
+}
+
+/**
+ * Build array of frequencies for scale options.
+ * 
+ * @return {Number[]}
+ */
+function buildSample() {
     const tonic = Music.freqAtDegree(
         $('#scale-degree').val(),
         $('#scale-octave').val(),
@@ -113,11 +153,11 @@ function getFreqs() {
             left = Music.scaleFreqs(tonic, {tonality})
             right = Music.scaleFreqs(left.pop(), {tonality, descend: true})
             break
-        case 'descend':
+        case 'down':
             left = Music.scaleFreqs(tonic, {tonality, descend: true})
             right = []
             break
-        case 'ascend':
+        case 'up':
         default:
             left = Music.scaleFreqs(tonic, {tonality})
             right = []
@@ -129,6 +169,7 @@ function getFreqs() {
     }
     return freqs
 }
+
 /**
  * Change event handler.
  * 
@@ -141,7 +182,6 @@ function change(e) {
     if (param) {
         param.value = value
         updateMeters()
-        return
     }
 }
 
