@@ -146,7 +146,11 @@ function change(e) {
     const value = $target.val()
     const {param} = $target.data()
     if (param) {
-        param.value = value
+        if ($target.is(':checkbox')) {
+            param.value = $target.is(':checked')
+        } else {
+            param.value = value
+        }
         updateMeters()
         return
     }

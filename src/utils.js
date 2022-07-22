@@ -5,6 +5,8 @@
  * @license MIT
  */
 
+export class ValueError extends Error {}
+
 /**
  * Find the closest index and value of `target` in `arr`.
  * 
@@ -70,4 +72,8 @@ export function shuffle(arr) {
         arr[j] = temp
     }
     return arr
+}
+
+export function flip(obj) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [v, k]))
 }

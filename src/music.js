@@ -5,6 +5,7 @@
  * @license MIT
  */
 import * as Utils from './utils.js'
+const {ValueError} = Utils
 
 export const Tonality = {
     MAJOR: 1,
@@ -27,26 +28,66 @@ export const Tonality = {
     JAPANESE: 18,
 }
 
+export const Dir = {
+    ASCEND: 1,
+    DESCEND: 2,
+    ASCEND_DESCEND: 3,
+    DESCEND_ASCEND: 4,
+}
+
+export const DegLabels = Object.fromEntries(
+    Object.entries(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])
+)
 /**
- * Get frequency for scale degree (0-11) and octave (0-8).
+ * Build a scale array from high-level options.
  * 
- * @param {Number} degree The scale degree, 0-11.
- * @param {Number} octave The octave, 0-8, default 4.
- * @return {Number} The frequency
+ * @param {Number} degree The tonic degree (0-11).
+ * @param {object} opts The options
+ * @param {Number} opts.octave The octave (0-8).
+ * @param {Number} opts.tonality Tonality indicator (1-18).
+ * @param {Number} opts.direction Directionality indicator (1-4).
+ * @param {Boolean} opts.shuffle Shuffle the notes.
+ * @param {Boolean} opts.loop If true, and `direction` is 3 or 4 remove the
+ *  last note in the scale.
+ * @return {Number[]} Array of note frequencies.
  */
-export function freqAtDegree(degree, octave = 4) {
-    const o = OCTAVES[octave]
-    if (!o) {
-        throw new ValueError(`Invalid octave ${octave}`)
+ export function scaleSample(degree, opts = {}) {
+    opts = opts || {}
+    const {octave, tonality, direction, loop, shuffle} = opts
+    const tonic = freqAtDegree(degree, octave)
+    let left, right
+    switch (Number(direction)) {
+        case Dir.DESCEND_ASCEND:
+            left = scaleFreqs(tonic, {tonality, descend: true})
+            right = scaleFreqs(left.pop(), {tonality})
+            break
+        case Dir.ASCEND_DESCEND:
+            left = scaleFreqs(tonic, {tonality})
+            right = scaleFreqs(left.pop(), {tonality, descend: true})
+            break
+        case Dir.DESCEND:
+            left = scaleFreqs(tonic, {tonality, descend: true})
+            right = []
+            break
+        case Dir.ASCEND:
+        default:
+            left = scaleFreqs(tonic, {tonality})
+            right = []
+            break
     }
-    const freq = o[degree]
-    if (!freq) {
-        throw new ValueError(`Invalid degree ${degree}`)
+    if (right.length && loop) {
+        right.pop()
     }
-    return freq
+    const freqs = left.concat(right)
+    if (shuffle) {
+        Utils.shuffle(freqs)
+    }
+    return freqs
 }
 
 /**
+ * Return a single-octave scale starting from a frequency.
+ * 
  * @param {Number} tonic Start frequency
  * @param {object} opts
  * @param {Number} opts.tonality
@@ -78,6 +119,28 @@ export function scaleFreqs(tonic, opts = {}) {
     return freqs
 }
 
+
+/**
+ * Get frequency for scale degree (0-11) and octave (0-8).
+ * 
+ * @param {Number} degree The scale degree, 0-11.
+ * @param {Number} octave The octave, 0-8, default 4.
+ * @return {Number} The frequency
+ */
+export function freqAtDegree(degree, octave = undefined) {
+    if (octave === undefined) {
+        octave = 4
+    }
+    const o = OCTAVES[octave]
+    if (!o) {
+        throw new ValueError(`Invalid octave ${octave}`)
+    }
+    const freq = o[degree]
+    if (!freq) {
+        throw new ValueError(`Invalid degree ${degree}`)
+    }
+    return freq
+}
 /**
  * Adjust a frequency by a number of half-steps. 
  * 
@@ -117,17 +180,19 @@ function getFreqId(value) {
     return String(Math.floor(Number(value)))
 }
 
-class ValueError extends Error {}
 
 
-// Lock Tonality object.
-Object.entries(Tonality).forEach(([name, value]) => {
-    Object.defineProperty(Tonality, name, {
-        value,
-        enumerable: true,
-        writable: false,
+// Lock Enum objects.
+;[Tonality, Dir].forEach(Enum => {
+    Object.entries(Enum).forEach(([name, value]) => {
+        Object.defineProperty(Enum, name, {
+            value,
+            enumerable: true,
+            writable: false,
+        })
     })
 })
+
 Object.defineProperty(Tonality, 'AEOLIAN', {
     value: Tonality.NATURAL_MINOR,
     enumerable: false,

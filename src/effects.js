@@ -6,6 +6,10 @@
  * 
  * `Overdrive` class adapted from code by Nick Thompson.
  */
+import * as Music from './music.js'
+import * as Utils from './utils.js'
+
+const {ValueError} = Utils
 
 /**
  * Effects base class.
@@ -92,60 +96,60 @@ Compressor.Meta = {
     name: 'Compressor',
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 1.0,
             min: 0.0,
             max: 3.0,
-            default: 1.0,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         threshold: {
+            label: "Threshold",
+            type: "integer",
+            default: -50,
             min: -100,
             max: 0,
-            default: -50,
-            type: "integer",
             step: 1,
-            label: "Threshold",
             unit: "dB",
             help: "decibel value above which the compression will start taking effect"
         },
         knee: {
+            label: "Knee",
+            type: "float",
+            default: 40.0,
             min: 0.0,
             max: 40.0,
-            default: 40.0,
-            type: "float",
             step: 0.1,
-            label: "Knee",
             unit: "dB",
             help: "decibel range above the threshold where the curve smoothly transitions to the compressed portion",
         },
         ratio: {
+            label: "Ratio",
+            type: "float",
+            default: 12.0,
             min: 1.0,
             max: 20.0,
-            default: 12.0,
-            type: "float",
             step: 0.1,
-            label: "Ratio",
             unit: 'dB',
             help: "amount of change, in dB, needed in the input for a 1 dB change in the output",
         },
         attack: {
+            label: "Attack",
+            type: "float",
+            default: 0.0,
             min: 0.0,
             max: 1.0,
-            default: 0.0,
-            type: "float",
             step: 0.01,
-            label: "Attack",
             unit: 's',
             help: "the amount of time, in seconds, required to reduce the gain by 10 dB",
         },
         release: {
+            label: "Release",
+            type: "float",
+            default: 0.25,
             min: 0.0,
             max: 1.0,
-            default: 0.25,
-            type: "float",
             step: 0.01,
-            label: "Release",
             unit: 's',
             help: "the amount of time, in seconds, required to increase the gain by 10 dB",
         },
@@ -188,29 +192,29 @@ Lowpass.Meta = {
     name: 'Lowpass',
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 1.0,
             min: 0.0,
             max: 3.0,
-            default: 1.0,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         cutoff: {
+            label: "Cutoff",
+            type: "integer",
+            default: 1000,
             min: 40,
             max: 3000,
-            default: 1000,
-            type: "integer",
             step: 1,
-            label: "Cutoff",
             unit: 'Hz',
         },
         quality: {
+            label: "Quality",
+            type: "integer",
+            default: 1,
             min: 0,
             max: 10,
-            default: 1,
-            type: "integer",
             step: 1,
-            label: "Quality",
         },
     },
 }
@@ -251,29 +255,29 @@ Highpass.Meta = {
     name: 'Highpass',
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 1.0,
             min: 0.0,
             max: 3.0,
-            default: 1.0,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         cutoff: {
+            label: "Cutoff",
+            type: "integer",
+            default: 100,
             min: 40,
             max: 2000,
-            default: 100,
-            type: "integer",
             step: 1,
-            label: "Cutoff",
             unit: 'Hz',
         },
         quality: {
+            label: "Quality",
+            type: "integer",
+            default: 1,
             min: 0,
             max: 10,
-            default: 1,
-            type: "integer",
             step: 1,
-            label: "Quality",
         },
     },
 }
@@ -314,29 +318,29 @@ Delay.Meta = {
     name: 'Delay',
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 1.0,
             min: 0.0,
             max: 3.0,
-            default: 1.0,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         delayTime: {
+            label: "Time",
+            type: "float",
+            default: 0.5,
             min: 0.0,
             max: 1.0,
-            default: 0.5,
-            type: "float",
             step: 0.01,
-            label: "Time",
             unit: 's',
         },
         feedback: {
+            label: "Feedback",
+            type: "float",
+            default: 0.5,
             min: 0.0,
             max: 1.0,
-            default: 0.5,
-            type: "float",
             step: 0.01,
-            label: "Feedback",
         },
     }
 }
@@ -384,28 +388,28 @@ Distortion.Meta = {
     name: "Distortion",
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 1.2,
             min: 1.0,
             max: 3.0,
-            default: 1.2,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         drive: {
+            label: "Drive",
+            type: "float",
+            default: 0.4,
             min: 0.0,
             max: 1.0,
-            default: 0.4,
-            type: "float",
             step: 0.01,
-            label: "Drive",
         },
         feedback: {
+            label: "Feedback",
+            type: "float",
+            default: 0.0,
             min: 0.0,
             max: 1.0,
-            default: 0.0,
-            type: "float",
             step: 0.01,
-            label: "Feedback",
         },
     }
 }
@@ -496,52 +500,52 @@ Overdrive.Meta = {
     name: "Overdrive",
     params: {
         gain: {
+            label: "Gain",
+            type: "float",
+            default: 2.0,
             min: 1.0,
             max: 3.0,
-            default: 2.0,
-            type: "float",
             step: 0.01,
-            label: "Gain",
         },
         drive: {
+            label: "Drive",
+            type: "float",
+            default: 0.5,
             min: 0.0,
             max: 1.0,
-            default: 0.5,
-            type: "float",
             step: 0.01,
-            label: "Drive",
         },
         feedback: {
+            label: "Feedback",
+            type: "float",
+            default: 0.0,
             min: 0.0,
             max: 1.0,
-            default: 0.0,
-            type: "float",
             step: 0.01,
-            label: "Feedback",
         },
         color: {
+            label: "Color",
+            type: "integer",
+            default: 800,
             min: 0,
             max: 22050,
-            default: 800,
-            type: "integer",
             step: 1,
-            label: "Color",
         },
         preBand: {
+            label: "Pre-band",
+            type: "float",
+            default: 0.5,
             min: 0,
             max: 1.0,
-            default: 0.5,
-            type: "float",
             step: 0.01,
-            label: "Pre-band",
         },
         postCut: {
+            label: "Post-cut",
+            type: "integer",
+            default: 3000,
             min: 0,
             max: 22050,
-            default: 3000,
-            type: "integer",
             step: 1,
-            label: "Post-cut",
             unit: 'Hz',
         },
     },
@@ -559,7 +563,7 @@ Overdrive.Meta = {
  * @param {AudioNode} output The output node.
  * @param {AudioNode[]} chain The effects chain.
  */
- export function initChain(input, output, chain) {
+export function initChain(input, output, chain) {
 
     const {context} = input
     input.receiver = input
@@ -615,6 +619,184 @@ Overdrive.Meta = {
             node.receiver.connect(node.next.receiver)
         }
     })
+}
+
+
+const LOOKAHEAD = 25.0
+
+/**
+ * Scale oscillator.
+ */
+export class ScaleSample extends EffectsNode {
+
+    /**
+     * @param {AudioContext} context
+     * @param {object} opts
+     * @param {Number} opts.tonality
+     * @param {Number} opts.degree
+     * @param {Number} opts.octave
+     * @param {Number} opts.duration
+     * @param {Number} opts.direction
+     * @param {Boolean} opts.loop
+     * @param {Boolean} opts.shuffle
+     */
+    constructor(context, opts = {}) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+
+        this._schedule = this._schedule.bind(this)
+        this._state = {
+            /** @type {Number[]} */
+            sample: null,
+            /** @type {Boolean} */
+            playing: false,
+            /** @type {OscillatorNode} */
+            osc: null,
+            /** @type {Number} */
+            nextTime: null,
+            /** @type {Number} */
+            stopId: null,
+            /** @type {Number} */
+            scheduleId: null,
+        }
+        const p = {}
+        Object.defineProperties(this, Object.fromEntries(
+            Object.entries(this.meta.params).map(([name, def]) => {
+                const cast = def.type === 'boolean' ? Boolean : Number
+                return [
+                    name,
+                    paramProp(() => p[name], value => {
+                        value = cast(value)
+                        const reset = value !== p[name] && this._state.playing
+                        p[name] = value
+                        if (reset) {
+                            this.play()
+                        }
+                    })
+                ]
+            })
+        ))
+
+        this.update(opts)
+    }
+
+    /** @type {Boolean} */
+    get playing() {
+        return Boolean(this._state.playing)
+    }
+
+    /**
+     * Stop playing.
+     */
+    stop() {
+        const state = this._state
+        if (!state.playing) {
+            return
+        }
+        state.playing = false
+        state.osc.stop()
+        state.osc.disconnect()
+        state.osc = null
+        clearTimeout(state.stopId)
+        clearTimeout(state.scheduleId)
+    }
+
+    /**
+     * Start/restart playing.
+     */
+    play() {
+        this.stop()
+        const state = this._state
+        const opts = {
+            octave: this.octave.value,
+            tonality: this.tonality.value,
+            direction: this.direction.value,
+            loop: this.loop.value,
+            shuffle: this.shuffle.value,
+        }
+        state.sample = Music.scaleSample(this.degree.value, opts)
+        state.osc = new OscillatorNode(this.context)
+        state.nextTime = this.context.currentTime
+        state.playing = true
+        this._schedule()
+        state.osc.connect(this.output)
+        state.osc.start()
+    }
+
+    _schedule() {
+        const state = this._state
+        const {osc, sample} = state
+        const loop = this.loop.value
+        const dur = this.duration.value
+        const sampleDur = sample.length * dur
+        while (this.context.currentTime + sampleDur > state.nextTime) {
+            sample.forEach(freq => {
+                osc.frequency.setValueAtTime(freq, state.nextTime)
+                state.nextTime += dur
+            })
+            if (!loop) {
+                break
+            }
+        }
+        if (loop) {
+            state.scheduleId = setTimeout(this._schedule, LOOKAHEAD)
+        } else {
+            // smooth shutoff
+            osc.frequency.setValueAtTime(0, state.nextTime)
+            const stopTime = sampleDur * 1000 + LOOKAHEAD
+            state.stopId = setTimeout(() => this.stop(), stopTime)
+        }
+    }
+}
+
+ScaleSample.Meta = {
+    name: 'ScaleSample',
+    params: {
+        tonality: {
+            label: 'Tonality',
+            type: 'enum',
+            default: Music.Tonality.MAJOR,
+            values: Utils.flip(Music.Tonality),
+        },
+        degree: {
+            label: 'Degree',
+            type: 'enum',
+            default: 0,
+            values: Music.DegLabels,
+        },
+        octave: {
+            label: 'Octave',
+            type: 'integer',
+            default: 4,
+            min: 1,
+            max: 7,
+            step: 1,
+        },
+        duration: {
+            label: 'Duration',
+            type: 'float',
+            default: 0.25,
+            min: 0.01,
+            max: 1.0,
+            step: 0.01,
+        },
+        direction: {
+            label: 'Direction',
+            type: 'enum',
+            default: Music.Dir.ASCEND,
+            values: Utils.flip(Music.Dir),
+        },
+        loop: {
+            label: 'Loop',
+            type: 'boolean',
+            default: false,
+        },
+        shuffle: {
+            label: 'Shuffle',
+            type: 'boolean',
+            default: false,
+        }
+    }
 }
 
 /**

@@ -136,6 +136,24 @@ export function paramWidget(id, param, def) {
                     .appendTo($meterTd)
             }
             break
+        case 'enum':
+            let {values} = def
+            if (Array.isArray(values)) {
+                values = Object.fromEntries(values.map(v => [v, v]))
+            }
+            let $select = $('<select/>')
+                .attr({id})
+                .data({param, def})
+                .appendTo($inputTd)
+            Object.entries(values).forEach(([value, text]) => {
+                $('<option/>')
+                    .attr({value})
+                    .text(text)
+                    .prop('selected', value == def.default)
+                    .appendTo($select)
+            })
+            $select.val(def.default)
+            break
         default:
             $.error(`Unsupported param type: ${def.type}`)
     }
