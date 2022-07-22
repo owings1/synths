@@ -1,0 +1,74 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>Scale Demo</title>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="../demo.css">
+        <script type="module" src="./example.js"></script>
+    </head>
+    <body>
+        <h1>Scale Demo</h1>
+        <div id="mixer-wrapper"></div>
+        <section id="scale" class="node">
+            <h2>Scale</h2>
+            <button id="play">Play</button>
+            <button id="stop">Stop</button>
+            <table>
+                <tr>
+                    <td><label for="scale-tonality">Tonality</label></td>
+                    <td>
+                        <select id="scale-tonality">
+                            <option value="1">Major</option>
+                            <option value="2">Minor</option>
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="scale-degree">Degree</label></td>
+                    <td>
+                        <select id="scale-degree">
+                            <option value="0">C</option>
+                            <option value="1">C#</option>
+                            <option value="2">D</option>
+                            <option value="3">D#</option>
+                            <option value="4">E</option>
+                            <option value="5">F</option>
+                            <option value="6">F#</option>
+                            <option value="7">G</option>
+                            <option value="8">G#</option>
+                            <option value="9">A</option>
+                            <option value="10">A#</option>
+                            <option value="11">B</option>
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="scale-octave">Octave</label></td>
+                    <td>
+                        <select id="scale-octave">
+                            <option>1</option>
+                            <option>2</option>
+                            <option>3</option>
+                            <option selected>4</option>
+                            <option>5</option>
+                            <option>6</option>
+                            <option>7</option>
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><label for="scale-noteDuration">Duration</label></td>
+                    <td>
+                        <input id="scale-noteDuration" value="0.5" type="range" min="0.01" max="5.0" step="0.01">
+                    </td>
+                    <td>
+                        <span id="scale-noteDuration-meter" class="meter"></span><span class="unit">s</span>
+                    </td>
+                </tr>
+            </table>
+        </section>
+    </body>
+</html>

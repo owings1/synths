@@ -6,6 +6,55 @@
  */
 import * as Utils from './utils.js'
 
+export const MAJOR = 1
+export const MINOR = 2
+/**
+ * Get frequency for scale degree (0-11) and octave (0-8).
+ * 
+ * @param {Number} degree The scale degree, 0-11.
+ * @param {Number} octave The octave, 0-8, default 4.
+ * @return {Number} The frequency
+ */
+export function freqAtDegree(degree, octave = 4) {
+    const o = OCTAVES[octave]
+    if (!o) {
+        throw new ValueError(`Invalid octave ${octave}`)
+    }
+    const freq = o[degree]
+    if (!freq) {
+        throw new ValueError(`Invalid degree ${degree}`)
+    }
+    return freq
+}
+
+function scaleIntervals(tonality = MAJOR) {
+    switch (tonality) {
+        case MAJOR:
+            return [2, 2, 1, 2, 2, 2, 1]
+        case MINOR:
+            return [2, 1, 2, 2, 1, 2, 2]
+        default:
+            throw new ValueError(`Unknown tonality: ${tonality}`)
+    }
+}
+
+export function scaleFreqs(tonic, {tonality = MAJOR, ...opts}) {
+    tonic = stepFreq(tonic, 0, opts)
+    if (!tonic) {
+        throw new ValueError(`Invalid frequency: ${tonic}`)
+    }
+    const freqs = [tonic]
+    let freq = tonic
+    console.log({tonality})
+    scaleIntervals(tonality).forEach((degrees, i) => {
+        freq = stepFreq(freq, degrees, {strict: true})
+        if (!freq) {
+            throw new ValueError(`Scale out of bounds`)
+        }
+        freqs.push(freq)
+    })
+    return freqs
+}
 /**
  * Adjust a frequency by a number of half-steps. 
  * 
@@ -16,7 +65,7 @@ import * as Utils from './utils.js'
  * @param {Boolean} strict Do not adjust base to closest known frequency.
  * @return {Number|undefined} The frequency, or undefined if out of range.
  */
-export function stepFreq(base, degrees = 0, strict = false) {
+export function stepFreq(base, degrees = 0, {strict = false}) {
     let baseData = FREQS_DATA[getFreqId(base)]
     if (!baseData && !strict) {
         baseData = FREQS_DATA[getFreqId(closestFreq(base))]
@@ -44,6 +93,8 @@ export function closestFreq(target) {
 function getFreqId(value) {
     return String(Math.floor(Number(value)))
 }
+
+class ValueError extends Error {}
 
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],

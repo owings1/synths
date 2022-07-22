@@ -77,12 +77,14 @@ $(() => {
         .addClass('meter')
         .text(osc.frequency.value.toFixed(2))
         .data({param: osc.frequency})
+
     Object.entries(effects).forEach(([id, node]) => {
         const {params, name} = node.meta
         $(Widgets.nodeWidget(id, node, {params, title: name}))
             .addClass('fxnode inactive')
             .appendTo('#effects')
     })
+
     $('#mixer').addClass('fx1')
     $('#oscillator').addClass('fx2')
     $('#distortion').addClass('fx3')
