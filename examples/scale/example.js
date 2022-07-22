@@ -12,29 +12,29 @@ import * as Widgets from '../../src/widgets.js'
 
 const context = new AudioContext()
     
-const main = new GainNode(context)
+const volume = new GainNode(context)
+volume.gain.value = 0.5
 
 const mixer = [
     {
-        name: 'main',
-        label: 'Main',
-        param: main.gain,
+        name: 'volume',
+        label: 'Volume',
+        param: volume.gain,
     },
 ]
 
-main.connect(context.destination)
+volume.connect(context.destination)
 
 const noteDuration = {
-    _value: 0.25,
-    get value() { return this._value },
-    set value(value) { this._value = Number(value)},
+    value: 0.25
 }
 
 $(() => {
     $('#mixer-wrapper')
-        .append(Widgets.mixerWidget('mixer', 'Mixer', mixer))
+        .append(Widgets.mixerWidget('mixer', null, mixer))
     $('#scale-noteDuration, #scale-noteDuration-meter')
         .data({param: noteDuration})
+    $('#scale-noteDuration').val(noteDuration.value)
     $('#mixer').addClass('fx1')
     $('#scale').addClass('fx2')
     $(document).on({click, change})
@@ -57,25 +57,30 @@ function stop() {
 }
 function play() {
     if (playing) {
-        return
+        stop()
     }
     osc = new OscillatorNode(context)
-    const start = context.currentTime
+    const param = osc.frequency
     const dur = Number(noteDuration.value)
-    const tonality = Number($('#scale-tonality').val())
-    const degree = Number($('#scale-degree').val())
-    const octave = Number($('#scale-octave').val())
-    const tonic = Music.freqAtDegree(degree, octave)
+    const tonic = Music.freqAtDegree(
+        $('#scale-degree').val(),
+        $('#scale-octave').val(),
+    )
+    const tonality = $('#scale-tonality').val()
     const freqs = Music.scaleFreqs(tonic, {tonality})
-    console.log({tonality, degree, octave, tonic, freqs})
-    let time = start
+    Music.scaleFreqs(freqs.pop(), {tonality, descend: true})
+        .forEach(freq => freqs.push(freq))
 
+    const start = context.currentTime
+    let time = start
     freqs.forEach(freq => {
-        osc.frequency.setValueAtTime(freq, time)
+        param.setValueAtTime(freq, time)
         time += dur
     })
+    param.setValueAtTime(0, time)
+    time += dur
     playing = true
-    osc.connect(main)
+    osc.connect(volume)
     osc.start()
     stopId = setTimeout(stop, (time - start) * 1000)
 }
@@ -132,7 +137,6 @@ function updateMeters() {
     $('.meter').each(function() {
         const $meter = $(this)
         const {def, param} = $meter.data()
-        console.log(param)
         if (!param) {
             return
         }

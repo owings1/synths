@@ -84,6 +84,14 @@ th:last-child {
     text-align: right;
 }
 
+select {
+    position: absolute;
+    margin-top: -25px;
+    height: 50px;
+    font-size: 25px;
+    padding: 10px;
+    margin-left: 5px;
+}
 input[type="checkbox"] {
     height: 50px;
     width: 50px;

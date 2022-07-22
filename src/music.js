@@ -6,8 +6,19 @@
  */
 import * as Utils from './utils.js'
 
-export const MAJOR = 1
-export const MINOR = 2
+export const Tonality = {
+    MAJOR: 1,
+    NATURAL_MINOR: 2,
+    HARMONIC_MINOR: 3,
+    MELODIC_MINOR: 4,
+    DIMINISHED: 5,
+    AUGMENTED: 6,
+    WHOLE_TONE: 7,
+    PROMETHEUS: 8,
+    BLUES: 9,
+    TRITONE: 10,
+}
+
 /**
  * Get frequency for scale degree (0-11) and octave (0-8).
  * 
@@ -27,27 +38,33 @@ export function freqAtDegree(degree, octave = 4) {
     return freq
 }
 
-function scaleIntervals(tonality = MAJOR) {
-    switch (tonality) {
-        case MAJOR:
-            return [2, 2, 1, 2, 2, 2, 1]
-        case MINOR:
-            return [2, 1, 2, 2, 1, 2, 2]
-        default:
-            throw new ValueError(`Unknown tonality: ${tonality}`)
-    }
-}
-
-export function scaleFreqs(tonic, {tonality = MAJOR, ...opts}) {
+/**
+ * @param {Number} tonic Start frequency
+ * @param {object} opts
+ * @param {Number} opts.tonality
+ * @param {Boolean} opts.descend
+ * @param {Boolean} opts.strict Fail for unknown tonic frequency.
+ */
+export function scaleFreqs(tonic, opts = {}) {
+    opts = opts || {}
     tonic = stepFreq(tonic, 0, opts)
     if (!tonic) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
-    const freqs = [tonic]
+    let {tonality, descend} = opts
+    if (Number.isInteger(Tonality[tonality])) {
+        tonality = Tonality[tonality]
+    }
+    const base = SCALE_INTERVALS[tonality || Tonality.MAJOR]
+    if (!base) {
+        throw new ValueError(`Invalid tonality: ${tonality}`)
+    }
+    const intervals = base[Number(Boolean(descend))]
     let freq = tonic
-    console.log({tonality})
-    scaleIntervals(tonality).forEach((degrees, i) => {
-        freq = stepFreq(freq, degrees, {strict: true})
+    const dir = descend ? -1 : 1
+    const freqs = [tonic]
+    intervals.forEach((degrees, i) => {
+        freq = stepFreq(freq, dir * degrees, {strict: true})
         if (!freq) {
             throw new ValueError(`Scale out of bounds`)
         }
@@ -55,6 +72,7 @@ export function scaleFreqs(tonic, {tonality = MAJOR, ...opts}) {
     })
     return freqs
 }
+
 /**
  * Adjust a frequency by a number of half-steps. 
  * 
@@ -95,6 +113,40 @@ function getFreqId(value) {
 }
 
 class ValueError extends Error {}
+
+
+// Lock Tonality object.
+Object.entries(Tonality).forEach(([name, value]) => {
+    Object.defineProperty(Tonality, name, {
+        value,
+        enumerable: true,
+        writable: false,
+    })
+})
+
+/**
+ * Scale intervals, value is a pair of arrays [ascending, descending].
+ * The descending array is generated from the reverse of the ascending,
+ * unless it is directly given here.
+ */
+const SCALE_INTERVALS = Object.fromEntries([
+    [Tonality.MAJOR, [[2, 2, 1, 2, 2, 2, 1]]],
+    [Tonality.NATURAL_MINOR, [[2, 1, 2, 2, 1, 2, 2]]],
+    [Tonality.HARMONIC_MINOR, [[2, 1, 2, 2, 1, 3, 1]]],
+    [Tonality.MELODIC_MINOR, [[2, 1, 2, 2, 2, 2, 1], [2, 2, 1, 2, 2, 1, 2]]],
+    [Tonality.DIMINISHED, [[1, 2, 1, 2, 1, 2, 1, 2]]],
+    [Tonality.WHOLE_TONE, [[2, 2, 2, 2, 2, 2]]],
+    [Tonality.AUGMENTED, [[3, 1, 3, 1, 3, 1]]],
+    [Tonality.PROMETHEUS, [[2, 2, 2, 3, 1, 2]]],
+    [Tonality.BLUES, [[3, 2, 1, 1, 3, 2]]],
+    [Tonality.TRITONE, [[1, 3, 2, 1, 3, 2]]],
+])
+
+Object.values(SCALE_INTERVALS).forEach(arr => {
+    if (arr.length === 1) {
+        arr.push(arr[0].slice(0).reverse())
+    }
+})
 
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],
