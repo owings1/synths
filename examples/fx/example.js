@@ -17,6 +17,11 @@ const dry = new GainNode(context)
 const fxsend = new GainNode(context)
 const fxout = new GainNode(context)
 
+const dry1 = new GainNode(context)
+const dry2 = new GainNode(context)
+const fxsend1 = new GainNode(context)
+const fxsend2 = new GainNode(context)
+
 const mixer = [
     {
         name: 'main',
@@ -24,14 +29,24 @@ const mixer = [
         param: main.gain,
     },
     {
-        name: 'dry',
-        label: 'Dry',
-        param: dry.gain,
+        name: 'dry1',
+        label: 'Dry 1',
+        param: dry1.gain,
     },
     {
-        name: 'fxsend',
-        label: 'FX Send',
-        param: fxsend.gain,
+        name: 'dry2',
+        label: 'Dry 2',
+        param: dry2.gain,
+    },
+    {
+        name: 'fxsend1',
+        label: 'FX Send 1',
+        param: fxsend1.gain,
+    },
+    {
+        name: 'fxsend2',
+        label: 'FX Send 2',
+        param: fxsend2.gain,
     },
     {
         name: 'fxout',
@@ -41,9 +56,19 @@ const mixer = [
 ]
 
 const osc = new OscillatorNode(context, {frequency: 440})
+const scale = new Effects.ScaleSample(context)
 
-osc.connect(dry)
-osc.connect(fxsend)
+osc.connect(dry1)
+osc.connect(fxsend1)
+
+scale.connect(dry2)
+scale.connect(fxsend2)
+
+dry1.connect(dry)
+dry2.connect(dry)
+fxsend1.connect(fxsend)
+fxsend2.connect(fxsend)
+
 dry.connect(main)
 fxout.connect(main)
 main.connect(context.destination)
@@ -71,29 +96,46 @@ $(() => {
         .append(Widgets.mixerWidget('mixer', 'Mixer', mixer))
     $('#oscillator-intervals')
         .append(Widgets.intervalButtons('oscillator-interval'))
+        .on('click', '[name="oscillator-interval"]', e => {
+            const $target = $(e.target)
+            const param = osc.frequency
+            param.value = Music.stepFreq(param.value, $target.val()) || param.value
+            $('#oscillator-frequency-meter').text(param.value.toFixed(2))
+        })
     $('#oscillator-type')
         .controlgroup()
+        .on('change', e => osc.type = $(e.target).val())
     $('#oscillator-frequency-meter')
         .addClass('meter')
         .text(osc.frequency.value.toFixed(2))
-        .data({param: osc.frequency})
+
+    Widgets.nodeWidget('scale', scale, {
+        title: 'Scale Sample',
+        params: scale.meta.params
+    }).appendTo('#effects')
+
+    $('<button/>').attr({id: 'scale-stop'}).text('Stop').appendTo('#scale')
+    $('<button/>').attr({id: 'scale-play'}).text('Play').appendTo('#scale')
+    $('#scale-play').on({click: () => scale.play()})
+    $('#scale-stop').on({click: () => scale.stop()})
 
     Object.entries(effects).forEach(([id, node]) => {
         const {params, name} = node.meta
         $(Widgets.nodeWidget(id, node, {params, title: name}))
-            .addClass('fxnode inactive')
+            .addClass('inactive')
             .appendTo('#effects')
     })
 
     $('#mixer').addClass('fx1')
     $('#oscillator').addClass('fx2')
+    $('#scale').addClass('fx5')
     $('#distortion').addClass('fx3')
     $('#overdrive').addClass('fx4')
     $('#delay').addClass('fx5')
     $('#lowpass').addClass('fx6')
     $('#highpass').addClass('fx6')
     $('#compressor').addClass('fx2')
-    $(document).on({click, change})
+    $(document).on({click})
     $('button').button()
 })
 
@@ -113,77 +155,4 @@ function click(e) {
             $target.button({disabled: true})
             return
     }
-    const name = $target.attr('name')
-    if (!name) {
-        return
-    }
-    const value = $target.val()
-    switch (name) {
-        case 'oscillator-interval':
-            let param = osc.frequency
-            param.value = Music.stepFreq(param.value, value) || param.value
-            updateMeters()
-            break
-    }
-}
-
-/**
- * Change event handler.
- * 
- * @param {Event} e
- */
-function change(e) {
-    const $target = $(e.target)
-    const node = Activators[$target.attr('id')]
-    if (node) {
-        const active = $target.is(':checked')
-        node.active = active
-        $target.closest('.fxnode')
-            .toggleClass('active', active)
-            .toggleClass('inactive', !active)
-        return
-    }
-    const value = $target.val()
-    const {param} = $target.data()
-    if (param) {
-        if ($target.is(':checkbox')) {
-            param.value = $target.is(':checked')
-        } else {
-            param.value = value
-        }
-        updateMeters()
-        return
-    }
-    const name = $target.attr('name')
-    switch (name) {
-        case 'oscillator-type':
-            osc.type = value
-            return
-    }
-}
-
-/**
- * Update meter text values.
- */
-function updateMeters() {
-    $('.meter').each(function() {
-        const $meter = $(this)
-        const {def, param} = $meter.data()
-        if (!param) {
-            return
-        }
-        const {type} = def || {}
-        const {value} = param
-        let text
-        switch (type) {  
-            case 'integer':
-                text = Number(value).toFixed(0)
-                break
-            case 'float':
-            default:
-                text = Number(value).toFixed(2)
-                break
-        }
-        $meter.text(text)
-    })
 }

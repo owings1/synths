@@ -40,38 +40,6 @@ $(() => {
     $('#mixer').addClass('fx1')
     $('#scale').addClass('fx2')
 
-    $(document).on({change})
     $('button').button()
 
-    updateMeters()
 })
-
-/**
- * Change event handler.
- * 
- * @param {Event} e
- */
-function change(e) {
-    const $target = $(e.target)
-    const {param} = $target.data()
-    if (param) {
-        if ($target.is(':checkbox')) {
-            param.value = $target.is(':checked')
-        } else {
-            param.value = $target.val()
-        }
-        updateMeters()
-    }
-}
-
-/**
- * Update meter text values.
- */
-function updateMeters() {
-    $('.meter').each(function() {
-        const {update} = $(this).data()
-        if (update) {
-            update()
-        }
-    })
-}

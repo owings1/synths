@@ -148,10 +148,13 @@ export function freqAtDegree(degree, octave = undefined) {
  *   to get a valid value. If a valid value is not found, and `strict` is not
  *   specified, the closest frequency is used.
  * @param {Number} degrees The number of half-steps (+/-).
- * @param {Boolean} strict Do not adjust base to closest known frequency.
+ * @param {object} opts
+ * @param {Boolean} opts.strict Do not adjust base to closest known frequency.
  * @return {Number|undefined} The frequency, or undefined if out of range.
  */
-export function stepFreq(base, degrees = 0, {strict = false}) {
+export function stepFreq(base, degrees = 0, opts = {}) {
+    opts = opts || {}
+    const strict = Boolean(opts.strict)
     let baseData = FREQS_DATA[getFreqId(base)]
     if (!baseData && !strict) {
         baseData = FREQS_DATA[getFreqId(closestFreq(base))]

@@ -720,6 +720,7 @@ export class ScaleSample extends EffectsNode {
         state.playing = true
         this._schedule()
         state.osc.connect(this.output)
+        this.output.gain.value = 1
         state.osc.start()
     }
 
@@ -742,12 +743,17 @@ export class ScaleSample extends EffectsNode {
             state.scheduleId = setTimeout(this._schedule, LOOKAHEAD)
         } else {
             // smooth shutoff
-            osc.frequency.setValueAtTime(0, state.nextTime)
-            const stopTime = sampleDur * 1000 + LOOKAHEAD
+            // this.output.gain.exponentialRampToValueAtTime(0.0, state.nextTime)
+            // state.osc.frequency.cancelScheduledValues(state.nextTime)
+            this.output.gain.setValueAtTime(0.0, state.nextTime)
+            // osc.frequency.setValueAtTime(0, state.nextTime)
+            const stopTime = sampleDur * 1000 + LOOKAHEAD * 5
             state.stopId = setTimeout(() => this.stop(), stopTime)
         }
     }
 }
+
+ScaleSample.prototype.start = ScaleSample.prototype.play
 
 ScaleSample.Meta = {
     name: 'ScaleSample',

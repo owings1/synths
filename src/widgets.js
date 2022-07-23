@@ -47,11 +47,9 @@ export function mixerWidget(id, title, infos) {
 export function nodeWidget(id, node, opts) {
     const {params, title} = opts
     const $section = $('<section/>').attr({id}).addClass('node')
-    // Heading
     if (title) {
         $('<h2/>').text(title).appendTo($section)
     }
-    // Table
     const $table = $('<table/>').appendTo($section)
     // Active checkbox
     if (node.active !== undefined) {
@@ -59,12 +57,16 @@ export function nodeWidget(id, node, opts) {
             [id, 'active'].join('-'),
             {
                 get value() {return node.active},
-                set value(v) { node.active = v },
+                set value(v) {
+                    node.active = v
+                    $section
+                        .toggleClass('active', node.active)
+                        .toggleClass('inactive', !node.active)
+                },
             },
             {label: 'Active', type: 'boolean'},
         ))
     }
-    // Params
     Object.entries(params).forEach(([name, def]) => {
         const paramId = [id, name].join('-')
         const param = node[name]
@@ -102,8 +104,10 @@ export function paramWidget(id, param, def) {
             $('<input/>')
                 .attr({id, type: 'checkbox'})
                 .prop('checked', Boolean(value))
-                .data({param, def})
                 .appendTo($inputTd)
+                .on('change', function() {
+                    param.value = $(this).is(':checked')
+                })
             break
         case 'integer':
         case 'float':
@@ -113,25 +117,19 @@ export function paramWidget(id, param, def) {
             $('<input/>')
                 .attr({id, type: 'range', value, min, max, step})
                 .val(value)
-                .data({param, def})
                 .appendTo($inputTd)
+                .on('change', function () {
+                    param.value = $(this).val()
+                    $(`#${id}-meter`).text(Number(param.value).toFixed(fixed))
+                })
             $('<span/>')
                 .attr({id: `${id}-meter`})
                 .addClass('meter')
-                .data({
-                    param,
-                    def,
-                    update: () => {
-                        $(`#${id}-meter`)
-                            .text(Number(param.value).toFixed(fixed))
-                    }
-                })
                 .text(display)
                 .appendTo($meterTd)
             if (unit) {
                 $('<span/>')
                     .addClass('unit')
-                    .data({unit})
                     .text(unit)
                     .appendTo($meterTd)
             }
@@ -143,8 +141,10 @@ export function paramWidget(id, param, def) {
             }
             let $select = $('<select/>')
                 .attr({id})
-                .data({param, def})
                 .appendTo($inputTd)
+                .on('change', function() {
+                    param.value = $(this).val()
+                })
             Object.entries(values).forEach(([value, text]) => {
                 $('<option/>')
                     .attr({value})
@@ -198,5 +198,4 @@ export function intervalButtons(name) {
 
     }
     return $table
-    // return $div
 }
