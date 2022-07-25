@@ -21,7 +21,11 @@ export function mixerWidget(id, title, infos) {
         ({name, param}) => [name, param]
     ))
     const params = Object.fromEntries(
+
         infos.map(({name, label, min, max, step}) => {
+            if (label === undefined) {
+                label = name
+            }
             return [name, {
                 label,
                 type: 'float',
@@ -85,7 +89,7 @@ export function nodeWidget(id, node, opts = {}) {
 /**
  * @param {String} nodeId
  * @param {AudioNode|object} node
- * @param {object} $nodeWidget
+ * @param {object} $nodeWidget parent node jQuery object
  * @return {object} A jQuery object
  */
 function nodeActiveWidget(nodeId, node, $nodeWidget) {
@@ -103,10 +107,16 @@ function nodeActiveWidget(nodeId, node, $nodeWidget) {
                     .toggleClass('inactive', !node.active)
             },
         },
-        {label: 'Active', type: 'boolean'},
+        {type: 'boolean'},
     )
 }
 
+/**
+ * @param {String} nodeId
+ * @param {AudioNode|object} node
+ * @param {object} defs
+ * @return {object} A jQuery object
+ */
 function actionsWidget(nodeId, node, defs) {
     const $div = $('<div/>').addClass('actions')
     Object.entries(defs).forEach(([name, def]) => {
@@ -138,7 +148,10 @@ function actionsWidget(nodeId, node, defs) {
  */
 export function paramWidget(id, param, def) {
     const {value} = param
-    const {label, unit} = def
+    let {label, unit} = def
+    if (label === undefined) {
+        label = id.split('-').pop()
+    }
     const $tr = $('<tr/>').addClass('param')
     const $labelTd = $('<td/>').appendTo($tr)
     const $inputTd = $('<td/>').appendTo($tr)

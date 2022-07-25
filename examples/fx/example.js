@@ -10,6 +10,20 @@ import * as Music from '../../src/music.js'
 import * as Effects from '../../src/effects.js'
 import * as Widgets from '../../src/widgets.js'
 
+const styles = {
+    mixer: 'fx1',
+    oscillator: 'fx2',
+    scale: 'fx5',
+    reverb: 'fx4',
+    freeverb: 'fx1',
+    distortion: 'fx3',
+    overdrive: 'fx7',
+    delay: 'fx8',
+    lowpass: 'fx6',
+    highpass: 'fx6',
+    compressor: 'fx2',
+}
+
 const context = new AudioContext()
     
 const main = new GainNode(context)
@@ -34,14 +48,14 @@ const mixer = [
         param: dry1.gain,
     },
     {
-        name: 'dry2',
-        label: 'Dry 2',
-        param: dry2.gain,
-    },
-    {
         name: 'fxsend1',
         label: 'FX Send 1',
         param: fxsend1.gain,
+    },
+    {
+        name: 'dry2',
+        label: 'Dry 2',
+        param: dry2.gain,
     },
     {
         name: 'fxsend2',
@@ -54,28 +68,53 @@ const mixer = [
         param: fxout.gain,
     },
 ]
+mixer.forEach(({param}) => param.value = 0.5)
 
 const osc = new OscillatorNode(context, {frequency: 440})
 const scale = new Effects.ScaleSample(context)
 
-// osc.connect(dry1)
-// osc.connect(fxsend1)
-
-scale.connect(dry2)
-scale.connect(fxsend2)
+scale
+    .connect(dry2)
+    .connect(dry)
+    .connect(main)
+    .connect(context.destination)
+scale
+    .connect(fxsend2)
+    .connect(fxsend)
 
 dry1.connect(dry)
-dry2.connect(dry)
 fxsend1.connect(fxsend)
-fxsend2.connect(fxsend)
-
-dry.connect(main)
 fxout.connect(main)
-main.connect(context.destination)
+
+let oscPlaying
+let oscStarted
+
+function oscPlay() {
+    if (oscPlaying) {
+        return
+    }
+    oscPlaying = true
+    osc.connect(dry1)
+    osc.connect(fxsend1)
+    if (!oscStarted) {
+        osc.start()
+        oscStarted = true
+    }
+}
+
+function oscStop() {
+    if (!oscPlaying) {
+        return
+    }
+    oscPlaying = false
+    osc.disconnect()
+}
 
 const effects = {
     distortion: new Effects.Distortion(context),
     overdrive: new Effects.Overdrive(context),
+    reverb: new Effects.Reverb(context),
+    freeverb: new Effects.Freeverb(context),
     delay: new Effects.Delay(context),
     lowpass: new Effects.Lowpass(context),
     highpass: new Effects.Highpass(context),
@@ -84,85 +123,54 @@ const effects = {
 
 Effects.initChain(fxsend, fxout, Object.values(effects))
 
-// Checkbox IDs to node.
-const Activators = Object.fromEntries(
-    Object.entries(effects).map(
-        ([id, node]) => [[id, 'active'].join('-'), node]
-    )
-)
-
 $(() => {
+
     $('#mixer-wrapper')
         .append(Widgets.mixerWidget('mixer', 'Mixer', mixer))
-    $('#oscillator-intervals')
-        .append(Widgets.intervalButtons('oscillator-interval'))
-        .on('click', '[name="oscillator-interval"]', e => {
-            const $target = $(e.target)
-            const param = osc.frequency
-            param.value = Music.stepFreq(param.value, $target.val()) || param.value
-            $('#oscillator-frequency-meter').text(param.value.toFixed(2))
-        })
-    $('#oscillator-type')
-        .controlgroup()
-        .on('change', e => osc.type = $(e.target).val())
-    $('#oscillator-frequency-meter')
-        .addClass('meter')
-        .text(osc.frequency.value.toFixed(2))
+
+    oscillatorWidget('oscillator', osc)
 
     Widgets.nodeWidget('scale', scale).appendTo('#effects')
-
-    Object.entries(effects).forEach(([id, node]) => {
-        const {params, name} = node.meta
-        $(Widgets.nodeWidget(id, node, {params, title: name}))
-            .appendTo('#effects')
+    $.each(effects, (id, node) => {
+        Widgets.nodeWidget(id, node).appendTo('#effects')
     })
-
-    $('#mixer').addClass('fx1')
-    $('#oscillator').addClass('fx2')
-    $('#scale').addClass('fx5')
-    $('#distortion').addClass('fx3')
-    $('#overdrive').addClass('fx4')
-    $('#delay').addClass('fx5')
-    $('#lowpass').addClass('fx6')
-    $('#highpass').addClass('fx6')
-    $('#compressor').addClass('fx2')
-    $(document).on({click})
+    $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     $('button').button()
 })
 
-let oscPlaying
-let oscStarted
 /**
- * Click event handler.
- * 
- * @param {Event} e
+ * @param {String} id
+ * @param {OscillatorNode} node
  */
-function click(e) {
-    const $target = $(e.target)
-    const id = $target.attr('id')
-    switch (id) {
-        case 'start':
-            if (oscPlaying) {
-                break
-            }
-            oscPlaying = true
-            osc.connect(dry1)
-            osc.connect(fxsend1)
-            if (!oscStarted) {
-                osc.start()
-                oscStarted = true
-            }
-            $target.button({disabled: true})
-            $('#stop').button({disabled: false})
-            break
-        case 'stop':
-            if (!oscPlaying) {
-                break
-            }
-            oscPlaying = false
-            osc.disconnect()
-            $target.button({disabled: true})
-            $('#start').button({disabled: false})
+function oscillatorWidget(id, node) {
+    $(`#${id}-intervals`)
+        .append(Widgets.intervalButtons(`${id}-interval`))
+        .on('click', `[name="${id}-interval"]`, e => {
+            const $target = $(e.target)
+            const param = node.frequency
+            param.value = Music.stepFreq(param.value, $target.val())
+            $(`#${id}-frequency-meter`).text(param.value.toFixed(2))
+        })
+    $(`#${id}-type`)
+        .controlgroup()
+        .on('change', e => node.type = $(e.target).val())
+    $(`#${id}-frequency-meter`)
+        .addClass('meter')
+        .text(node.frequency.value.toFixed(2))
+    $(`#${id}-play`).on('click', function () {
+        if (oscPlaying) {
             return
-    }
+        }
+        oscPlay()
+        $(this).button({disabled: true})
+        $(`#${id}-stop`).button({disabled: false})
+    })
+    $(`#${id}-stop`).on('click', function () {
+        if (!oscPlaying) {
+            return
+        }
+        oscStop()
+        $(this).button({disabled: true})
+        $(`#${id}-play`).button({disabled: false})
+    })
 }

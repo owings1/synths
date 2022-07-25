@@ -223,3 +223,33 @@ input[type=range]::-webkit-slider-thumb {
 .fx6 input[type="checkbox"] {
     accent-color: var(--pink);
 }
+
+/*  */
+
+.fx7 {
+    background-color: var(--red);
+}
+
+.fx7 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--cyan);
+}
+.fx7 input[type="checkbox"] {
+    accent-color: var(--cyan);
+}
+
+/*  */
+
+.fx8 {
+    background-color: var(--black);
+    color: var(--white);
+}
+
+.fx8 input[type=range]::-webkit-slider-thumb {
+    background-color: var(--white);
+}
+.fx8 input[type="checkbox"] {
+    accent-color: var(--white);
+}
+.fx8 input[type=range]::-webkit-slider-runnable-track {
+    background-color: var(--lime);
+}

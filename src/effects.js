@@ -4,12 +4,33 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  * 
- * `Overdrive` class adapted from code by Nick Thompson.
+ * `Overdrive` class adapted from code by Nick Thompson
+ * `Freeverb` class adapted from code by Anton Miselaytes
  */
 import * as Music from './music.js'
 import * as Utils from './utils.js'
 
-const {ValueError} = Utils
+const symState = Symbol('state')
+const symSched = Symbol('sched')
+const symBuffs = Symbol('buffs')
+const symOutpt = Symbol('outpt')
+
+const DEG = Math.PI / 180
+const LOOKAHEAD = 25.0
+const STOPDELAY = LOOKAHEAD * 10
+const COMB_TUNINGS = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
+const ALLPASS_FREQS = [225, 556, 441, 341]
+
+const REVERB_SAMPLES = {
+    1: {
+        label: 'Greek 7 Echo Hall',
+        url: '../samples/reverb/Greek 7 Echo Hall.wav',
+    },
+    2: {
+        label: 'Narrow Bumpy Space',
+        url: '../samples/reverb/Narrow Bumpy Space.wav',
+    },
+}
 
 /**
  * Effects base class.
@@ -22,18 +43,18 @@ export class EffectsNode extends GainNode {
      */
     constructor(context, opts = {}) {
         super(context, opts)
-        this.output = new GainNode(context)
+        this[symOutpt] = new GainNode(context)
     }
 
     /**
      * @param {AudioNode} dest
      */
     connect(dest) {
-        return this.output.connect(dest)
+        return this[symOutpt].connect(dest)
     }
 
     disconnect(...args) {
-        this.output.disconnect(...args)
+        this[symOutpt].disconnect(...args)
     }
 
     /**
@@ -54,6 +75,221 @@ export class EffectsNode extends GainNode {
     get meta() {
         return this.constructor.Meta
     }
+}
+
+/**
+ * Freeverb algorithmic reverb
+ * 
+ * Adapted from code by Anton Miselaytes
+ * 
+ * https://github.com/miselaytes-anton/web-audio-experiments/
+ */
+export class Freeverb extends EffectsNode {
+
+    /**
+     * @param {AudioContext} context
+     * @param {object} opts
+     * @param {Number} opts.wet
+     * @param {Number} opts.dry
+     * @param {Number} opts.resonance
+     * @param {Number} opts.dampening
+     */
+    constructor(context, opts) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+        const input = new GainNode(context)
+        const wet = new GainNode(context)
+        const dry = new GainNode(context)
+        const combs = COMB_TUNINGS.map(value =>
+            new LowpassCombFilter(context, {delay: value / context.sampleRate})
+        )
+        Object.defineProperties(this, {
+            wet: {value: wet.gain},
+            dry: {value: dry.gain},
+            resonance: {value: fusedParam(combs.map(comb => comb.resonance))},
+            dampening: {value: fusedParam(combs.map(comb => comb.dampening))},
+        })
+        setOrigin(this, input)
+        const merger = new ChannelMergerNode(context, {numberOfInputs: 2})
+        const splitter = new ChannelSplitterNode(context, {numberOfOutputs: 2})
+        const combsMid = Math.floor(combs.length / 2)
+        const combLeft = combs.slice(0, combsMid)
+        const combRight = combs.slice(combsMid)
+        const passes = ALLPASS_FREQS.map(freq => {
+            const node = new BiquadFilterNode(context)
+            node.type = 'allpass'
+            node.frequency.value = freq
+            return node
+        })
+        input.connect(dry).connect(this[symOutpt])
+        input.connect(wet).connect(splitter)
+        combLeft.forEach(comb => {
+            splitter.connect(comb, 0).connect(merger, 0, 0)
+        })
+        combRight.forEach(comb => {
+            splitter.connect(comb, 1).connect(merger, 0, 1)
+        })
+        let node = merger
+        for (let i = 0; i < passes.length; i++) {
+            node = node.connect(passes[i])
+        }
+        node.connect(this[symOutpt])
+        this.update(opts)
+    }
+}
+
+Freeverb.Meta = {
+    name: 'Freeverb',
+    params: {
+        wet: {
+            type: "float",
+            default: 0.2,
+            min: 0.0,
+            max: 1.0,
+            step: 0.01,
+        },
+        dry: {
+            type: "float",
+            default: 1.0,
+            min: 0.0,
+            max: 3.0,
+            step: 0.01,
+        },
+        resonance: {
+            type: "float",
+            default: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.01,
+        },
+        dampening: {
+            type: "integer",
+            default: 1000,
+            min: 40,
+            max: 3000,
+            step: 1,
+            unit: 'Hz',
+        },
+    },
+}
+
+/**
+ * Comb filter for Freeverb
+ * 
+ * Adapted from code by Anton Miselaytes
+ * 
+ * https://github.com/miselaytes-anton/web-audio-experiments/
+ */
+class LowpassCombFilter extends EffectsNode {
+
+    constructor(context, opts) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+        const input = new GainNode(context)
+        const dn = new DelayNode(context)
+        const lp = new BiquadFilterNode(context)
+        const gn = new GainNode(context)
+        Object.defineProperties(this, {
+            delay: {value: dn.delayTime},
+            resonance: {value: gn.gain},
+            dampening: {value: lp.frequency},
+        })
+        setOrigin(this, input)
+            .connect(dn)
+            .connect(lp)
+            .connect(gn)
+            .connect(input)
+            .connect(this[symOutpt])
+        this.update(opts)
+    }
+}
+
+LowpassCombFilter.Meta = {
+    name: 'LowpassCombFilter',
+    params: {
+        delay: {
+            type: "float",
+            default: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.01,
+        },
+        resonance: {
+            type: "float",
+            default: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.01,
+        },
+        dampening: {
+            type: "integer",
+            default: 1000,
+            min: 40,
+            max: 3000,
+            step: 1,
+            unit: 'Hz',
+        },
+    }
+}
+
+/**
+ * Reverb effect using Convolver from audio sample
+ */
+export class Reverb extends EffectsNode {
+    /**
+     * @param {AudioContext} context
+     * @param {object} opts
+     * @param {Number} opts.intensity
+     */
+    constructor(context, opts) {
+        super(context)
+        opts = optsMerge(this.meta.params, opts)
+        const input = new GainNode(context)
+        const wet = new GainNode(context)
+        const cv = new ConvolverNode(context)
+        let sample
+        Object.defineProperties(this, {
+            intensity: {value: wet.gain},
+            sample: paramProp(() => sample, value => {
+                value = Number(value)
+                if (value !== sample) {
+                    let {url} = REVERB_SAMPLES[value]
+                    sample = value
+                    loadSample(context, url).then(buf =>{
+                        cv.buffer = buf
+                    })
+                }
+            })
+        })
+        setOrigin(this, input)
+            .connect(wet)
+            .connect(cv)
+            .connect(this[symOutpt])
+        input.connect(this[symOutpt]) // dry
+        this.update(opts)
+    }
+}
+
+Reverb.Meta = {
+    name: 'Reverb',
+    params: {
+        intensity: {
+            type: "float",
+            default: 0.1,
+            min: 0.0,
+            max: 6.0,
+            step: 0.01,
+        },
+        sample: {
+            type: 'enum',
+            default: 1,
+            values: Object.fromEntries(
+                Object.entries(REVERB_SAMPLES).map(
+                    ([key, {label}]) => [key, label]
+                )
+            )
+        }
+    },
 }
 
 /**
@@ -82,8 +318,7 @@ export class Compressor extends EffectsNode {
             attack: {value: cp.attack},
             release: {value: cp.release},
         })
-        setOrigin(this, cp)
-        cp.connect(this.output)
+        setOrigin(this, cp).connect(this[symOutpt])
         this.update(opts)
     }
 }
@@ -92,7 +327,6 @@ Compressor.Meta = {
     name: 'Compressor',
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 1.0,
             min: 0.0,
@@ -100,7 +334,6 @@ Compressor.Meta = {
             step: 0.01,
         },
         threshold: {
-            label: "Threshold",
             type: "integer",
             default: -50,
             min: -100,
@@ -110,7 +343,6 @@ Compressor.Meta = {
             help: "decibel value above which the compression will start taking effect"
         },
         knee: {
-            label: "Knee",
             type: "float",
             default: 40.0,
             min: 0.0,
@@ -120,7 +352,6 @@ Compressor.Meta = {
             help: "decibel range above the threshold where the curve smoothly transitions to the compressed portion",
         },
         ratio: {
-            label: "Ratio",
             type: "float",
             default: 12.0,
             min: 1.0,
@@ -130,7 +361,6 @@ Compressor.Meta = {
             help: "amount of change, in dB, needed in the input for a 1 dB change in the output",
         },
         attack: {
-            label: "Attack",
             type: "float",
             default: 0.0,
             min: 0.0,
@@ -140,7 +370,6 @@ Compressor.Meta = {
             help: "the amount of time, in seconds, required to reduce the gain by 10 dB",
         },
         release: {
-            label: "Release",
             type: "float",
             default: 0.25,
             min: 0.0,
@@ -173,8 +402,7 @@ export class Lowpass extends EffectsNode {
             cutoff: {value: bq.frequency},
             quality: {value: bq.Q},
         })
-        setOrigin(this, bq)
-        bq.connect(this.output)
+        setOrigin(this, bq).connect(this[symOutpt])
         this.update(opts)
     }
 }
@@ -183,7 +411,6 @@ Lowpass.Meta = {
     name: 'Lowpass',
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 1.0,
             min: 0.0,
@@ -191,7 +418,6 @@ Lowpass.Meta = {
             step: 0.01,
         },
         cutoff: {
-            label: "Cutoff",
             type: "integer",
             default: 1000,
             min: 40,
@@ -200,7 +426,6 @@ Lowpass.Meta = {
             unit: 'Hz',
         },
         quality: {
-            label: "Quality",
             type: "integer",
             default: 1,
             min: 0,
@@ -231,8 +456,7 @@ export class Highpass extends EffectsNode {
             cutoff: {value: bq.frequency},
             quality: {value: bq.Q},
         })
-        setOrigin(this, bq)
-        bq.connect(this.output)
+        setOrigin(this, bq).connect(this[symOutpt])
         this.update(opts)
     }
 }
@@ -241,7 +465,6 @@ Highpass.Meta = {
     name: 'Highpass',
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 1.0,
             min: 0.0,
@@ -249,7 +472,6 @@ Highpass.Meta = {
             step: 0.01,
         },
         cutoff: {
-            label: "Cutoff",
             type: "integer",
             default: 100,
             min: 40,
@@ -258,7 +480,6 @@ Highpass.Meta = {
             unit: 'Hz',
         },
         quality: {
-            label: "Quality",
             type: "integer",
             default: 1,
             min: 0,
@@ -289,9 +510,9 @@ export class Delay extends EffectsNode {
             feedback: {value: fb.gain},
         })
         setOrigin(this, dy)
-        dy.connect(fb)
-        fb.connect(dy)
-        dy.connect(this.output)
+            .connect(fb)
+            .connect(dy)
+            .connect(this[symOutpt])
         this.update(opts)
     }
 }
@@ -300,7 +521,6 @@ Delay.Meta = {
     name: 'Delay',
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 1.0,
             min: 0.0,
@@ -308,7 +528,7 @@ Delay.Meta = {
             step: 0.01,
         },
         delayTime: {
-            label: "Time",
+            label: "time",
             type: "float",
             default: 0.5,
             min: 0.0,
@@ -317,7 +537,6 @@ Delay.Meta = {
             unit: 's',
         },
         feedback: {
-            label: "Feedback",
             type: "float",
             default: 0.5,
             min: 0.0,
@@ -353,9 +572,9 @@ export class Distortion extends EffectsNode {
             feedback: {value: fb.gain},
         })
         setOrigin(this, ws)
-        ws.connect(fb)
-        fb.connect(ws)
-        ws.connect(this.output)
+            .connect(fb)
+            .connect(ws)
+            .connect(this[symOutpt])
         this.update(opts)
     }
 }
@@ -364,7 +583,6 @@ Distortion.Meta = {
     name: "Distortion",
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 1.2,
             min: 1.0,
@@ -372,7 +590,6 @@ Distortion.Meta = {
             step: 0.01,
         },
         drive: {
-            label: "Drive",
             type: "float",
             default: 0.4,
             min: 0.0,
@@ -380,7 +597,6 @@ Distortion.Meta = {
             step: 0.01,
         },
         feedback: {
-            label: "Feedback",
             type: "float",
             default: 0.0,
             min: 0.0,
@@ -431,7 +647,7 @@ export class Overdrive extends EffectsNode {
         const ws = new WaveShaperNode(context)
         const lp = new BiquadFilterNode(context)
         const fb = new GainNode(context)
-        
+
         let drive
 
         Object.defineProperties(this, {
@@ -461,7 +677,7 @@ export class Overdrive extends EffectsNode {
         ws.connect(lp)
         lp.connect(fb) // feedback
         fb.connect(bp)
-        lp.connect(this.output)
+        lp.connect(this[symOutpt])
 
         bp.frequency.value = opts.color
         bpWet.gain.value = opts.preBand
@@ -476,7 +692,6 @@ Overdrive.Meta = {
     name: "Overdrive",
     params: {
         gain: {
-            label: "Gain",
             type: "float",
             default: 2.0,
             min: 1.0,
@@ -484,7 +699,6 @@ Overdrive.Meta = {
             step: 0.01,
         },
         drive: {
-            label: "Drive",
             type: "float",
             default: 0.5,
             min: 0.0,
@@ -492,7 +706,6 @@ Overdrive.Meta = {
             step: 0.01,
         },
         feedback: {
-            label: "Feedback",
             type: "float",
             default: 0.0,
             min: 0.0,
@@ -500,7 +713,6 @@ Overdrive.Meta = {
             step: 0.01,
         },
         color: {
-            label: "Color",
             type: "integer",
             default: 800,
             min: 0,
@@ -508,7 +720,7 @@ Overdrive.Meta = {
             step: 1,
         },
         preBand: {
-            label: "Pre-band",
+            label: "pre-band",
             type: "float",
             default: 0.5,
             min: 0,
@@ -516,7 +728,7 @@ Overdrive.Meta = {
             step: 0.01,
         },
         postCut: {
-            label: "Post-cut",
+            label: "post-cut",
             type: "integer",
             default: 3000,
             min: 0,
@@ -597,11 +809,6 @@ export function initChain(input, output, chain) {
     })
 }
 
-
-const LOOKAHEAD = 25.0
-const symState = Symbol()
-const symSched = Symbol()
-
 /**
  * Scale oscillator.
  */
@@ -638,21 +845,21 @@ export class ScaleSample extends EffectsNode {
             counter: 0,
         }
         const prox = Object.create(null)
-        Object.defineProperties(this, Object.fromEntries(
-            Object.entries(this.meta.params).map(([name, {type}]) => {
-                const cast = type === 'boolean' ? Boolean : Number
-                const getter = () => prox[name]
-                const setter = value => {
-                    value = cast(value)
-                    const reset = value !== prox[name] && this[symState].playing
+        const pentries = Object.entries(this.meta.params).map(([name, {type}]) => {
+            const cast = type === 'boolean' ? Boolean : Number
+            const getter = () => prox[name]
+            const setter = value => {
+                value = cast(value)
+                if (value !== prox[name]) {
                     prox[name] = value
-                    if (reset) {
-                        this.play()
+                    if (this[symState].playing) {
+                        buildScale.call(this)
                     }
                 }
-                return [name, paramProp(getter, setter)]
-            })
-        ))
+            }
+            return [name, paramProp(getter, setter)]
+        })
+        Object.defineProperties(this, Object.fromEntries(pentries))
         this.update(opts)
     }
 
@@ -673,8 +880,9 @@ export class ScaleSample extends EffectsNode {
         state.osc.disconnect()
         state.osc.stop()
         state.osc = null
-        this.output.gain.cancelScheduledValues(state.nextTime)
-        this.output.gain.value = 0
+        state.nextTime = null
+        this[symOutpt].gain.cancelScheduledValues(state.nextTime)
+        this[symOutpt].gain.value = 0
         clearTimeout(state.stopId)
         clearTimeout(state.scheduleId)
     }
@@ -684,29 +892,40 @@ export class ScaleSample extends EffectsNode {
      */
     play() {
         this.stop()
+        buildScale.call(this)
         const state = this[symState]
-        state.sample = Music.scaleSample(this.degree.value, {
-            octave: this.octave.value,
-            tonality: this.tonality.value,
-            direction: this.direction.value,
-            octaves: this.octaves.value,
-            clip: true,
-        })
-        if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
-            state.sample.pop()
-        }
-        state.noteDur = this.duration.value
-        state.sampleDur = state.sample.length * state.noteDur
-        state.loop = this.loop.value
-        state.counter = 0
-        state.shuffle = this.shuffle.value
-        state.osc = new OscillatorNode(this.context)
-        state.nextTime = this.context.currentTime
         state.playing = true
+        state.osc = new OscillatorNode(this.context)
         this[symSched]()
-        this.output.gain.value = 1
-        state.osc.connect(this.output)
+        this[symOutpt].gain.value = 1
+        state.osc.connect(this[symOutpt])
         state.osc.start()
+    }
+}
+
+/**
+ * @private
+ */
+function buildScale() {
+    const state = this[symState]
+    state.sample = Music.scaleSample(this.degree.value, {
+        octave: this.octave.value,
+        tonality: this.tonality.value,
+        direction: this.direction.value,
+        octaves: this.octaves.value,
+        clip: true,
+    })
+    if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
+        state.sample.pop()
+    }
+    state.noteDur = this.duration.value
+    state.sampleDur = state.sample.length * state.noteDur
+    state.loop = this.loop.value
+    state.counter = 0
+    state.shuffle = this.shuffle.value
+    if (!state.nextTime) {
+        // hot rebuild
+        state.nextTime = this.context.currentTime
     }
 }
 
@@ -731,12 +950,12 @@ function scheduleSample() {
     }
     if (loop) {
         state.scheduleId = setTimeout(this[symSched], LOOKAHEAD)
-    } else {
-        // smooth shutoff
-        this.output.gain.setValueAtTime(0.0, state.nextTime)
-        const stopTime = sampleDur * 1000 + LOOKAHEAD * 10
-        state.stopId = setTimeout(() => this.stop(), stopTime)
+        return
     }
+    // smoother shutoff
+    this[symOutpt].gain.setValueAtTime(0.0, state.nextTime)
+    const doneTime = state.nextTime - this.context.currentTime
+    state.stopId = setTimeout(() => this.stop(), doneTime * 1000 + STOPDELAY)
 }
 
 ScaleSample.prototype.start = ScaleSample.prototype.play
@@ -746,19 +965,25 @@ ScaleSample.Meta = {
     title: 'Scale Sample',
     params: {
         tonality: {
-            label: 'Tonality',
             type: 'enum',
             default: Music.Tonality.MAJOR,
             values: Utils.flip(Music.Tonality),
         },
         degree: {
-            label: 'Degree',
             type: 'enum',
             default: 0,
             values: Music.DegLabels,
         },
+        direction: {
+            type: 'enum',
+            default: Music.Dir.ASCEND,
+            values: Utils.flip(Music.Dir),
+        },
+        loop: {
+            type: 'boolean',
+            default: false,
+        },
         duration: {
-            label: 'Duration',
             type: 'float',
             default: 0.25,
             min: 0.01,
@@ -766,7 +991,6 @@ ScaleSample.Meta = {
             step: 0.01,
         },
         octave: {
-            label: 'Octave',
             type: 'integer',
             default: 4,
             min: 1,
@@ -774,31 +998,13 @@ ScaleSample.Meta = {
             step: 1,
         },
         octaves: {
-            label: 'Octaves',
             type: 'integer',
             default: 1,
             min: 1,
             max: Music.OCTAVE_COUNT - 2,
             step: 1,
         },
-        direction: {
-            label: 'Direction',
-            type: 'enum',
-            default: Music.Dir.ASCEND,
-            values: Utils.flip(Music.Dir),
-        },
-        loop: {
-            label: 'Loop',
-            type: 'boolean',
-            default: false,
-        },
         shuffle: {
-            label: 'Shuffle',
-            type: 'boolean',
-            default: false,
-        },
-        shuffle: {
-            label: 'Shuffle',
             type: 'integer',
             default: 0,
             min: 0,
@@ -808,20 +1014,37 @@ ScaleSample.Meta = {
     },
     actions: {
         play : {
-            label: 'Play',
             method: 'play',
         },
         stop: {
-            label: 'Stop',
             method: 'stop',
         }
     }
 }
 
-const DEG = Math.PI / 180
+/**
+ * Load audio sample
+ * 
+ * @param {AudioContext} context
+ * @param {String} path
+ * @return {Promise<AudioBuffer>}
+ */
+ async function loadSample(context, path) {
+    const url = new URL(path, import.meta.url).href
+    if (!context[symBuffs]) {
+        context[symBuffs] = Object.create(null)
+    }
+    const buffs = context[symBuffs]
+    if (!buffs[url]) {
+        const res = await fetch(url)
+        const buf = await res.arrayBuffer()
+        buffs[url] = await context.decodeAudioData(buf)
+    }
+    return buffs[url]
+}
 
 /**
- * Make a distortion curve array.
+ * Make a distortion curve array
  * 
  * From:
  *  - https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper
@@ -843,7 +1066,7 @@ function makeDistortionCurve(amount = 50, samples = 512) {
 }
 
 /**
- * Merge user options from param definitions.
+ * Merge user options from param definitions
  * 
  * @param {object[]} defs Param definitions with `default`.
  * @param {*} opts User options.
@@ -858,10 +1081,10 @@ function optsMerge(defs, opts) {
 }
 
 /**
- * Make a stub object like an `AudioParam`.
+ * Make a stub object like an `AudioParam`
  * 
- * @param {Function} vget Setter for `value` property.
- * @param {Function} vset Getter for `value` property.
+ * @param {Function} vget Setter for `value` property
+ * @param {Function} vset Getter for `value` property
  * @return {object}
  */
 function paramObject(vget, vset) {
@@ -872,10 +1095,10 @@ function paramObject(vget, vset) {
 }
 
 /**
- * Make a property definition for a stub param object.
+ * Make a property definition for a stub param object
  * 
- * @param {Function} vget Setter for `value` property.
- * @param {Function} vset Getter for `value` property.
+ * @param {Function} vget Setter for `value` property
+ * @param {Function} vset Getter for `value` property
  * @return {object}
  */
 function paramProp(vget, vset) {
@@ -886,11 +1109,35 @@ function paramProp(vget, vset) {
 }
 
 /**
- * Setup `EffectsNode` wrapper origin.
+ * Setup `EffectsNode` wrapper origin
  * 
- * @param {EffectsNode} node The `EffectsNode` instance.
- * @param {AudioNode} dest The `AudioNode` destination.
+ * @param {EffectsNode} node The `EffectsNode` instance
+ * @param {AudioNode} dest The `AudioNode` destination
+ * @return {AudioNode} The destination
  */
 function setOrigin(node, dest) {
-    GainNode.prototype.connect.call(node, dest)
+    return GainNode.prototype.connect.call(node, dest)
+}
+
+/**
+ * Make a stub AudioParam object that sets all param values, and
+ * delegates prototype method to all params
+ * 
+ * @param {AudioParam[]} params
+ * @return {object}
+ */
+function fusedParam(params) {
+    const leader = params[0]
+    const methods = Object.getOwnPropertyNames(AudioParam.prototype)
+        .filter(prop => typeof leader[prop] === 'function')
+    const vget = () => leader.value
+    const vset = value => params.forEach(param => param.value = value)
+    const fused = paramObject(vget, vset)
+    methods.forEach(method => {
+        const func = leader[method]
+        fused[method] = (...args) => {
+            params.forEach(param => func.apply(param, args))
+        }
+    })
+    return fused
 }
