@@ -34,13 +34,31 @@ export const Dir = {
     ASCEND: 1,
     DESCEND: 2,
     ASCEND_DESCEND: 7,
-    DESCEND_ASCEND: 11,
+    DESCEND_ASCEND: 15,
 }
+export const MULTIDIR_FLAG = 4
 
 /** Scale degree labels */
 export const DegLabels = Object.fromEntries(
     Object.entries(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])
 )
+
+/**
+ * Adjust a frequency by a number of half-steps
+ * 
+ * @param {Number} freq The base frequency. Performs internal floor rounding
+ *   to get a valid value. If a valid value is not found, and `strict` is not
+ *   specified, the closest frequency is used.
+ * @param {Number} degrees The number of half-steps (+/-)
+ * @param {Boolean} strict Do not adjust base to closest known frequency
+ * @return {Number|undefined} The frequency, or undefined if out of range
+ */
+ export function stepFreq(freq, degrees, strict = false) {
+    let baseData = getFreqData(freq, strict)
+    if (baseData) {
+        return FREQS[baseData.freqIndex + Number(degrees)]
+    }
+}
 
 /**
  * Build a scale array from high-level options
@@ -51,99 +69,94 @@ export const DegLabels = Object.fromEntries(
  * @param {Number} opts.tonality Tonality indicator (1-18)
  * @param {Number} opts.direction Directionality indicator (1, 3, 7, 11)
  * @param {Number} opts.octaves Number of octaves
+ * @param {Boolean} opts.strict Fail for unknown tonic frequency
  * @param {Boolean} opts.clip Clip out of bounds frequencies
- * @param {Boolean} opts.shuffle Shuffle the notes
- * @param {Boolean} opts.loop If true, and `direction` is 7 or 11, remove the
- *  last note in the scale
  * @return {Number[]} Array of note frequencies
  */
- export function scaleSample(degree, opts = {}) {
-    opts = opts || {}
-    const {octave, direction, loop, shuffle} = opts
+ export function scaleSample(degree, opts = undefined) {
+    opts = opts ? {...opts} : {}
+    let {octave, direction} = opts
     const tonic = freqAtDegree(degree, octave)
-    let left, right
-    switch (Number(direction)) {
-        case Dir.DESCEND_ASCEND:
-            left = scaleFreqs(tonic, {...opts, descend: true})
-            right = scaleFreqs(left.pop(), {...opts, descend: false})
-            break
-        case Dir.ASCEND_DESCEND:
-            left = scaleFreqs(tonic, {...opts, decend: false})
-            right = scaleFreqs(left.pop(), {...opts, descend: true})
-            break
-        case Dir.DESCEND:
-            left = scaleFreqs(tonic, {...opts, descend: true})
-            right = []
-            break
-        case Dir.ASCEND:
-        default:
-            left = scaleFreqs(tonic, {...opts, descend: false})
-            right = []
-            break
-    }
-    if (right.length && loop) {
-        right.pop()
-    }
-    const freqs = left.concat(right)
-    if (shuffle) {
-        Utils.shuffle(freqs)
+    let freqs
+    direction = Number(direction)
+    if (direction & MULTIDIR_FLAG) {
+        opts.descend = direction === Dir.DESCEND_ASCEND
+        freqs = scaleFreqs(tonic, opts)
+        opts.descend = !opts.descend
+        scaleFreqs(freqs.pop(), opts).forEach(freq => freqs.push(freq))
+    } else {
+        opts.descend = direction === Dir.DESCEND
+        freqs = scaleFreqs(tonic, opts)
     }
     return freqs
 }
 
 /**
- * Return a scale starting from a frequency
+ * Return a unidirectional scale starting from a frequency
  * 
  * @param {Number} tonic Start frequency
  * @param {object} opts The options
- * @param {Number} opts.tonality Tonality indicator
- * @param {Boolean} opts.descend Whether to descend
- * @param {Number} opts.octaves Number of octaves
- * @param {Boolean} opts.strict Fail for unknown tonic frequency
- * @param {Boolean} opts.clip Clip out of bounds frequencies
+ * @param {Number} opts.tonality
+ * @param {Boolean} opts.descend
+ * @param {Number} opts.octaves
+ * @param {Boolean} opts.strict
+ * @param {Boolean} opts.clip
+ * @return {Number[]}
  */
-export function scaleFreqs(tonic, opts = {}) {
-    opts = opts || {}
-    tonic = stepFreq(tonic, 0, opts)
-    if (!tonic) {
+function scaleFreqs(tonic, opts) {
+    let tonicData = getFreqData(tonic, opts.strict)
+    if (!tonicData) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
-    const {tonality, descend, octaves} = opts
-    const base = SCALE_INTERVALS[tonality || Tonality.MAJOR]
+    tonic = tonicData.freq
+    let {tonality, descend, octaves} = opts
+    if (tonality === undefined) {
+        tonality = Tonality.MAJOR
+    }
+    const base = SCALE_INTERVALS[tonality]
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
     }
-    const intervals = base[Number(Boolean(descend))]
-    let freq = tonic
+    octaves = octaves === undefined ? 1 : Number(octaves)
+    if (octaves < 1) {
+        throw new ValueError(`Invalid octaves: ${octaves}`)
+    }
+    descend = Boolean(descend)
+    const olimit = descend
+        ? tonicData.octave
+        : OCTAVE_COUNT - tonicData.octave - 1
+    if (olimit < 1) {
+        throw new ValueError(`Scale out of bounds`)
+    }
+    if (octaves > olimit) {
+        if (!opts.clip) {
+            let msg = `${octaves} exceeds max ${olimit} octaves from tonic`
+            throw new ValueError(msg)
+        }
+        octaves = olimit
+    }
     const dir = descend ? -1 : 1
+    const intervals = base[Number(descend)]
     const freqs = [tonic]
-    const stepOpts = {strict: true}
-    for (let _ = Number(octaves || 1); _ > 0; --_) {
+    let freq = tonic
+    for (let o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; i++) {
-            freq = stepFreq(freq, dir * intervals[i], stepOpts)
-            if (!freq) {
-                if (opts.clip) {
-                    break
-                }
-                throw new ValueError(`Scale out of bounds`)
-            }
+            freq = stepFreq(freq, dir * intervals[i], true)
             freqs.push(freq)
         }
-        if (!freq) {
-            break
-        }
     }
+    // freqs.length === intervals.length * octaves + 1
     return freqs
 }
 
 /**
  * Get frequency for scale degree (0-11) and octave (0-8)
  * 
- * @param {Number} degree The scale degree, 0-11.
- * @param {Number} octave The octave, 0-8, default 4.
+ * @param {Number} degree The scale degree, 0-11
+ * @param {Number} octave The octave, 0-8
  * @return {Number} The frequency
  */
-export function freqAtDegree(degree, octave = undefined) {
+function freqAtDegree(degree, octave) {
     if (octave === undefined) {
         octave = 4
     }
@@ -159,36 +172,26 @@ export function freqAtDegree(degree, octave = undefined) {
 }
 
 /**
- * Adjust a frequency by a number of half-steps
- * 
- * @param {Number} base The base frequency. Performs internal floor rounding
- *   to get a valid value. If a valid value is not found, and `strict` is not
- *   specified, the closest frequency is used.
- * @param {Number} degrees The number of half-steps (+/-)
- * @param {object} opts
- * @param {Boolean} opts.strict Do not adjust base to closest known frequency
- * @return {Number|undefined} The frequency, or undefined if out of range
- */
-export function stepFreq(base, degrees = 0, opts = {}) {
-    opts = opts || {}
-    const strict = Boolean(opts.strict)
-    let baseData = FREQS_DATA[getFreqId(base)]
-    if (!baseData && !strict) {
-        baseData = FREQS_DATA[getFreqId(closestFreq(base))]
-    }
-    if (baseData) {
-        return FREQS[baseData.freqIndex + Number(degrees)]
-    }
-}
-
-/**
  * Find the closest known frequency.
  * 
  * @param {Number} target The search value.
  * @return {Number} The closest known frequency.
  */
-export function closestFreq(target) {
+function closestFreq(target) {
     return Utils.closest(target, FREQS).value
+}
+
+/**
+ * @param {Number} freq
+ * @param {Boolean} strict
+ * @return {object|undefined}
+ */
+function getFreqData(freq, strict = false) {
+    let data = FREQS_DATA[getFreqId(freq)]
+    if (!data && !strict) {
+        data = FREQS_DATA[getFreqId(closestFreq(freq))]
+    }
+    return data
 }
 
 /**

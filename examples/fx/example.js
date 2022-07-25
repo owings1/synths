@@ -58,8 +58,8 @@ const mixer = [
 const osc = new OscillatorNode(context, {frequency: 440})
 const scale = new Effects.ScaleSample(context)
 
-osc.connect(dry1)
-osc.connect(fxsend1)
+// osc.connect(dry1)
+// osc.connect(fxsend1)
 
 scale.connect(dry2)
 scale.connect(fxsend2)
@@ -109,20 +109,11 @@ $(() => {
         .addClass('meter')
         .text(osc.frequency.value.toFixed(2))
 
-    Widgets.nodeWidget('scale', scale, {
-        title: 'Scale Sample',
-        params: scale.meta.params
-    }).appendTo('#effects')
-
-    $('<button/>').attr({id: 'scale-play'}).text('Play').appendTo('#scale')
-    $('<button/>').attr({id: 'scale-stop'}).text('Stop').appendTo('#scale')
-    $('#scale-play').on({click: () => scale.play()})
-    $('#scale-stop').on({click: () => scale.stop()})
+    Widgets.nodeWidget('scale', scale).appendTo('#effects')
 
     Object.entries(effects).forEach(([id, node]) => {
         const {params, name} = node.meta
         $(Widgets.nodeWidget(id, node, {params, title: name}))
-            .addClass('inactive')
             .appendTo('#effects')
     })
 

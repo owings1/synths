@@ -29,13 +29,9 @@ $(() => {
 
     Widgets.nodeWidget('scale', scale, {
         params: scale.meta.params,
+        actions: scale.meta.actions,
         title: 'Scale',
     }).appendTo('#effects')
-
-    $('<button/>').attr({id: 'scale-stop'}).text('Stop').appendTo('#scale')
-    $('<button/>').attr({id: 'scale-play'}).text('Play').appendTo('#scale')
-    $('#scale-play').on({click: () => scale.play()})
-    $('#scale-stop').on({click: () => scale.stop()})
 
     $('#mixer').addClass('fx1')
     $('#scale').addClass('fx2')

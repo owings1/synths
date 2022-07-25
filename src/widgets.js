@@ -35,17 +35,31 @@ export function mixerWidget(id, title, infos) {
 }
 
 /**
- * Build HTML for AudioNode.
+ * Build widget for AudioNode
  * 
  * @param {String} id The node ID.
- * @param {AudioNode|object} node Node object with properties for each param.
+ * @param {AudioNode|object} node Node object with properties for each param
  * @param {object} opts The options
- * @param {object} opts.params The parameter definitions. See `paramWidget()`.
- * @param {String} opts.title The title.
+ * @param {object} opts.params The parameter definitions. See `paramWidget()`
+ * @param {object} opts.actions Action definitions
+ * @param {String} opts.title The title
  * @return {object} A jQuery object
  */
-export function nodeWidget(id, node, opts) {
-    const {params, title} = opts
+export function nodeWidget(id, node, opts = {}) {
+    opts = opts || {}
+    let {params, actions, title} = opts
+    const {meta} = node
+    if (meta) {
+        if (params === undefined) {
+            params = meta.params
+        }
+        if (actions === undefined) {
+            actions = meta.actions
+        }
+        if (title === undefined) {
+            title = meta.title || meta.name
+        }
+    }
     const $section = $('<section/>').attr({id}).addClass('node')
     if (title) {
         $('<h2/>').text(title).appendTo($section)
@@ -53,38 +67,74 @@ export function nodeWidget(id, node, opts) {
     const $table = $('<table/>').appendTo($section)
     // Active checkbox
     if (node.active !== undefined) {
-        $table.append(paramWidget(
-            [id, 'active'].join('-'),
-            {
-                get value() {return node.active},
-                set value(v) {
-                    node.active = v
-                    $section
-                        .toggleClass('active', node.active)
-                        .toggleClass('inactive', !node.active)
-                },
-            },
-            {label: 'Active', type: 'boolean'},
-        ))
+        $table.append(nodeActiveWidget(id, node, $section))
     }
-    Object.entries(params).forEach(([name, def]) => {
-        const paramId = [id, name].join('-')
-        const param = node[name]
-        $table.append(paramWidget(paramId, param, def))
-    })
+    if (params) {
+        Object.entries(params).forEach(([name, def]) => {
+            const paramId = [id, name].join('-')
+            const param = node[name]
+            $table.append(paramWidget(paramId, param, def))
+        })
+    }
+    if (actions) {
+        $section.append(actionsWidget(id, node, actions))
+    }
     return $section
 }
 
 /**
- * @param {String} id The param ID.
+ * @param {String} nodeId
+ * @param {AudioNode|object} node
+ * @param {object} $nodeWidget
+ * @return {object} A jQuery object
+ */
+function nodeActiveWidget(nodeId, node, $nodeWidget) {
+    $nodeWidget
+        .toggleClass('active', node.active)
+        .toggleClass('inactive', !node.active)
+    return paramWidget(
+        [nodeId, 'active'].join('-'),
+        {
+            get value() {return node.active},
+            set value(v) {
+                node.active = v
+                $nodeWidget
+                    .toggleClass('active', node.active)
+                    .toggleClass('inactive', !node.active)
+            },
+        },
+        {label: 'Active', type: 'boolean'},
+    )
+}
+
+function actionsWidget(nodeId, node, defs) {
+    const $div = $('<div/>').addClass('actions')
+    Object.entries(defs).forEach(([name, def]) => {
+        const id = [nodeId, name].join('-')
+        const cb = node[def.method].bind(node)
+        $('<button/>')
+            .attr({id})
+            .text(def.label || name)
+            .addClass('action')
+            .on('click', cb)
+            .appendTo($div)
+    })
+    return $div
+}
+
+/**
+ * Build widget for AudioParam
+ * 
+ * @param {String} id The param ID
  * @param {AudioParam|object} param The parameter instance, or object with
- *  `value` property.
- * @param {object} def The parameter definition.
- * @param {String} def.type The value type, 'integer', 'float'.
- * @param {Number} def.min Range minimum.
- * @param {Number} def.max Range maximum.
- * @param {Number} def.step Range step.
- * @return {object} A jQuery object.
+ *  `value` property
+ * @param {object} def The parameter definition
+ * @param {String} def.type The value type, 'integer', 'float'
+ * @param {Number} def.min Range minimum
+ * @param {Number} def.max Range maximum
+ * @param {Number} def.step Range step
+ * @param {object|Array} def.values Select values
+ * @return {object} A jQuery object
  */
 export function paramWidget(id, param, def) {
     const {value} = param

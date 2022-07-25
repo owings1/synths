@@ -621,30 +621,31 @@ export class ScaleSample extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        this[symSched] = scheduleScale.bind(this)
+        this[symSched] = scheduleSample.bind(this)
         this[symState] = {
             /** @type {Number[]} */
             sample: null,
-            /** @type {Boolean} */
-            playing: false,
             /** @type {OscillatorNode} */
             osc: null,
-            /** @type {Number} */
+            playing: false,
             nextTime: null,
-            /** @type {Number} */
             stopId: null,
-            /** @type {Number} */
             scheduleId: null,
+            noteDur: null,
+            sampleDur: null,
+            loop: false,
+            shuffle: 0,
+            counter: 0,
         }
-        const p = {}
+        const prox = Object.create(null)
         Object.defineProperties(this, Object.fromEntries(
             Object.entries(this.meta.params).map(([name, {type}]) => {
                 const cast = type === 'boolean' ? Boolean : Number
-                const getter = () => p[name]
+                const getter = () => prox[name]
                 const setter = value => {
                     value = cast(value)
-                    const reset = value !== p[name] && this[symState].playing
-                    p[name] = value
+                    const reset = value !== prox[name] && this[symState].playing
+                    prox[name] = value
                     if (reset) {
                         this.play()
                     }
@@ -661,7 +662,7 @@ export class ScaleSample extends EffectsNode {
     }
 
     /**
-     * Stop playing.
+     * Stop playing
      */
     stop() {
         const state = this[symState]
@@ -672,32 +673,39 @@ export class ScaleSample extends EffectsNode {
         state.osc.disconnect()
         state.osc.stop()
         state.osc = null
+        this.output.gain.cancelScheduledValues(state.nextTime)
+        this.output.gain.value = 0
         clearTimeout(state.stopId)
         clearTimeout(state.scheduleId)
     }
 
     /**
-     * Start/restart playing.
+     * Start/restart playing
      */
     play() {
         this.stop()
         const state = this[symState]
-        const opts = {
+        state.sample = Music.scaleSample(this.degree.value, {
             octave: this.octave.value,
             tonality: this.tonality.value,
             direction: this.direction.value,
             octaves: this.octaves.value,
-            loop: this.loop.value,
-            shuffle: this.shuffle.value,
             clip: true,
+        })
+        if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
+            state.sample.pop()
         }
-        state.sample = Music.scaleSample(this.degree.value, opts)
+        state.noteDur = this.duration.value
+        state.sampleDur = state.sample.length * state.noteDur
+        state.loop = this.loop.value
+        state.counter = 0
+        state.shuffle = this.shuffle.value
         state.osc = new OscillatorNode(this.context)
         state.nextTime = this.context.currentTime
         state.playing = true
         this[symSched]()
-        state.osc.connect(this.output)
         this.output.gain.value = 1
+        state.osc.connect(this.output)
         state.osc.start()
     }
 }
@@ -705,17 +713,18 @@ export class ScaleSample extends EffectsNode {
 /**
  * @private
  */
-function scheduleScale() {
+function scheduleSample() {
     const state = this[symState]
-    const {osc, sample} = state
-    const loop = this.loop.value
-    const dur = this.duration.value
-    const sampleDur = sample.length * dur
+    const {osc, sample, sampleDur, noteDur, loop} = state
     while (this.context.currentTime + sampleDur > state.nextTime) {
+        if (state.shuffle && state.counter % state.shuffle === 0) {
+            Utils.shuffle(state.sample)
+        }
         sample.forEach(freq => {
             osc.frequency.setValueAtTime(freq, state.nextTime)
-            state.nextTime += dur
+            state.nextTime += noteDur
         })
+        state.counter += 1
         if (!loop) {
             break
         }
@@ -734,6 +743,7 @@ ScaleSample.prototype.start = ScaleSample.prototype.play
 
 ScaleSample.Meta = {
     name: 'ScaleSample',
+    title: 'Scale Sample',
     params: {
         tonality: {
             label: 'Tonality',
@@ -760,7 +770,7 @@ ScaleSample.Meta = {
             type: 'integer',
             default: 4,
             min: 1,
-            max: Music.OCTAVE_COUNT - 1,
+            max: Music.OCTAVE_COUNT - 2,
             step: 1,
         },
         octaves: {
@@ -786,6 +796,24 @@ ScaleSample.Meta = {
             label: 'Shuffle',
             type: 'boolean',
             default: false,
+        },
+        shuffle: {
+            label: 'Shuffle',
+            type: 'integer',
+            default: 0,
+            min: 0,
+            max: 48,
+            step: 1,
+        }
+    },
+    actions: {
+        play : {
+            label: 'Play',
+            method: 'play',
+        },
+        stop: {
+            label: 'Stop',
+            method: 'stop',
         }
     }
 }
