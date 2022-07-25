@@ -7,6 +7,7 @@
 import * as Utils from './utils.js'
 const {ValueError} = Utils
 
+/** Tonality Enum */
 export const Tonality = {
     MAJOR: 1,
     NATURAL_MINOR: 2,
@@ -28,50 +29,55 @@ export const Tonality = {
     JAPANESE: 18,
 }
 
+/** Direction Enum */
 export const Dir = {
     ASCEND: 1,
     DESCEND: 2,
-    ASCEND_DESCEND: 3,
-    DESCEND_ASCEND: 4,
+    ASCEND_DESCEND: 7,
+    DESCEND_ASCEND: 11,
 }
 
+/** Scale degree labels */
 export const DegLabels = Object.fromEntries(
     Object.entries(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])
 )
+
 /**
- * Build a scale array from high-level options.
+ * Build a scale array from high-level options
  * 
- * @param {Number} degree The tonic degree (0-11).
+ * @param {Number} degree The tonic degree (0-11)
  * @param {object} opts The options
- * @param {Number} opts.octave The octave (0-8).
- * @param {Number} opts.tonality Tonality indicator (1-18).
- * @param {Number} opts.direction Directionality indicator (1-4).
- * @param {Boolean} opts.shuffle Shuffle the notes.
- * @param {Boolean} opts.loop If true, and `direction` is 3 or 4 remove the
- *  last note in the scale.
- * @return {Number[]} Array of note frequencies.
+ * @param {Number} opts.octave The octave (0-8)
+ * @param {Number} opts.tonality Tonality indicator (1-18)
+ * @param {Number} opts.direction Directionality indicator (1, 3, 7, 11)
+ * @param {Number} opts.octaves Number of octaves
+ * @param {Boolean} opts.clip Clip out of bounds frequencies
+ * @param {Boolean} opts.shuffle Shuffle the notes
+ * @param {Boolean} opts.loop If true, and `direction` is 7 or 11, remove the
+ *  last note in the scale
+ * @return {Number[]} Array of note frequencies
  */
  export function scaleSample(degree, opts = {}) {
     opts = opts || {}
-    const {octave, tonality, direction, loop, shuffle} = opts
+    const {octave, direction, loop, shuffle} = opts
     const tonic = freqAtDegree(degree, octave)
     let left, right
     switch (Number(direction)) {
         case Dir.DESCEND_ASCEND:
-            left = scaleFreqs(tonic, {tonality, descend: true})
-            right = scaleFreqs(left.pop(), {tonality})
+            left = scaleFreqs(tonic, {...opts, descend: true})
+            right = scaleFreqs(left.pop(), {...opts, descend: false})
             break
         case Dir.ASCEND_DESCEND:
-            left = scaleFreqs(tonic, {tonality})
-            right = scaleFreqs(left.pop(), {tonality, descend: true})
+            left = scaleFreqs(tonic, {...opts, decend: false})
+            right = scaleFreqs(left.pop(), {...opts, descend: true})
             break
         case Dir.DESCEND:
-            left = scaleFreqs(tonic, {tonality, descend: true})
+            left = scaleFreqs(tonic, {...opts, descend: true})
             right = []
             break
         case Dir.ASCEND:
         default:
-            left = scaleFreqs(tonic, {tonality})
+            left = scaleFreqs(tonic, {...opts, descend: false})
             right = []
             break
     }
@@ -86,13 +92,15 @@ export const DegLabels = Object.fromEntries(
 }
 
 /**
- * Return a single-octave scale starting from a frequency.
+ * Return a scale starting from a frequency
  * 
  * @param {Number} tonic Start frequency
- * @param {object} opts
- * @param {Number} opts.tonality
- * @param {Boolean} opts.descend
- * @param {Boolean} opts.strict Fail for unknown tonic frequency.
+ * @param {object} opts The options
+ * @param {Number} opts.tonality Tonality indicator
+ * @param {Boolean} opts.descend Whether to descend
+ * @param {Number} opts.octaves Number of octaves
+ * @param {Boolean} opts.strict Fail for unknown tonic frequency
+ * @param {Boolean} opts.clip Clip out of bounds frequencies
  */
 export function scaleFreqs(tonic, opts = {}) {
     opts = opts || {}
@@ -100,7 +108,7 @@ export function scaleFreqs(tonic, opts = {}) {
     if (!tonic) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
-    let {tonality, descend} = opts
+    const {tonality, descend, octaves} = opts
     const base = SCALE_INTERVALS[tonality || Tonality.MAJOR]
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
@@ -109,19 +117,27 @@ export function scaleFreqs(tonic, opts = {}) {
     let freq = tonic
     const dir = descend ? -1 : 1
     const freqs = [tonic]
-    intervals.forEach(degrees => {
-        freq = stepFreq(freq, dir * degrees, {strict: true})
-        if (!freq) {
-            throw new ValueError(`Scale out of bounds`)
+    const stepOpts = {strict: true}
+    for (let _ = Number(octaves || 1); _ > 0; --_) {
+        for (let i = 0; i < intervals.length; i++) {
+            freq = stepFreq(freq, dir * intervals[i], stepOpts)
+            if (!freq) {
+                if (opts.clip) {
+                    break
+                }
+                throw new ValueError(`Scale out of bounds`)
+            }
+            freqs.push(freq)
         }
-        freqs.push(freq)
-    })
+        if (!freq) {
+            break
+        }
+    }
     return freqs
 }
 
-
 /**
- * Get frequency for scale degree (0-11) and octave (0-8).
+ * Get frequency for scale degree (0-11) and octave (0-8)
  * 
  * @param {Number} degree The scale degree, 0-11.
  * @param {Number} octave The octave, 0-8, default 4.
@@ -141,16 +157,17 @@ export function freqAtDegree(degree, octave = undefined) {
     }
     return freq
 }
+
 /**
- * Adjust a frequency by a number of half-steps. 
+ * Adjust a frequency by a number of half-steps
  * 
  * @param {Number} base The base frequency. Performs internal floor rounding
  *   to get a valid value. If a valid value is not found, and `strict` is not
  *   specified, the closest frequency is used.
- * @param {Number} degrees The number of half-steps (+/-).
+ * @param {Number} degrees The number of half-steps (+/-)
  * @param {object} opts
- * @param {Boolean} opts.strict Do not adjust base to closest known frequency.
- * @return {Number|undefined} The frequency, or undefined if out of range.
+ * @param {Boolean} opts.strict Do not adjust base to closest known frequency
+ * @return {Number|undefined} The frequency, or undefined if out of range
  */
 export function stepFreq(base, degrees = 0, opts = {}) {
     opts = opts || {}
@@ -171,8 +188,7 @@ export function stepFreq(base, degrees = 0, opts = {}) {
  * @return {Number} The closest known frequency.
  */
 export function closestFreq(target) {
-    const {value} = Utils.closest(target, FREQS)
-    return value
+    return Utils.closest(target, FREQS).value
 }
 
 /**
@@ -182,8 +198,6 @@ export function closestFreq(target) {
 function getFreqId(value) {
     return String(Math.floor(Number(value)))
 }
-
-
 
 // Lock Enum objects.
 ;[Tonality, Dir].forEach(Enum => {
@@ -195,15 +209,22 @@ function getFreqId(value) {
         })
     })
 })
-
-Object.defineProperty(Tonality, 'AEOLIAN', {
-    value: Tonality.NATURAL_MINOR,
-    enumerable: false,
-    writable: false,
+// Mode aliases.
+Object.defineProperties(Tonality, {
+    IONIAN: {
+        value: Tonality.MAJOR,
+        enumerable: false,
+        writable: false,
+    },
+    AEOLIAN: {
+        value: Tonality.NATURAL_MINOR,
+        enumerable: false,
+        writable: false,
+    }
 })
 
 /**
- * Scale intervals, value is a pair of arrays [ascending, descending].
+ * Scale intervals. Value is a pair of arrays [ascending, descending].
  * The descending array is generated from the reverse of the ascending,
  * unless it is directly given here.
  */
@@ -246,14 +267,10 @@ const OCTAVES = [
     [4186.01, 4434.92, 4698.63, 4978.03, 5274.04, 5587.65, 5919.91, 6271.93, 6644.88, 7040.00, 7458.62, 7902.13],
 ]
 
-/**
- * Flat list of frequency values.
- */
+/** Flat list of frequency values. */
 const FREQS = new Float32Array(OCTAVES.length * 12)
 
-/**
- * Frequency data, keyed by frequency ID.
- */
+/** Frequency data, keyed by frequency ID. */
 const FREQS_DATA = Object.create(null)
 
 const DEG_LETTERS = 'CCDDEFFGGAAB'
@@ -272,7 +289,11 @@ OCTAVES.forEach((freqs, octave) => {
     })
 })
 
+/** Number of supported octaves. */
 export const OCTAVE_COUNT = OCTAVES.length
+/** Number of known frequencies. */
 export const FREQ_COUNT = FREQS.length
+/** Minimum known frequency. */
 export const FREQ_MIN = FREQS[0]
+/** Maximum known frequency. */
 export const FREQ_MAX = FREQS[FREQS.length - 1]

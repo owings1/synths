@@ -74,9 +74,7 @@ export class Compressor extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
         const cp = new DynamicsCompressorNode(context)
-
         Object.defineProperties(this, {
             threshold: {value: cp.threshold},
             knee: {value: cp.knee},
@@ -84,10 +82,8 @@ export class Compressor extends EffectsNode {
             attack: {value: cp.attack},
             release: {value: cp.release},
         })
-
         setOrigin(this, cp)
         cp.connect(this.output)
-
         this.update(opts)
     }
 }
@@ -171,19 +167,14 @@ export class Lowpass extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
         const bq = new BiquadFilterNode(context)
-
+        bq.type = 'lowpass'
         Object.defineProperties(this, {
             cutoff: {value: bq.frequency},
             quality: {value: bq.Q},
         })
-
         setOrigin(this, bq)
         bq.connect(this.output)
-
-        bq.type = 'lowpass'
-
         this.update(opts)
     }
 }
@@ -234,19 +225,14 @@ export class Highpass extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
         const bq = new BiquadFilterNode(context)
-
+        bq.type = 'highpass'
         Object.defineProperties(this, {
             cutoff: {value: bq.frequency},
             quality: {value: bq.Q},
         })
-
         setOrigin(this, bq)
         bq.connect(this.output)
-
-        bq.type = 'highpass'
-
         this.update(opts)
     }
 }
@@ -296,20 +282,16 @@ export class Delay extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
         const dy = new DelayNode(context)
         const fb = new GainNode(context)
-
         Object.defineProperties(this, {
             delayTime: {value: dy.delayTime},
             feedback: {value: fb.gain},
         })
-
         setOrigin(this, dy)
         dy.connect(fb)
         fb.connect(dy)
         dy.connect(this.output)
-
         this.update(opts)
     }
 }
@@ -359,12 +341,10 @@ export class Distortion extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        
         const ws = new WaveShaperNode(context)
+        ws.oversample = '4x'
         const fb = new GainNode(context)
-
         let drive
-
         Object.defineProperties(this, {
             drive: paramProp(() => drive, value => {
                 drive = Number(value)
@@ -372,14 +352,10 @@ export class Distortion extends EffectsNode {
             }),
             feedback: {value: fb.gain},
         })
-
         setOrigin(this, ws)
         ws.connect(fb)
         fb.connect(ws)
         ws.connect(this.output)
-        
-        ws.oversample = '4x'
-
         this.update(opts)
     }
 }
@@ -623,6 +599,8 @@ export function initChain(input, output, chain) {
 
 
 const LOOKAHEAD = 25.0
+const symState = Symbol()
+const symSched = Symbol()
 
 /**
  * Scale oscillator.
@@ -643,9 +621,8 @@ export class ScaleSample extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
-        this._schedule = this._schedule.bind(this)
-        this._state = {
+        this[symSched] = scheduleScale.bind(this)
+        this[symState] = {
             /** @type {Number[]} */
             sample: null,
             /** @type {Boolean} */
@@ -661,41 +638,39 @@ export class ScaleSample extends EffectsNode {
         }
         const p = {}
         Object.defineProperties(this, Object.fromEntries(
-            Object.entries(this.meta.params).map(([name, def]) => {
-                const cast = def.type === 'boolean' ? Boolean : Number
-                return [
-                    name,
-                    paramProp(() => p[name], value => {
-                        value = cast(value)
-                        const reset = value !== p[name] && this._state.playing
-                        p[name] = value
-                        if (reset) {
-                            this.play()
-                        }
-                    })
-                ]
+            Object.entries(this.meta.params).map(([name, {type}]) => {
+                const cast = type === 'boolean' ? Boolean : Number
+                const getter = () => p[name]
+                const setter = value => {
+                    value = cast(value)
+                    const reset = value !== p[name] && this[symState].playing
+                    p[name] = value
+                    if (reset) {
+                        this.play()
+                    }
+                }
+                return [name, paramProp(getter, setter)]
             })
         ))
-
         this.update(opts)
     }
 
     /** @type {Boolean} */
     get playing() {
-        return Boolean(this._state.playing)
+        return Boolean(this[symState].playing)
     }
 
     /**
      * Stop playing.
      */
     stop() {
-        const state = this._state
+        const state = this[symState]
         if (!state.playing) {
             return
         }
         state.playing = false
-        state.osc.stop()
         state.osc.disconnect()
+        state.osc.stop()
         state.osc = null
         clearTimeout(state.stopId)
         clearTimeout(state.scheduleId)
@@ -706,50 +681,52 @@ export class ScaleSample extends EffectsNode {
      */
     play() {
         this.stop()
-        const state = this._state
+        const state = this[symState]
         const opts = {
             octave: this.octave.value,
             tonality: this.tonality.value,
             direction: this.direction.value,
+            octaves: this.octaves.value,
             loop: this.loop.value,
             shuffle: this.shuffle.value,
+            clip: true,
         }
         state.sample = Music.scaleSample(this.degree.value, opts)
         state.osc = new OscillatorNode(this.context)
         state.nextTime = this.context.currentTime
         state.playing = true
-        this._schedule()
+        this[symSched]()
         state.osc.connect(this.output)
         this.output.gain.value = 1
         state.osc.start()
     }
+}
 
-    _schedule() {
-        const state = this._state
-        const {osc, sample} = state
-        const loop = this.loop.value
-        const dur = this.duration.value
-        const sampleDur = sample.length * dur
-        while (this.context.currentTime + sampleDur > state.nextTime) {
-            sample.forEach(freq => {
-                osc.frequency.setValueAtTime(freq, state.nextTime)
-                state.nextTime += dur
-            })
-            if (!loop) {
-                break
-            }
+/**
+ * @private
+ */
+function scheduleScale() {
+    const state = this[symState]
+    const {osc, sample} = state
+    const loop = this.loop.value
+    const dur = this.duration.value
+    const sampleDur = sample.length * dur
+    while (this.context.currentTime + sampleDur > state.nextTime) {
+        sample.forEach(freq => {
+            osc.frequency.setValueAtTime(freq, state.nextTime)
+            state.nextTime += dur
+        })
+        if (!loop) {
+            break
         }
-        if (loop) {
-            state.scheduleId = setTimeout(this._schedule, LOOKAHEAD)
-        } else {
-            // smooth shutoff
-            // this.output.gain.exponentialRampToValueAtTime(0.0, state.nextTime)
-            // state.osc.frequency.cancelScheduledValues(state.nextTime)
-            this.output.gain.setValueAtTime(0.0, state.nextTime)
-            // osc.frequency.setValueAtTime(0, state.nextTime)
-            const stopTime = sampleDur * 1000 + LOOKAHEAD * 5
-            state.stopId = setTimeout(() => this.stop(), stopTime)
-        }
+    }
+    if (loop) {
+        state.scheduleId = setTimeout(this[symSched], LOOKAHEAD)
+    } else {
+        // smooth shutoff
+        this.output.gain.setValueAtTime(0.0, state.nextTime)
+        const stopTime = sampleDur * 1000 + LOOKAHEAD * 10
+        state.stopId = setTimeout(() => this.stop(), stopTime)
     }
 }
 
@@ -770,14 +747,6 @@ ScaleSample.Meta = {
             default: 0,
             values: Music.DegLabels,
         },
-        octave: {
-            label: 'Octave',
-            type: 'integer',
-            default: 4,
-            min: 1,
-            max: 7,
-            step: 1,
-        },
         duration: {
             label: 'Duration',
             type: 'float',
@@ -785,6 +754,22 @@ ScaleSample.Meta = {
             min: 0.01,
             max: 1.0,
             step: 0.01,
+        },
+        octave: {
+            label: 'Octave',
+            type: 'integer',
+            default: 4,
+            min: 1,
+            max: Music.OCTAVE_COUNT - 1,
+            step: 1,
+        },
+        octaves: {
+            label: 'Octaves',
+            type: 'integer',
+            default: 1,
+            min: 1,
+            max: Music.OCTAVE_COUNT - 2,
+            step: 1,
         },
         direction: {
             label: 'Direction',
@@ -805,6 +790,8 @@ ScaleSample.Meta = {
     }
 }
 
+const DEG = Math.PI / 180
+
 /**
  * Make a distortion curve array.
  * 
@@ -817,10 +804,9 @@ ScaleSample.Meta = {
  * @param {integer} samples
  * @return {Float32Array}
  */
-function makeDistortionCurve(amount = 50, samples = 44100) {
+function makeDistortionCurve(amount = 50, samples = 512) {
     const k = Number(amount)
     const curve = new Float32Array(samples)
-    const DEG = Math.PI / 180
     for (let i = 0; i < samples; i++) {
         const x = i * 2 / samples - 1
         curve[i] = (3 + k) * x * 20 * DEG / (Math.PI + k + Math.abs(x))

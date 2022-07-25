@@ -114,8 +114,8 @@ $(() => {
         params: scale.meta.params
     }).appendTo('#effects')
 
-    $('<button/>').attr({id: 'scale-stop'}).text('Stop').appendTo('#scale')
     $('<button/>').attr({id: 'scale-play'}).text('Play').appendTo('#scale')
+    $('<button/>').attr({id: 'scale-stop'}).text('Stop').appendTo('#scale')
     $('#scale-play').on({click: () => scale.play()})
     $('#scale-stop').on({click: () => scale.stop()})
 
@@ -139,6 +139,8 @@ $(() => {
     $('button').button()
 })
 
+let oscPlaying
+let oscStarted
 /**
  * Click event handler.
  * 
@@ -149,10 +151,27 @@ function click(e) {
     const id = $target.attr('id')
     switch (id) {
         case 'start':
-            $('#stop').button({disabled: false})
-        case 'stop':
-            osc[id]()
+            if (oscPlaying) {
+                break
+            }
+            oscPlaying = true
+            osc.connect(dry1)
+            osc.connect(fxsend1)
+            if (!oscStarted) {
+                osc.start()
+                oscStarted = true
+            }
             $target.button({disabled: true})
+            $('#stop').button({disabled: false})
+            break
+        case 'stop':
+            if (!oscPlaying) {
+                break
+            }
+            oscPlaying = false
+            osc.disconnect()
+            $target.button({disabled: true})
+            $('#start').button({disabled: false})
             return
     }
 }
