@@ -4,7 +4,6 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 export class ValueError extends Error {}
 
 /**
@@ -83,19 +82,32 @@ export function flip(obj) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [v, k]))
 }
 
-export function randomIndex(arr) {
-    Math.floor(Math.random() * arr.length)
-}
 /**
- * Get a random element from an array
- *
- * @param {Array} arr The input array
- * @return {*} The value of a random index of the array
+ * @param {Number} start
+ * @param {Number} end
+ * @param {Number|Function} stepOrCb
+ * @param {Function|undefined} cbOrNone
+ * @return {Array}
  */
- export function randomElement(arr) {
-    return arr[randomIndex(arr)]
+export function mapRange(start, end, ...args) {
+    const cb = args.pop()
+    const step = args.pop() || 1
+    const arr = []
+    for (let i = start; i <= end; i += step) {
+        arr.push(cb(i))
+    }
+    return arr
 }
 
+/**
+ * @param {Number} start
+ * @param {Number} end
+ * @param {Number} step
+ * @return {Number[]}
+ */
+export function range(start, end, step = 1) {
+    return mapRange(start, end, step, n => n)
+}
 /**
  * Noop
  */

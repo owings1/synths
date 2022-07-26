@@ -174,10 +174,10 @@ export function paramWidget(id, param, def) {
             break
         case 'integer':
         case 'float':
-            let {min, max, step} = def
+            let {min, max, step, ticks} = def
             let fixed = 2 * (def.type === 'float')
             let display = Number(value).toFixed(fixed)
-            $('<input/>')
+            let $input = $('<input/>')
                 .attr({id, type: 'range', value, min, max, step})
                 .val(value)
                 .appendTo($inputTd)
@@ -185,6 +185,11 @@ export function paramWidget(id, param, def) {
                     param.value = $(this).val()
                     $(`#${id}-meter`).text(Number(param.value).toFixed(fixed))
                 })
+            if (ticks) {
+                let listId = `${id}-datalist`
+                tickDatalist(ticks).attr({id: listId}).appendTo($inputTd)
+                $input.attr({list: listId})
+            }
             $('<span/>')
                 .attr({id: `${id}-meter`})
                 .addClass('meter')
@@ -223,6 +228,10 @@ export function paramWidget(id, param, def) {
     return $tr
 }
 
+/**
+ * @param {String} name
+ * @return {object} jQuery object
+ */
 export function intervalButtons(name) {
     const labels = [
         null,
@@ -261,4 +270,23 @@ export function intervalButtons(name) {
 
     }
     return $table
+}
+
+/**
+ * @param {Number[]|{value: Number, label: String|undefined}[]} ticks
+ * @return {object} jQuery object
+ */
+function tickDatalist(ticks) {
+    const $list = $('<datalist/>')
+    ticks.forEach(info => {
+        let value, label
+        if (typeof info === 'object') {
+            value = info.value
+            label = info.label
+        } else {
+            value = info
+        }
+        $('<option/>').attr({value, label}).appendTo($list)
+    })
+    return $list
 }

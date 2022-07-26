@@ -1,36 +1,52 @@
 <!doctype HTML>
 <html>
-    <head>
-        <title>FX Chain Demo</title>
-        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-        <link rel="stylesheet" href="../demo.css">
-        <script type="module" src="./example.js"></script>
-    </head>
-    <body>
-        <h1>FX Chain Demo</h1>
-        <div id="mixer-wrapper"></div>
-        <section id="oscillator" class="node oscillator">
-            <h2>Oscillator</h2>
-            <section>
-                <button id="oscillator-play">Play</button>
-                <button id="oscillator-stop" disabled>Stop</button>
-            </section>
-            <br>
-            <section id="oscillator-type">
-                <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
-                <label for="oscillator-type-sine">Sine</label>
-                <input type="radio" name="oscillator-type" value="square" id="oscillator-type-square">
-                <label for="oscillator-type-square">Square</label>
-                <input type="radio" name="oscillator-type" value="sawtooth" id="oscillator-type-sawtooth">
-                <label for="oscillator-type-sawtooth">Sawtooth</label>
-                <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
-                <label for="oscillator-type-triangle">Triangle</label>
-            </section>
-            <h3>
-                <span id="oscillator-frequency-meter"></span><span class="unit">Hz</span>
-            </h3>
-            <section id="oscillator-intervals"></section>
+
+<head>
+    <title>FX Chain Demo</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="../demo.css">
+    <script type="module" src="./example.js"></script>
+</head>
+
+<body>
+    <input id="bpm" type="range" value="60" min="30" max="300" step="1" list="datalist">
+    <datalist id="datalist">
+        <option value="30"></option>
+        <option value="60"></option>
+        <option value="90"></option>
+        <option value="120"></option>
+        <option value="150"></option>
+        <option value="180"></option>
+        <option value="210"></option>
+        <option value="240"></option>
+        <option value="270"></option>
+        <option value="300"></option>
+    </datalist>
+    <h1>FX Chain Demo</h1>
+    <div id="mixer-wrapper"></div>
+    <section id="oscillator" class="node oscillator">
+        <h2>Oscillator</h2>
+        <section>
+            <button id="oscillator-play">Play</button>
+            <button id="oscillator-stop" disabled>Stop</button>
         </section>
-        <section id="effects"></section>
-    </body>
+        <br>
+        <section id="oscillator-type">
+            <input type="radio" name="oscillator-type" value="sine" id="oscillator-type-sine" checked>
+            <label for="oscillator-type-sine">Sine</label>
+            <input type="radio" name="oscillator-type" value="square" id="oscillator-type-square">
+            <label for="oscillator-type-square">Square</label>
+            <input type="radio" name="oscillator-type" value="sawtooth" id="oscillator-type-sawtooth">
+            <label for="oscillator-type-sawtooth">Sawtooth</label>
+            <input type="radio" name="oscillator-type" value="triangle" id="oscillator-type-triangle">
+            <label for="oscillator-type-triangle">Triangle</label>
+        </section>
+        <h3>
+            <span id="oscillator-frequency-meter"></span><span class="unit">Hz</span>
+        </h3>
+        <section id="oscillator-intervals"></section>
+    </section>
+    <section id="effects"></section>
+</body>
+
 </html>
