@@ -8,6 +8,7 @@
  * `Freeverb` class adapted from code by Anton Miselaytes
  */
 export * from './effects/chain.js'
+export * from './effects/chorus.js'
 export * from './effects/compressor.js'
 export * from './effects/delay.js'
 export * from './effects/distortion.js'
@@ -20,3 +21,4 @@ export * from './effects/phaser.js'
 export * from './effects/reverb.js'
 export * from './effects/scale.js'
 export * from './effects/tremolo.js'
+export * from './effects/wah.js'

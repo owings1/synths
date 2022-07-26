@@ -187,6 +187,7 @@ input[type=range]::-webkit-slider-thumb {
 
 .fx4 {
     background-color: var(--purple);
+    color: var(--yellow);
 }
 
 .fx4 input[type=range]::-webkit-slider-thumb {
@@ -195,7 +196,9 @@ input[type=range]::-webkit-slider-thumb {
 .fx4 input[type="checkbox"] {
     accent-color: var(--green);
 }
-
+.fx4 input[type=range]::-webkit-slider-runnable-track {
+    background-color: var(--yellow);
+}
 /*  */
 
 .fx5 {
