@@ -504,16 +504,26 @@ export class Delay extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        const dy = new DelayNode(context)
         const fb = new GainNode(context)
+        // Make enough delay nodes to support max value, since each has max 1.
+        const dyCount = Math.max(1, Math.ceil(this.meta.params.delayTime.max))
+        const dys = []
+        for (let i = 0; i < dyCount; i++) {
+            dys.push(new DelayNode(context))
+        }
+        const dyTimes = fusedParam(dys.map(node => node.delayTime), {divide: true})
         Object.defineProperties(this, {
-            delayTime: {value: dy.delayTime},
+            delayTime: {value: dyTimes},
             feedback: {value: fb.gain},
         })
-        setOrigin(this, dy)
-            .connect(fb)
-            .connect(dy)
-            .connect(this[symOutpt])
+
+        setOrigin(this, dys[0])
+        let node = dys[0]
+        for (let i = 1; i < dys.length; i++) {
+            node = node.connect(dys[i])
+        }
+        node.connect(this[symOutpt])
+        node.connect(fb).connect(dys[0])
         this.update(opts)
     }
 }
@@ -533,7 +543,7 @@ Delay.Meta = {
             type: "float",
             default: 0.5,
             min: 0.0,
-            max: 1.0,
+            max: 6.0,
             step: 0.01,
             unit: 's',
         },
@@ -1169,14 +1179,29 @@ function setOrigin(node, dest) {
  * delegates prototype method to all params
  * 
  * @param {AudioParam[]} params
+ * @param {object} opts
+ * @param {Boolean} opts.divide
  * @return {object}
  */
-function fusedParam(params) {
+function fusedParam(params, opts = undefined) {
+    opts = opts || {}
+    const {divide} = opts
     const leader = params[0]
     const methods = Object.getOwnPropertyNames(AudioParam.prototype)
         .filter(prop => typeof leader[prop] === 'function')
-    const vget = () => leader.value
-    const vset = value => params.forEach(param => param.value = value)
+    const vget = () => {
+        let {value} = leader
+        if (divide) {
+            value = value * params.length
+        }
+        return value
+    }
+    const vset = value => {
+        if (divide) {
+            value = value / params.length
+        }
+        params.forEach(param => param.value = value)
+    }
     const fused = paramObject(vget, vset)
     methods.forEach(method => {
         const func = leader[method]
