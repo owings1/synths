@@ -12,88 +12,117 @@ const FILL_REPLACE = 0.3
 
 export default class Shuffler {
 
-    constructor(opts) {
+    /**
+     * Create a shuffler
+     * @param {{
+     *  shuffle: Function,
+     *  fill: {replace: Number, probabilities: {}},
+     *  start: {probabilities: {}}
+     * }} opts
+     * @return {Function} Anonymous function
+     */
+    constructor(opts = undefined) {
         opts = opts || {}
-        const fill = opts.fill || {}
-        const start = opts.start || {}
-        const shuffle = opts.shuffle || Utils.shuffle
-        const fills = Object.entries(fill.probabilities || {}).sort(entrySorter)
-        const starts = Object.entries(start.probabilities || {}).sort(entrySorter)
-
-        const fillReplace = fill.replace === undefined
-            ? FILL_REPLACE
-            : fill.replace
-
+        if (opts.shuffle) {
+            this.shuffle = opts.shuffle
+        }
+        if (opts.fill && opts.fill.replace) {
+            this.fillReplace = opts.fill.replace
+        }
+        for (const opt of ['fill', 'start']) {
+            if (opts[opt] && opts[opt].probabilities) {
+                this[opt] = sortedEntries(opts[opt].probabilities)
+            }
+        }
         return arr => {
-            if (arr.length < 2) {
-                return arr
-            }
-            const tonic = arr[0]
-            let P = Math.random()
-
-            for (let i = 0; i < fills.length; i++) {
-                let [key, value] = fills[i]
-                if (value < P) {
-                    continue
-                }
-                let fill
-                let keyn = Number(key)
-                if (Number.isInteger(keyn) && arr[keyn]) {
-                    fill = arr[keyn]
-                } else {
-                    switch (key) {
-                        case 'tonic':
-                            fill = tonic
-                            break
-                        case 'random':
-                            fill = arr[randomIndex(arr) || 1]
-                            break
-                        case 'none':
-                            fill = null
-                            break
-                        default:
-                            throw new ValueError(`Unknown fill: ${key}`)
-                    }
-                }
-                shuffle(arr)
-                for (let j = 0; j < arr.length; j++) {
-                    if (fillReplace >= Math.random()) {
-                        arr[j] = fill
-                    }
-                }
-                P = Math.random()
-                break
-            }
-
-            shuffle(arr)
-
-            for (let i = 0; i < starts.length; i++) {
-                let [key, value] = starts[i]
-                if (value < P) {
-                    continue
-                }
-                let start
-                let keyn = Number(key)
-                if (Number.isInteger(keyn) && arr[keyn]) {
-                    start = arr[keyn]
-                } else {
-                    switch (key) {
-                        case 'tonic':
-                            start = tonic
-                            break
-                        default:
-                            throw new ValueError(`Unknown start: ${start}`)
-                    }
-                }
-                arr[0] = start
+            if (arr.length > 1) {
+                this.run(arr)
             }
             return arr
         }
     }
+
+    /**
+     * @param {Array} arr
+     */
+    run(arr) {
+        const filler = this.getFiller(arr)
+        const starter = this.getStarter(arr)
+        this.shuffle(arr)
+        if (filler !== undefined) {
+            for (let i = 0; i < arr.length; i++) {
+                if (this.fillReplace >= Math.random()) {
+                    arr[i] = filler
+                }
+            }
+            this.shuffle(arr)
+        }
+        if (starter !== undefined) {
+            arr[0] = starter
+        }
+    }
+
+    /**
+     * @param {Array} arr
+     */
+    getFiller(arr) {
+        const p = Math.random()
+        for (let i = 0; i < this.fill.length; i++) {
+            let [key, value] = this.fill[i]
+            if (value < p) {
+                continue
+            }
+            switch (key) {
+                case 'random':
+                    return randomElement(arr)
+                case 'none':
+                    return null
+            }
+            if (arr[+key] === undefined) {
+                throw new ValueError(`Unknown fill: ${key}`)
+            }
+            return arr[key]
+        }
+    }
+
+    /**
+     * @param {Array} arr
+     */
+    getStarter(arr) {
+        const p = Math.random()
+        for (let i = 0; i < this.start.length; i++) {
+            let [key, value] = this.start[i]
+            if (value < p) {
+                continue
+            }
+            if (arr[+key] === undefined) {
+                throw new ValueError(`Unknown start: ${key}`)
+            }
+            return arr[key]
+        }
+    }
 }
+
+Shuffler.prototype.shuffle = Utils.shuffle
+Shuffler.prototype.fill = []
+Shuffler.prototype.start = []
+Shuffler.prototype.fillReplace = FILL_REPLACE
 
 export {Shuffler}
 
+/**
+ * @param {{}} obj
+ * @return {Array[]} entries sorted numerically by value
+ */
+function sortedEntries(obj) {
+    return Object.entries(obj).sort(entrySorter)
+}
+
+/**
+ * @param {Array} a
+ * @param {Array} b
+ * @return {Number}
+ */
 function entrySorter(a, b) {
     return a[1] - b[1]
 }

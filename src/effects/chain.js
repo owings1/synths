@@ -13,12 +13,16 @@
  * 
  * All nodes in `chain` will be disconnected and setup as inactive.
  * 
- * @param {AudioNode} input The input node.
- * @param {AudioNode} output The output node.
- * @param {AudioNode[]} chain The effects chain.
+ * @param {AudioNode} input The input node
+ * @param {AudioNode} output The output node
+ * @param {AudioNode[]|object} chain The effects chain
+ * @return {AudioNode} The output node
  */
-export default function initChain(input, output, chain) {
+export default function chain(input, output, chain) {
 
+    if (!Array.isArray(chain)) {
+        chain = Object.values(chain)
+    }
     const {context} = input
     input.receiver = input
     output.receiver = output
@@ -73,6 +77,8 @@ export default function initChain(input, output, chain) {
             node.receiver.connect(node.next.receiver)
         }
     })
+
+    return output
 }
 
-export {initChain}
+export {chain}

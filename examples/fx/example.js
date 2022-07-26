@@ -12,15 +12,15 @@ import {mixerWidget, nodeWidget} from '../../src/widgets.js'
 const styles = {
     mixer: 'fx1',
     scale: 'fx2',
-    tremolo: 'fx7',
-    reverb: 'fx4',
     overdrive: 'fx7',
+    tremolo: 'fx5',
+    reverb: 'fx4',
     panner: 'fx1',
     phaser: 'fx3',
+    compressor: 'fx2',
     delay: 'fx8',
     lowpass: 'fx6',
     highpass: 'fx3',
-    compressor: 'fx2',
 }
 
 const context = new AudioContext()
@@ -34,22 +34,21 @@ source.connect(dry).connect(main)
 source.connect(fxsend)
 
 const effects = {
-    tremolo: new Effects.Tremolo(context),
     overdrive: new Effects.Overdrive(context),
+    tremolo: new Effects.Tremolo(context),
     reverb: new Effects.Reverb(context),
     panner: new Effects.Panner(context),
     phaser: new Effects.Phaser(context),
+    compressor: new Effects.Compressor(context),
     delay: new Effects.Delay(context),
     lowpass: new Effects.Lowpass(context),
     highpass: new Effects.Highpass(context),
-    compressor: new Effects.Compressor(context),
 }
 
 const fxout = new GainNode(context)
 fxout.connect(main)
 
-Effects.initChain(fxsend, fxout, Object.values(effects))
-
+Effects.chain(fxsend, fxout, Object.values(effects))
 
 const mixer = [
     {

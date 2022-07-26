@@ -53,7 +53,6 @@ export default class Phaser extends EffectsNode {
 
 const tdefs = Tone.Phaser.getDefaults()
 
-console.log(tdefs)
 Phaser.Meta = {
     name: 'Phaser',
     params: {

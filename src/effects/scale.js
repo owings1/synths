@@ -1,3 +1,9 @@
+/**
+ * WebAudio effects.
+ * 
+ * @author Doug Owings <doug@dougowings.net>
+ * @license MIT
+ */
 import {
     symOutpt,
     EffectsNode,
@@ -20,44 +26,41 @@ const Shufflers = {
     NONE: 4,
 }
 
-const SHUFFLERS = Object.fromEntries([
-    [Shufflers.RANDO, Utils.shuffle],
-    [Shufflers.TONIK, new Shuffler({
+const SHUFFLERS = Object.fromEntries(Object.entries({
+    NONE: arr => arr,
+    RANDO: Utils.shuffle,
+    TONIK: new Shuffler({
         fill: {
             // How often a note is replaced.
             replace: 0.3,
             probabilities: {
-                // Probability of filling with tonic
-                tonic: 0.5,
-                // Probability of filling with random note
+                0: 0.5,
                 random: 0.6,
-                // Probability of filling with null (prev note)
-                none: Infinity,
+                none: 1,
             }
         },
         start: {
             probabilities: {
-                tonic: 0.2,
+                0: 0.2,
             }
         }
-    })],
-    [Shufflers.SOFO, new Shuffler({
+    }),
+    SOFO: new Shuffler({
         fill: {
-            replace: 0.4,
+            replace: 0.35,
             probabilities: {
-                tonic: 0.0,
-                random: 0.7,
-                none: Infinity,
+                random: 0.8,
+                none: 1,
             }
         },
         start: {
             probabilities: {
-                tonic: 0.5,
+                0: 1,//0.5,
             }
         }
-    })],
-    [Shufflers.NONE, arr => arr],
-])
+    }),
+}).map(([key, value]) => [Shufflers[key], value]))
+
 
 /**
  * Scale oscillator.
@@ -78,7 +81,7 @@ export default class ScaleSample extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        this[symSched] = scheduleSample.bind(this)
+        this[symSched] = schedule.bind(this)
         this[symState] = {
             /** @type {AudioContext} */
             context,
@@ -110,7 +113,7 @@ export default class ScaleSample extends EffectsNode {
                 if (value !== prox[name]) {
                     prox[name] = value
                     if (this[symState].playing) {
-                        buildScaleSample.call(this)
+                        build.call(this)
                     }
                 }
             }
@@ -150,7 +153,7 @@ export default class ScaleSample extends EffectsNode {
      */
     play() {
         this.stop()
-        buildScaleSample.call(this)
+        build.call(this)
         const state = this[symState]
         state.playing = true
         state.osc = new OscillatorNode(state.context)
@@ -162,10 +165,12 @@ export default class ScaleSample extends EffectsNode {
     }
 }
 
+ScaleSample.prototype.start = ScaleSample.prototype.play
+
 /**
  * @private
  */
-function buildScaleSample() {
+function build() {
     const state = this[symState]
     state.scale = Music.scaleSample(this.degree.value, {
         octave: this.octave.value,
@@ -197,7 +202,7 @@ function buildScaleSample() {
 /**
  * @private
  */
-function scheduleSample() {
+function schedule() {
     const state = this[symState]
     while (state.context.currentTime + state.sampleDur > state.nextTime) {
         if (state.shuffle && state.counter % state.shuffle === 0) {
@@ -226,8 +231,6 @@ function scheduleSample() {
     state.stopId = setTimeout(() => this.stop(), stopTimeout)
 }
 
-
-ScaleSample.prototype.start = ScaleSample.prototype.play
 
 ScaleSample.Meta = {
     name: 'ScaleSample',
@@ -266,7 +269,7 @@ ScaleSample.Meta = {
             type: 'integer',
             default: 60,
             min: 30,
-            max: 300,
+            max: 240,
             step: 1,
             ticks: Utils.range(30, 300, 30)
         },
