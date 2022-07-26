@@ -8,70 +8,87 @@ import * as Utils from './utils.js'
  
 const {ValueError} = Utils
  
-const FILLDROP = 3
+const FILL_REPLACE = 0.3
 
-export default function Shuffler(opts) {
-    opts = opts || {}
-    const fill = opts.fill || {}
-    const start = opts.start || {}
-    const fills = Object.entries(fill.probabilities || {}).sort(entrySorter)
-    const starts = Object.entries(start.probabilities || {}).sort(entrySorter)
+export default class Shuffler {
 
-    const fillReplace = fill.replace || FILLDROP
-    return arr => {
-        if (arr.length < 2) {
+    constructor(opts) {
+        opts = opts || {}
+        const fill = opts.fill || {}
+        const start = opts.start || {}
+        const shuffle = opts.shuffle || Utils.shuffle
+        const fills = Object.entries(fill.probabilities || {}).sort(entrySorter)
+        const starts = Object.entries(start.probabilities || {}).sort(entrySorter)
+
+        const fillReplace = fill.replace === undefined
+            ? FILL_REPLACE
+            : fill.replace
+
+        return arr => {
+            if (arr.length < 2) {
+                return arr
+            }
+            const tonic = arr[0]
+            let P = Math.random()
+
+            for (let i = 0; i < fills.length; i++) {
+                let [key, value] = fills[i]
+                if (value < P) {
+                    continue
+                }
+                let fill
+                let keyn = Number(key)
+                if (Number.isInteger(keyn) && arr[keyn]) {
+                    fill = arr[keyn]
+                } else {
+                    switch (key) {
+                        case 'tonic':
+                            fill = tonic
+                            break
+                        case 'random':
+                            fill = arr[randomIndex(arr) || 1]
+                            break
+                        case 'none':
+                            fill = null
+                            break
+                        default:
+                            throw new ValueError(`Unknown fill: ${key}`)
+                    }
+                }
+                shuffle(arr)
+                for (let j = 0; j < arr.length; j++) {
+                    if (fillReplace >= Math.random()) {
+                        arr[j] = fill
+                    }
+                }
+                P = Math.random()
+                break
+            }
+
+            shuffle(arr)
+
+            for (let i = 0; i < starts.length; i++) {
+                let [key, value] = starts[i]
+                if (value < P) {
+                    continue
+                }
+                let start
+                let keyn = Number(key)
+                if (Number.isInteger(keyn) && arr[keyn]) {
+                    start = arr[keyn]
+                } else {
+                    switch (key) {
+                        case 'tonic':
+                            start = tonic
+                            break
+                        default:
+                            throw new ValueError(`Unknown start: ${start}`)
+                    }
+                }
+                arr[0] = start
+            }
             return arr
         }
-        const tonic = arr[0]
-        let P = Math.random()
-
-        for (let i = 0; i < fills.length; i++) {
-            let [key, value] = fills[i]
-            if (P <= 1 - value) {
-                continue
-            }
-            let fill
-            switch (key) {
-                case 'tonic':
-                    fill = tonic
-                    break
-                case 'random':
-                    fill = randomElement(arr)
-                    break
-                case 'none':
-                    fill = null
-                    break
-                default:
-                    throw new ValueError(`Unknown fill: ${key}`)
-            }
-            Utils.shuffle(arr)
-            for (let j = 1; j < arr.length; j += fillReplace) {
-                arr[j] = fill
-            }
-            P = Math.random()
-            break
-        }
-
-        Utils.shuffle(arr)
-
-        for (let i = 0; i < starts.length; i++) {
-            let [key, value] = starts[i]
-            if (P <= 1 - value) {
-                continue
-            }
-            let start
-            switch (key) {
-                case 'tonic':
-                    start = tonic
-                    break
-                default:
-                    throw new ValueError(`Unknown start: ${start}`)
-            }
-            let temp = arr[0]
-            arr[0] = start
-            arr[1] = temp
-        }
-        return arr
     }
 }
 
@@ -86,7 +103,7 @@ function entrySorter(a, b) {
  * @return {Number} A random index of the array
  */
 function randomIndex(arr) {
-    Math.floor(Math.random() * arr.length)
+    return Math.floor(Math.random() * arr.length)
 }
 
 /**

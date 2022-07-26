@@ -14,28 +14,51 @@ const symSched = Symbol()
 const Lookahead = 25.0
 const StopDelay = Lookahead * 10
 const Shufflers = {
-    SIMPLE: 1,
-    SOLO: 2,
+    RANDO: 1,
+    TONIK: 2,
+    SOFO: 3,
+    NONE: 4,
 }
-const soloShuffle = Shuffler({
-    fill: {
-        // How often a note is replaced.
-        replace: 3,
-        probabilities: {
-            // Probability of filling with tonic
-            tonic: 0.3,
-            // Probability of filling with random note
-            random: 0.5,
-            // Probability of filling with null (prev note)
-            none: Infinity,
+
+const SHUFFLERS = Object.fromEntries([
+    [Shufflers.RANDO, Utils.shuffle],
+    [Shufflers.TONIK, new Shuffler({
+        fill: {
+            // How often a note is replaced.
+            replace: 0.3,
+            probabilities: {
+                // Probability of filling with tonic
+                tonic: 0.5,
+                // Probability of filling with random note
+                random: 0.6,
+                // Probability of filling with null (prev note)
+                none: Infinity,
+            }
+        },
+        start: {
+            probabilities: {
+                tonic: 0.2,
+            }
         }
-    },
-    start: {
-        probabilities: {
-            tonic: 0.6,
+    })],
+    [Shufflers.SOFO, new Shuffler({
+        fill: {
+            replace: 0.4,
+            probabilities: {
+                tonic: 0.0,
+                random: 0.7,
+                none: Infinity,
+            }
+        },
+        start: {
+            probabilities: {
+                tonic: 0.5,
+            }
         }
-    }
-})
+    })],
+    [Shufflers.NONE, arr => arr],
+])
+
 /**
  * Scale oscillator.
  */
@@ -75,7 +98,7 @@ export default class ScaleSample extends EffectsNode {
             sampleDur: null,
             loop: false,
             shuffle: 0,
-            shuffler: Utils.noop,
+            shuffler: null,
             counter: 0,
         }
         const prox = Object.create(null)
@@ -155,25 +178,15 @@ function buildScaleSample() {
         state.scale.pop()
     }
     state.sample = state.scale.slice(0)
-    state.noteDur = 30 / this.bpm.value
+    state.noteDur = this.beat.value / this.bpm.value
     state.sampleDur = state.sample.length * state.noteDur
     state.loop = this.loop.value
     state.counter = 0
     state.shuffle = this.shuffle.value
     if (this.shuffle.value) {
-        switch (this.shuffler.value) {
-            case Shufflers.SOLO:
-                state.shuffler = soloShuffle
-                break
-            case Shufflers.SIMPLE:
-                state.shuffler = Utils.shuffle
-                break
-            default:
-                state.shuffler = Utils.noop
-                break
-        }
+        state.shuffler = SHUFFLERS[this.shuffler.value]
     } else {
-        state.shuffler = Utils.noop
+        state.shuffler = SHUFFLERS[Shufflers.NONE]
     }
     if (!state.nextTime) {
         // hot rebuild
@@ -239,6 +252,16 @@ ScaleSample.Meta = {
             type: 'boolean',
             default: false,
         },
+        beat: {
+            type: 'enum',
+            default: 30,
+            values: {
+                15: '1/16',
+                30: '1/8',
+                60: '1/4',
+                120: '1/2',
+            }
+        },
         bpm: {
             type: 'integer',
             default: 60,
@@ -270,7 +293,7 @@ ScaleSample.Meta = {
         },
         shuffler: {
             type: 'enum',
-            default: Shufflers.SIMPLE,
+            default: Shufflers.RANDO,
             values: Utils.flip(Shufflers),
         }
     },
