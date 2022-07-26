@@ -18,6 +18,7 @@ const symOutpt = Symbol('outpt')
 const DEG = Math.PI / 180
 const LOOKAHEAD = 25.0
 const STOPDELAY = LOOKAHEAD * 10
+const SOLODROP = 3
 const COMB_TUNINGS = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
 const ALLPASS_FREQS = [225, 556, 441, 341]
 
@@ -830,8 +831,14 @@ export class ScaleSample extends EffectsNode {
         opts = optsMerge(this.meta.params, opts)
         this[symSched] = scheduleSample.bind(this)
         this[symState] = {
+            /** @type {AudioContext} */
+            context,
+            /** @type {Number[]} */
+            scale: null,
             /** @type {Number[]} */
             sample: null,
+            /** @type {AudioParam} */
+            param: null,
             /** @type {OscillatorNode} */
             osc: null,
             playing: false,
@@ -842,6 +849,7 @@ export class ScaleSample extends EffectsNode {
             sampleDur: null,
             loop: false,
             shuffle: 0,
+            shuffler: Utils.noop,
             counter: 0,
         }
         const prox = Object.create(null)
@@ -853,7 +861,7 @@ export class ScaleSample extends EffectsNode {
                 if (value !== prox[name]) {
                     prox[name] = value
                     if (this[symState].playing) {
-                        buildScale.call(this)
+                        buildScaleSample.call(this)
                     }
                 }
             }
@@ -865,7 +873,7 @@ export class ScaleSample extends EffectsNode {
 
     /** @type {Boolean} */
     get playing() {
-        return Boolean(this[symState].playing)
+        return this[symState].playing
     }
 
     /**
@@ -880,6 +888,7 @@ export class ScaleSample extends EffectsNode {
         state.osc.disconnect()
         state.osc.stop()
         state.osc = null
+        state.param = null
         state.nextTime = null
         this[symOutpt].gain.cancelScheduledValues(state.nextTime)
         this[symOutpt].gain.value = 0
@@ -892,10 +901,11 @@ export class ScaleSample extends EffectsNode {
      */
     play() {
         this.stop()
-        buildScale.call(this)
+        buildScaleSample.call(this)
         const state = this[symState]
         state.playing = true
-        state.osc = new OscillatorNode(this.context)
+        state.osc = new OscillatorNode(state.context)
+        state.param = state.osc.frequency
         this[symSched]()
         this[symOutpt].gain.value = 1
         state.osc.connect(this[symOutpt])
@@ -906,9 +916,9 @@ export class ScaleSample extends EffectsNode {
 /**
  * @private
  */
-function buildScale() {
+function buildScaleSample() {
     const state = this[symState]
-    state.sample = Music.scaleSample(this.degree.value, {
+    state.scale = Music.scaleSample(this.degree.value, {
         octave: this.octave.value,
         tonality: this.tonality.value,
         direction: this.direction.value,
@@ -916,16 +926,26 @@ function buildScale() {
         clip: true,
     })
     if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
-        state.sample.pop()
+        state.scale.pop()
     }
-    state.noteDur = this.duration.value
+    state.sample = state.scale.slice(0)
+    state.noteDur = 30 / this.bpm.value
     state.sampleDur = state.sample.length * state.noteDur
     state.loop = this.loop.value
     state.counter = 0
     state.shuffle = this.shuffle.value
+    if (this.shuffle.value) {
+        if (this.solo.value) {
+            state.shuffler = soloShuffle
+        } else {
+            state.shuffler = Utils.shuffle
+        }
+    } else {
+        state.shuffler = Utils.noop
+    }
     if (!state.nextTime) {
         // hot rebuild
-        state.nextTime = this.context.currentTime
+        state.nextTime = state.context.currentTime
     }
 }
 
@@ -934,28 +954,49 @@ function buildScale() {
  */
 function scheduleSample() {
     const state = this[symState]
-    const {osc, sample, sampleDur, noteDur, loop} = state
-    while (this.context.currentTime + sampleDur > state.nextTime) {
+    while (state.context.currentTime + state.sampleDur > state.nextTime) {
         if (state.shuffle && state.counter % state.shuffle === 0) {
-            Utils.shuffle(state.sample)
+            state.sample = state.scale.slice(0)
+            state.shuffler(state.sample)
         }
-        sample.forEach(freq => {
-            osc.frequency.setValueAtTime(freq, state.nextTime)
-            state.nextTime += noteDur
+        state.sample.forEach(freq => {
+            if (freq) {
+                state.param.setValueAtTime(freq, state.nextTime)
+            }
+            state.nextTime += state.noteDur
         })
         state.counter += 1
-        if (!loop) {
+        if (!state.loop) {
             break
         }
     }
-    if (loop) {
+    if (state.loop) {
         state.scheduleId = setTimeout(this[symSched], LOOKAHEAD)
         return
     }
-    // smoother shutoff
+    // smooth(ish) shutoff
     this[symOutpt].gain.setValueAtTime(0.0, state.nextTime)
-    const doneTime = state.nextTime - this.context.currentTime
-    state.stopId = setTimeout(() => this.stop(), doneTime * 1000 + STOPDELAY)
+    const doneTime = state.nextTime - state.context.currentTime
+    const stopTimeout = doneTime * 1000 + STOPDELAY
+    state.stopId = setTimeout(() => this.stop(), stopTimeout)
+}
+
+/**
+ * @param {Array} arr
+ * @return {Array}
+ */
+function soloShuffle(arr) {
+    // fill with either null (i.e. no freq change), or a random freq from arr.
+    let fill = null
+    if (Math.random() > 0.5) {
+        fill = Utils.randomElement(arr)
+    }
+    Utils.shuffle(arr)
+    for (let i = 1; i < arr.length; i += SOLODROP) {
+        arr[i] = fill
+    }
+    Utils.shuffle(arr)
+    return arr
 }
 
 ScaleSample.prototype.start = ScaleSample.prototype.play
@@ -983,12 +1024,12 @@ ScaleSample.Meta = {
             type: 'boolean',
             default: false,
         },
-        duration: {
-            type: 'float',
-            default: 0.25,
-            min: 0.01,
-            max: 1.0,
-            step: 0.01,
+        bpm: {
+            type: 'integer',
+            default: 60,
+            min: 30,
+            max: 300,
+            step: 1,
         },
         octave: {
             type: 'integer',
@@ -1010,6 +1051,10 @@ ScaleSample.Meta = {
             min: 0,
             max: 48,
             step: 1,
+        },
+        solo: {
+            type: 'boolean',
+            default: false,
         }
     },
     actions: {

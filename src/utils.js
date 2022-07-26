@@ -8,12 +8,12 @@
 export class ValueError extends Error {}
 
 /**
- * Find the closest index and value of `target` in `arr`.
+ * Find the closest index and value of `target` in `arr`
  * 
- * @param {Number} target The search value.
- * @param {Number[]} arr The array to search.
+ * @param {Number} target The search value
+ * @param {Number[]} arr The array to search
  * @return {object|undefined} Object with `index` and `value` properties, or
- *  undefined if array is empty.
+ *  undefined if array is empty
  */
 export function closest(target, arr) {
     const {length} = arr
@@ -30,21 +30,20 @@ export function closest(target, arr) {
     let index
     while (low <= high) {
         const mid = Math.floor((low + high) / 2)
-        let diffLeft
-        let diffRight
+        let diff
         if (mid + 1 < length) {
-            diffRight = Math.abs(arr[mid + 1] - target)
+            diff = Math.abs(arr[mid + 1] - target)
+            if (diff < minDiff) {
+                minDiff = diff
+                index = mid + 1
+            }
         }
         if (mid > 0) {
-            diffLeft = Math.abs(arr[mid - 1] - target)
-        }
-        if (diffLeft !== undefined && diffLeft < minDiff) {
-            minDiff = diffLeft
-            index = mid - 1
-        }
-        if (diffRight !== undefined && diffRight < minDiff) {
-            minDiff = diffRight
-            index = mid + 1
+            diff = Math.abs(arr[mid - 1] - target)
+            if (diff < minDiff) {
+                minDiff = diff
+                index = mid - 1
+            }
         }
         if (arr[mid] < target) {
             low = mid + 1
@@ -59,10 +58,10 @@ export function closest(target, arr) {
 }
 
 /**
- * Shuffle an array.
+ * Shuffle an array in place
  * 
- * @param {Array} arr The array.
- * @return {Array} The array.
+ * @param {Array} arr The array
+ * @return {Array} The array
  */
 export function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -74,6 +73,30 @@ export function shuffle(arr) {
     return arr
 }
 
+/**
+ * Flip keys and values
+ * 
+ * @param {object} obj
+ * @return {object}
+ */
 export function flip(obj) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [v, k]))
 }
+
+export function randomIndex(arr) {
+    Math.floor(Math.random() * arr.length)
+}
+/**
+ * Get a random element from an array
+ *
+ * @param {Array} arr The input array
+ * @return {*} The value of a random index of the array
+ */
+ export function randomElement(arr) {
+    return arr[randomIndex(arr)]
+}
+
+/**
+ * Noop
+ */
+export function noop() {}
