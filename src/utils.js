@@ -108,7 +108,3 @@ export function mapRange(start, end, ...args) {
 export function range(start, end, step = 1) {
     return mapRange(start, end, step, n => n)
 }
-/**
- * Noop
- */
-export function noop() {}
