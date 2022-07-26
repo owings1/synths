@@ -4,7 +4,6 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 import {
     EffectsNode,
     optsMerge,

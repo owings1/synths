@@ -14,10 +14,12 @@ const styles = {
     mixer: 'fx1',
     oscillator: 'fx2',
     scale: 'fx5',
+    tremolo: 'fx7',
     reverb: 'fx4',
     freeverb: 'fx1',
     distortion: 'fx3',
     overdrive: 'fx7',
+    panner: 'fx1',
     delay: 'fx8',
     lowpass: 'fx6',
     highpass: 'fx6',
@@ -111,10 +113,12 @@ function oscStop() {
 }
 
 const effects = {
+    tremolo: new Effects.Tremolo(context),
     distortion: new Effects.Distortion(context),
     overdrive: new Effects.Overdrive(context),
     reverb: new Effects.Reverb(context),
-    freeverb: new Effects.Freeverb(context),
+    // freeverb: new Effects.Freeverb(context),
+    panner: new Effects.Panner(context),
     delay: new Effects.Delay(context),
     lowpass: new Effects.Lowpass(context),
     highpass: new Effects.Highpass(context),

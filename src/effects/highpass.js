@@ -4,15 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 import {
     EffectsNode,
     optsMerge,
     setOrigin,
     symOutpt,
 } from './core.js'
-
-
 
 /**
  * Basic highpass filter.

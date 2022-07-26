@@ -4,7 +4,6 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 import {
     EffectsNode,
     makeDistortionCurve,
@@ -13,6 +12,7 @@ import {
     setOrigin,
     symOutpt,
 } from './core.js'
+
 /**
  * Basic distortion effect.
  */

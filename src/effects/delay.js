@@ -4,7 +4,6 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 import {
     EffectsNode,
     fusedParam,
@@ -13,9 +12,8 @@ import {
     symOutpt,
 } from './core.js'
 
-
 /**
- * Delay with feedback.
+ * Delay with feedback and arbitrary delay time.
  */
 export default class Delay extends EffectsNode {
 

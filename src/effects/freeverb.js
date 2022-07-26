@@ -6,7 +6,6 @@
  * 
  * `Freeverb` class adapted from code by Anton Miselaytes
  */
-
 import {
     EffectsNode,
     fusedParam,
@@ -115,7 +114,6 @@ Freeverb.Meta = {
 }
 
 export {Freeverb}
-
 
 /**
  * Comb filter for Freeverb

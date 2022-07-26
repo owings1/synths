@@ -5,13 +5,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-
 export const symOutpt = Symbol('outpt')
 
 /**
  * Effects base class.
  */
- export class EffectsNode extends GainNode {
+export class EffectsNode extends GainNode {
 
     /**
      * @param {AudioContext} context
@@ -52,7 +51,6 @@ export const symOutpt = Symbol('outpt')
         return this.constructor.Meta
     }
 }
-
 
 /**
  * Merge user options from param definitions
