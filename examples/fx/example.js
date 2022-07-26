@@ -7,48 +7,73 @@
  */
 import $ from '../../src/jquery.js'
 import * as Effects from '../../src/effects.js'
+import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
+import '../../src/tone.js'
+
+
 
 const styles = {
     mixer: 'fx1',
     scale: 'fx2',
-    overdrive: 'fx7',
-    tremolo: 'fx5',
-    reverb: 'fx4',
-    panner: 'fx1',
-    phaser: 'fx3',
-    compressor: 'fx2',
+
+    compressor: 'fx3',
+    wah: 'fx4',
+    overdrive: 'fx5',
+    tremolo: 'fx6',
+    chorus: 'fx7',
+    panner: 'fx3',
+    phaser: 'fx4',
+    reverb: 'fx5',
     delay: 'fx8',
     lowpass: 'fx6',
-    highpass: 'fx3',
+    highpass: 'fx7',
 }
 
 const context = new AudioContext()
+Tone.setContext(context)
+
+const sample = new ScaleSample(context)
+
 const main = new GainNode(context)
 main.connect(context.destination)
 
-const source = new Effects.ScaleSample(context)
 const dry = new GainNode(context)
 const fxsend = new GainNode(context)
-source.connect(dry).connect(main)
-source.connect(fxsend)
+
+
+/*
+const instrument = new Tone.AMSynth({
+    // The glide time between notes (seconds)
+    portamento: 0.02,
+    // Harmonicity is the ratio between the two voices. A harmonicity of 1 is no change. Harmonicity = 2 means a change of an octave
+    harmonicity: 1,
+})
+sample.connect(instrument)
+instrument.connect(dry).connect(main)
+instrument.connect(fxsend)
+*/
+
+sample.connect(dry).connect(main)
+sample.connect(fxsend)
 
 const effects = {
+    compressor: new Effects.Compressor(context),
+    wah: new Effects.Wah(context),
     overdrive: new Effects.Overdrive(context),
     tremolo: new Effects.Tremolo(context),
-    reverb: new Effects.Reverb(context),
+    chorus: new Effects.Chorus(context),
     panner: new Effects.Panner(context),
     phaser: new Effects.Phaser(context),
-    compressor: new Effects.Compressor(context),
+    reverb: new Effects.Reverb(context),
     delay: new Effects.Delay(context),
     lowpass: new Effects.Lowpass(context),
     highpass: new Effects.Highpass(context),
 }
 
 const fxout = new GainNode(context)
-fxout.connect(main)
 
-Effects.chain(fxsend, fxout, Object.values(effects))
+Effects.chain(fxsend, fxout, effects).connect(main)
 
 const mixer = [
     {
@@ -77,7 +102,7 @@ mixer.forEach(({param}) => param.value = 0.5)
 
 $(() => {
     mixerWidget('mixer', 'Mixer', mixer).appendTo('#mixer-wrapper')
-    nodeWidget('scale', source).appendTo('#effects')
+    nodeWidget('scale', sample).appendTo('#effects')
     $.each(effects, (id, node) => {
         nodeWidget(id, node).appendTo('#effects')
     })

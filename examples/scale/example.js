@@ -7,7 +7,7 @@
  */
 import $ from '../../src/jquery.js'
 import * as Widgets from '../../src/widgets.js'
-import * as Effects from '../../src/effects.js'
+import ScaleSample from '../../src/scale.js'
 
 const context = new AudioContext()
     
@@ -15,7 +15,7 @@ const volume = new GainNode(context)
 volume.gain.value = 0.5
 volume.connect(context.destination)
 
-const scale = new Effects.ScaleSample(context)
+const scale = new ScaleSample(context)
 scale.connect(volume)
 $(() => {
     $('#mixer-wrapper')

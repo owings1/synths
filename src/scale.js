@@ -9,11 +9,11 @@ import {
     EffectsNode,
     optsMerge,
     paramProp,
-} from './core.js'
-import '../tone.js'
-import * as Music from '../music.js'
-import * as Utils from '../utils.js'
-import Shuffler from '../shuffler.js'
+} from './effects/core.js'
+import './tone.js'
+import * as Music from './music.js'
+import * as Utils from './utils.js'
+import Shuffler from './shuffler.js'
 
 const symState = Symbol()
 const symSched = Symbol()
