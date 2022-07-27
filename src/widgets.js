@@ -175,7 +175,14 @@ export function paramWidget(id, param, def) {
         case 'integer':
         case 'float':
             let {min, max, step, ticks} = def
-            let fixed = 2 * (def.type === 'float')
+            let fixed = 0
+            if (def.type === 'float') {
+                if (step) {
+                    fixed = countDecimals(step)
+                } else {
+                    fixed = 2
+                }
+            }
             let display = Number(value).toFixed(fixed)
             let $input = $('<input/>')
                 .attr({id, type: 'range', value, min, max, step})
@@ -289,4 +296,11 @@ function tickDatalist(ticks) {
         $('<option/>').attr({value, label}).appendTo($list)
     })
     return $list
+}
+
+function countDecimals(value) {
+    if (Math.floor(value) === value) {
+        return 0
+    }
+    return String(value).split('.')[1].length || 0
 }

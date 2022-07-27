@@ -4,8 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import * as Utils from './utils.js'
-const {ValueError} = Utils
+import {closest, ValueError} from './utils.js'
 
 /** Tonality Enum */
 export const Tonality = {
@@ -197,7 +196,7 @@ function freqAtDegree(degree, octave) {
  * @return {Number} The closest known frequency.
  */
 function closestFreq(target) {
-    return Utils.closest(target, FREQS).value
+    return closest(target, FREQS).value
 }
 
 /**

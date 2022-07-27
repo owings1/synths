@@ -11,15 +11,10 @@ import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
 import '../../src/tone.js'
 
-let useSynth
-
-useSynth = false
-//useSynth = true
-
-
 const styles = {
     mixer: 'fx1',
     scale: 'fx2',
+    synth: 'fx6',
 
     compressor: 'fx3',
     wah: 'fx4',
@@ -35,33 +30,21 @@ const styles = {
 }
 
 const context = new AudioContext()
-
-const sample = new ScaleSample(context)
+Tone.setContext(context)
 
 const main = new GainNode(context)
-main.connect(context.destination)
-
-const dry = new GainNode(context)
 const fxsend = new GainNode(context)
+const fxout = new GainNode(context)
 
-if (useSynth) {
-    Tone.setContext(context)
-    const instrument = new Tone.AMSynth({
-        // The glide time between notes (seconds)
-        portamento: 0.0005,
-        // Harmonicity is the ratio between the two voices.
-        // A harmonicity of 1 is no change.
-        // Harmonicity = 2 means a change of an octave
-        harmonicity: 1,
-    })
-    sample.connect(instrument)
-    instrument.connect(dry).connect(main)
-    instrument.connect(fxsend)
-} else {
-    sample.connect(dry).connect(main)
-    sample.connect(fxsend)
-}
+const sample = new ScaleSample(context)
+const synth = new Tone.AMSynth()
 
+const sampleDry = new GainNode(context)
+const sampleFx = new GainNode(context)
+
+const synthGain = new GainNode(context)
+const synthDry = new GainNode(context)
+const synthFx = new GainNode(context)
 
 const effects = {
     compressor: new Effects.Compressor(context),
@@ -77,9 +60,17 @@ const effects = {
     highpass: new Effects.Highpass(context),
 }
 
-const fxout = new GainNode(context)
+sample.connect(synth)
+sample.connect(sampleDry).connect(main)
+sample.connect(sampleFx).connect(fxsend)
+
+synth.connect(synthGain)
+synthGain.connect(synthDry).connect(main)
+synthGain.connect(synthFx).connect(fxsend)
 
 Effects.chain(fxsend, fxout, effects).connect(main)
+
+main.connect(context.destination)
 
 const mixer = [
     {
@@ -88,9 +79,24 @@ const mixer = [
         param: main.gain,
     },
     {
-        name: 'dry',
-        label: 'Dry',
-        param: dry.gain,
+        name: 'sampleDry',
+        label: 'Sample Dry',
+        param: sampleDry.gain,
+    },
+    {
+        name: 'sampleFx',
+        label: 'Sample FX Send',
+        param: sampleFx.gain,
+    },
+    {
+        name: 'synthDry',
+        label: 'Synth Dry',
+        param: synthDry.gain,
+    },
+    {
+        name: 'synthFx',
+        label: 'Synth FX Send',
+        param: synthFx.gain,
     },
     {
         name: 'fxsend',
@@ -104,14 +110,54 @@ const mixer = [
     },
 ]
 
+
 mixer.forEach(({param}) => param.value = 0.5)
 
 $(() => {
     mixerWidget('mixer', 'Mixer', mixer).appendTo('#mixer-wrapper')
     nodeWidget('scale', sample).appendTo('#effects')
+    synthWidget('synth', synth).appendTo('#effects')
+
     $.each(effects, (id, node) => {
         nodeWidget(id, node).appendTo('#effects')
     })
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     $('button').button()
 })
+
+
+function synthWidget(id, synth) {
+
+    const meta = {
+        name: synth.name,
+        params: {
+            portamento: {
+                type: 'float',
+                default: 0.0,
+                min: 0.0,
+                max: 0.1,
+                step: 0.0001,
+                unit: 's',
+                help: 'glide time between notes (seconds)'
+            },
+            harmonicity: {
+                type: 'float',
+                default: 1.0,
+                min: 1.0,
+                max: 4.0,
+                step: 0.01,
+                help: "ratio between the two voices. 1 is no change, 2 is an octave, etc."
+            }
+        }
+    }
+    // faux node
+    const node = {
+        meta,
+        harmonicity: synth.harmonicity,
+        portamento: {
+            get value() { return synth.portamento },
+            set value(value) { synth.portamento = value },
+        }
+    }
+    return nodeWidget(id, node)
+}

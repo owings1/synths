@@ -194,14 +194,14 @@ ScaleSample.Meta = {
         },
         shuffle: {
             type: 'integer',
-            default: 0,
+            default: 1,
             min: 0,
-            max: 48,
+            max: 24,
             step: 1,
         },
         shuffler: {
             type: 'enum',
-            default: Shufflers.RANDY,
+            default: Shufflers.NONE,
             values: flip(Shufflers),
         }
     },
