@@ -6,7 +6,7 @@
  */
 import {shuffle} from './utils.js'
  
-const FILL_REPLACE = 0.3
+const FILL_CHANCE = 0.3
 const None = Symbol()
 
 export default class Shuffler {
@@ -22,14 +22,15 @@ export default class Shuffler {
      */
     constructor(opts = undefined) {
         opts = opts || {}
-        if (opts.shuffle) {
-            this.shuffle = opts.shuffle
-        }
+        this.shuffle = opts.shuffle || shuffle
         for (const opt of ['fill', 'start', 'end']) {
             this[opt] = opts[opt] ? {...opts[opt]} : {}
             this[opt].chances = opts[opt]
                 ? sortedEntries(opts[opt].chances || {})
                 : []
+        }
+        if (this.fill.chance === undefined) {
+            this.fill.chance = FILL_CHANCE
         }
         return arr => {
             if (arr.length > 1) {
@@ -90,9 +91,6 @@ export default class Shuffler {
         return None
     }
 }
-
-Shuffler.prototype.shuffle = shuffle
-Shuffler.prototype.fillReplace = FILL_REPLACE
 
 export {Shuffler}
 
