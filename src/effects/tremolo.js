@@ -7,7 +7,6 @@
  import {
     EffectsNode,
     optsMerge,
-    setOrigin,
 } from './core.js'
 import '../tone.js'
 
@@ -31,7 +30,7 @@ export default class Tremolo extends EffectsNode {
             depth: {value: tn.depth},
             wet: {value: tn.wet},
         })
-        Tone.connect(setOrigin(this, input), tn)
+        Tone.connect(EffectsNode.setInput(this, input), tn)
         tn.connect(this.output)
         tn.start()
         this.update(opts)

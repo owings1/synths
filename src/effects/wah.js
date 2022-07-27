@@ -8,7 +8,6 @@
     EffectsNode,
     optsMerge,
     paramProp,
-    setOrigin,
 } from './core.js'
 import '../tone.js'
 
@@ -43,7 +42,7 @@ export default class Wah extends EffectsNode {
             ),
             quality: {value: wn.Q},
         })
-        Tone.connect(setOrigin(this, input), wn)
+        Tone.connect(EffectsNode.setInput(this, input), wn)
         wn.connect(this.output)
         this.update(opts)
     }

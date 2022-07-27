@@ -14,6 +14,16 @@ const symOutpt = Symbol('outpt')
 export class EffectsNode extends GainNode {
 
     /**
+     * Setup `EffectsNode` wrapper origin
+     * 
+     * @param {EffectsNode} node The `EffectsNode` instance
+     * @param {AudioNode} dest The `AudioNode` destination
+     * @return {AudioNode} The destination
+     */
+    static setInput(node, dest) {
+        return GainNode.prototype.connect.call(node, dest)
+    }
+    /**
      * @param {AudioContext} context
      * @param {object} opts
      */
@@ -88,17 +98,6 @@ export function paramProp(vget, vset) {
 }
 
 /**
- * Setup `EffectsNode` wrapper origin
- * 
- * @param {EffectsNode} node The `EffectsNode` instance
- * @param {AudioNode} dest The `AudioNode` destination
- * @return {AudioNode} The destination
- */
-export function setOrigin(node, dest) {
-    return GainNode.prototype.connect.call(node, dest)
-}
-
-/**
  * Make a stub AudioParam object that sets all param values, and
  * delegates prototype method to all params
  * 
@@ -111,8 +110,6 @@ export function fusedParam(params, opts = undefined) {
     opts = opts || {}
     const {divide} = opts
     const leader = params[0]
-    const methods = Object.getOwnPropertyNames(AudioParam.prototype)
-        .filter(prop => typeof leader[prop] === 'function')
     const vget = () => {
         let {value} = leader
         if (divide) {
@@ -127,39 +124,16 @@ export function fusedParam(params, opts = undefined) {
         params.forEach(param => param.value = value)
     }
     const fused = paramObject(vget, vset)
-    methods.forEach(method => {
-        const func = leader[method]
-        fused[method] = (...args) => {
-            params.forEach(param => func.apply(param, args.slice(0)))
-        }
-    })
+    Object.getOwnPropertyNames(AudioParam.prototype)
+        .filter(prop => typeof leader[prop] === 'function')
+        .forEach(method => {
+            const func = leader[method]
+            fused[method] = (...args) => {
+                params.forEach(param => func.apply(param, args.slice(0)))
+            }
+        })
     return fused
 }
-
-const DEG = Math.PI / 180
-
-/**
- * Make a distortion curve array
- * 
- * From:
- *  - https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper
- *  - https://stackoverflow.com/a/22313408
- *  - https://alexanderleon.medium.com/web-audio-series-part-2-designing-distortion-using-javascript-and-the-web-audio-api-446301565541
- * 
- * @param {Number} amount
- * @param {integer} samples
- * @return {Float32Array}
- */
-export function makeDistortionCurve(amount = 50, samples = 512) {
-    const k = Number(amount)
-    const curve = new Float32Array(samples)
-    for (let i = 0; i < samples; i++) {
-        const x = i * 2 / samples - 1
-        curve[i] = (3 + k) * x * 20 * DEG / (Math.PI + k + Math.abs(x))
-    }
-    return curve
-}
-
 
 /**
  * Make a stub object like an `AudioParam`

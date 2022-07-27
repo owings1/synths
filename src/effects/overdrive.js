@@ -8,15 +8,15 @@
  */
 import {
     EffectsNode,
-    makeDistortionCurve,
     optsMerge,
     paramProp,
-    setOrigin,
 } from './core.js'
+
+import {makeCurve} from './distortion.js'
 
 const SAMPLES = 22050
 /**
- * Overdrive effect.
+ * Overdrive effect
  * 
  * @see https://github.com/web-audio-components/overdrive
  * 
@@ -58,12 +58,12 @@ export default class Overdrive extends EffectsNode {
             color: {value: input.frequency},
             drive: paramProp(() => drive, value => {
                 drive = Number(value)
-                ws.curve = makeDistortionCurve(value * 100, SAMPLES)
+                ws.curve = makeCurve(value * 100, SAMPLES)
             }),
             feedback: {value: fb.gain},
             postCut: {value: lp.frequency},
         })
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
             .connect(ws)
             .connect(lp)
             .connect(this.output)

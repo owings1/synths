@@ -6,10 +6,8 @@
  */
 import {
     EffectsNode,
-    makeDistortionCurve,
     optsMerge,
     paramProp,
-    setOrigin,
 } from './core.js'
 
 /**
@@ -33,11 +31,11 @@ export default class Distortion extends EffectsNode {
         Object.defineProperties(this, {
             drive: paramProp(() => drive, value => {
                 drive = Number(value)
-                input.curve = makeDistortionCurve(drive * 1000)
+                input.curve = makeCurve(drive * 1000)
             }),
             feedback: {value: fb.gain},
         })
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
             .connect(fb)
             .connect(input)
             .connect(this.output)
@@ -73,3 +71,28 @@ Distortion.Meta = {
 }
 
 export {Distortion}
+
+
+const DEG = Math.PI / 180
+
+/**
+ * Make a distortion curve array
+ * 
+ * From:
+ *  - https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper
+ *  - https://stackoverflow.com/a/22313408
+ *  - https://alexanderleon.medium.com/web-audio-series-part-2-designing-distortion-using-javascript-and-the-web-audio-api-446301565541
+ * 
+ * @param {Number} amount
+ * @param {integer} samples
+ * @return {Float32Array}
+ */
+export function makeCurve(amount = 50, samples = 512) {
+    const k = Number(amount)
+    const curve = new Float32Array(samples)
+    for (let i = 0; i < samples; i++) {
+        const x = i * 2 / samples - 1
+        curve[i] = (3 + k) * x * 20 * DEG / (Math.PI + k + Math.abs(x))
+    }
+    return curve
+}

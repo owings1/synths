@@ -8,7 +8,6 @@ import {
     EffectsNode,
     paramProp,
     optsMerge,
-    setOrigin,
 } from './core.js'
 
 const Samples = {
@@ -51,7 +50,7 @@ export default class Reverb extends EffectsNode {
                 }
             })
         })
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
             .connect(wet)
             .connect(cv)
             .connect(this.output)

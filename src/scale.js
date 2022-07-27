@@ -11,10 +11,9 @@ import {
 } from './effects/core.js'
 import './tone.js'
 import * as Music from './music.js'
-import * as Utils from './utils.js'
+import {flip, range, shuffle} from './utils.js'
 import Shuffler from './shuffler.js'
 
-const {shuffle} = Utils
 const symState = Symbol()
 const symSched = Symbol()
 
@@ -27,7 +26,6 @@ const Shufflers = {
     SOFA: 3,
     BIMOM: 4,
 }
-
 
 /**
  * Scale oscillator.
@@ -48,9 +46,7 @@ export default class ScaleSample extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        if (opts.instrument) {
-            this.instrument = instrument
-        }
+        this.instrument = opts.instrument
         this[symSched] = schedule.bind(this)
         this[symState] = new SampleState
         this.oscillator = new OscillatorNode(this.context, {frequency: 0})
@@ -113,10 +109,10 @@ export default class ScaleSample extends EffectsNode {
      * Stop playing
      */
     stop() {
-        const state = this[symState]
-        if (!state.playing) {
+        if (!this.playing) {
             return
         }
+        const state = this[symState]
         state.playing = false
         state.nextTime = null
         this.oscillator.frequency.cancelScheduledValues(null)
@@ -148,17 +144,21 @@ ScaleSample.Meta = {
         tonality: {
             type: 'enum',
             default: Music.Tonality.MAJOR,
-            values: Utils.flip(Music.Tonality),
+            values: flip(Music.Tonality),
         },
         degree: {
             type: 'enum',
             default: 0,
-            values: Music.DegLabels,
+            values: Object.fromEntries(
+                Object.entries(
+                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+                )
+            ),
         },
         direction: {
             type: 'enum',
             default: Music.Dir.ASCEND,
-            values: Utils.flip(Music.Dir),
+            values: flip(Music.Dir),
         },
         loop: {
             type: 'boolean',
@@ -180,7 +180,7 @@ ScaleSample.Meta = {
             min: 30,
             max: 240,
             step: 1,
-            ticks: Utils.range(30, 300, 30)
+            ticks: range(30, 300, 30)
         },
         octave: {
             type: 'integer',
@@ -206,7 +206,7 @@ ScaleSample.Meta = {
         shuffler: {
             type: 'enum',
             default: Shufflers.RANDY,
-            values: Utils.flip(Shufflers),
+            values: flip(Shufflers),
         }
     },
     actions: {
@@ -288,18 +288,18 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
  */
 function build() {
     const state = this[symState]
-    state.scaleOpts = {
+    state.opts = {
         octave: this.octave.value,
         tonality: this.tonality.value,
         direction: this.direction.value,
         octaves: this.octaves.value,
         clip: true,
     }
-    state.scale = Music.scaleSample(this.degree.value, state.scaleOpts)
+    state.scale = Music.scaleSample(this.degree.value, state.opts)
     if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
         state.scale.pop()
     }
-    state.sample = state.scale.slice(0)
+    state.sample = state.scale
     state.noteDur = this.beat.value / this.bpm.value
     state.loop = this.loop.value
     state.counter = 0
@@ -321,13 +321,11 @@ function build() {
  * @private
  */
 function schedule() {
+    /** @type {SampleState} */
     const state = this[symState]
     clearTimeout(state.scheduleId)
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
-        if (state.shuffle && state.counter % state.shuffle === 0) {
-            state.sample = state.scale.slice(0)
-            state.shuffler(state.sample)
-        }
+        state.shuffleIfNeeded()
         state.sample.forEach(freq => {
             play.call(this, freq, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
@@ -366,29 +364,25 @@ function play(freq, dur, time) {
 }
 
 class SampleState {
-    constructor() {
-        /** @type {Number[]} */
-        this.scale = null
-        /** @type {Number[]} */
-        this.sample = null
-        /** @type {object} */
-        this.scaleOpts = null
-        this.playing = false
-        this.nextTime = null
-        this.stopId = null
-        this.scheduleId = null
-        this.noteDur = null
-        this.loop = false
-        this.shuffle = 0
-        this.shuffler = null
-        this.counter = 0
-    }
 
     get sampleDur() {
         return this.noteDur * this.sample.length
     }
-}
 
+    shuffleIfNeeded() {
+        if (this.shuffle && this.counter % this.shuffle === 0) {
+            this.sample = this.scale.slice(0)
+            this.shuffler(this.sample)
+            return true
+        }
+        return false
+    }
+
+}
+/**
+ * @param {object} obj
+ * @return {Boolean}
+ */
 function isInstrument(obj) {
     return typeof obj.triggerAttackRelease === 'function'
 }

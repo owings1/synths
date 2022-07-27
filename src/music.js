@@ -36,12 +36,14 @@ export const Dir = {
     ASCEND_DESCEND: 7,
     DESCEND_ASCEND: 15,
 }
+Object.defineProperties(Dir, {
+    isMulti: {
+        value: dir => Boolean(dir & 4),
+        writable: false,
+        enumerable: false,
+    }
+})
 export const MULTIDIR_FLAG = 4
-
-/** Scale degree labels */
-export const DegLabels = Object.fromEntries(
-    Object.entries(['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])
-)
 
 /**
  * Adjust a frequency by a number of half-steps
@@ -79,7 +81,8 @@ export function scaleSample(degree, opts = undefined) {
     const tonic = freqAtDegree(degree, octave)
     let freqs
     direction = Number(direction)
-    if (direction & MULTIDIR_FLAG) {
+    if (Dir.isMulti(direction)) {
+    // if (direction & MULTIDIR_FLAG) {
         opts.descend = direction === Dir.DESCEND_ASCEND
         freqs = scaleFreqs(tonic, opts)
         opts.descend = !opts.descend

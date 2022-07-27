@@ -7,7 +7,6 @@
 import {
     EffectsNode,
     optsMerge,
-    setOrigin,
 } from './core.js'
 import '../tone.js'
 
@@ -31,7 +30,7 @@ export default class Panner extends EffectsNode {
             depth: {value: pn.depth},
             wet: {value: pn.wet},
         })
-        Tone.connect(setOrigin(this, input), pn)
+        Tone.connect(EffectsNode.setInput(this, input), pn)
         pn.connect(this.output)
         pn.start()
         this.update(opts)

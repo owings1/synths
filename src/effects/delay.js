@@ -8,7 +8,6 @@ import {
     EffectsNode,
     fusedParam,
     optsMerge,
-    setOrigin,
 } from './core.js'
 
 /**
@@ -42,7 +41,7 @@ export default class Delay extends EffectsNode {
             feedback: {value: fb.gain},
         })
 
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
         let node = input
         for (let i = 1; i < dyChain.length; i++) {
             node = node.connect(dyChain[i])

@@ -6,8 +6,9 @@
  */
 import {shuffle} from './utils.js'
  
+const OPTKEYS = ['fill', 'start', 'end']
 const FILL_CHANCE = 0.3
-const None = Symbol()
+const NONE = Symbol()
 
 export default class Shuffler {
 
@@ -23,12 +24,12 @@ export default class Shuffler {
     constructor(opts = undefined) {
         opts = opts || {}
         this.shuffle = opts.shuffle || shuffle
-        for (const opt of ['fill', 'start', 'end']) {
+        OPTKEYS.forEach(opt => {
             this[opt] = opts[opt] ? {...opts[opt]} : {}
             this[opt].chances = opts[opt]
-                ? sortedEntries(opts[opt].chances || {})
+                ? Object.entries(opts[opt].chances || {}).sort(entrySorter)
                 : []
-        }
+        })
         if (this.fill.chance === undefined) {
             this.fill.chance = FILL_CHANCE
         }
@@ -47,8 +48,7 @@ export default class Shuffler {
         const filler = this.getValue(arr, this.fill.chances)
         const starter = this.getValue(arr, this.start.chances)
         const ender = this.getValue(arr, this.end.chances)
-        // console.log(arr[0], {filler, starter})
-        if (filler !== None) {
+        if (filler !== NONE) {
             for (let i = 0; i < arr.length; i++) {
                 if (this.fill.chance >= Math.random()) {
                     arr[i] = filler
@@ -56,10 +56,10 @@ export default class Shuffler {
             }
         }
         this.shuffle(arr)
-        if (starter !== None) {
+        if (starter !== NONE) {
             arr[0] = starter
         }
-        if (ender !== None) {
+        if (ender !== NONE) {
             arr[arr.length - 1] = ender
         }
     }
@@ -76,7 +76,7 @@ export default class Shuffler {
             }
             switch (key) {
                 case 'random':
-                    return randomElement(arr)
+                    return arr[Math.floor(Math.random() * arr.length)]
                 case 'null':
                     return null
                 case 'undefined':
@@ -88,19 +88,12 @@ export default class Shuffler {
             }
             return arr[key]
         }
-        return None
+        return NONE
     }
 }
 
 export {Shuffler}
 
-/**
- * @param {{}} obj
- * @return {Array[]} entries sorted numerically by value
- */
-function sortedEntries(obj) {
-    return Object.entries(obj).sort(entrySorter)
-}
 
 /**
  * @param {Array} a
@@ -109,20 +102,4 @@ function sortedEntries(obj) {
  */
 function entrySorter(a, b) {
     return a[1] - b[1]
-}
-
-/**
- * @param {Array} arr The input array
- * @return {Number} A random index of the array
- */
-function randomIndex(arr) {
-    return Math.floor(Math.random() * arr.length)
-}
-
-/**
- * @param {Array} arr The input array
- * @return {*} The value of a random index of the array
- */
-function randomElement(arr) {
-    return arr[randomIndex(arr)]
 }

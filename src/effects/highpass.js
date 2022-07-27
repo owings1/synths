@@ -7,7 +7,6 @@
 import {
     EffectsNode,
     optsMerge,
-    setOrigin,
 } from './core.js'
 
 /**
@@ -30,7 +29,7 @@ export default class Highpass extends EffectsNode {
             cutoff: {value: input.frequency},
             quality: {value: input.Q},
         })
-        setOrigin(this, input).connect(this.output)
+        EffectsNode.setInput(this, input).connect(this.output)
         this.update(opts)
     }
 }

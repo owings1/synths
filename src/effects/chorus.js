@@ -8,7 +8,7 @@
     EffectsNode,
     optsMerge,
     paramProp,
-    setOrigin,
+
 } from './core.js'
 import '../tone.js'
 
@@ -43,7 +43,7 @@ export default class Chorus extends EffectsNode {
                 value => ch.spread = value
             ),
         })
-        Tone.connect(setOrigin(this, input), ch)
+        Tone.connect(EffectsNode.setInput(this, input), ch)
         ch.connect(this.output)
         this.update(opts)
     }

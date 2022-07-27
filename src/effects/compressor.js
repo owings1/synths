@@ -7,7 +7,6 @@
 import {
     EffectsNode,
     optsMerge,
-    setOrigin,
 } from './core.js'
 
 /**
@@ -36,7 +35,7 @@ export default class Compressor extends EffectsNode {
             attack: {value: input.attack},
             release: {value: input.release},
         })
-        setOrigin(this, input).connect(this.output)
+        EffectsNode.setInput(this, input).connect(this.output)
         this.update(opts)
     }
 }

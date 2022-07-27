@@ -10,7 +10,6 @@ import {
     EffectsNode,
     fusedParam,
     optsMerge,
-    setOrigin,
 } from './core.js'
 
 const COMB_TUNINGS = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
@@ -48,7 +47,7 @@ export default class Freeverb extends EffectsNode {
             resonance: {value: fusedParam(combs.map(comb => comb.resonance))},
             dampening: {value: fusedParam(combs.map(comb => comb.dampening))},
         })
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
         const merger = new ChannelMergerNode(context, {numberOfInputs: 2})
         const splitter = new ChannelSplitterNode(context, {numberOfOutputs: 2})
         const combsMid = Math.floor(combs.length / 2)
@@ -132,7 +131,7 @@ class LowpassCombFilter extends EffectsNode {
             resonance: {value: gn.gain},
             dampening: {value: lp.frequency},
         })
-        setOrigin(this, input)
+        EffectsNode.setInput(this, input)
             .connect(dn)
             .connect(lp)
             .connect(gn)

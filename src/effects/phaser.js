@@ -8,7 +8,6 @@
     EffectsNode,
     optsMerge,
     paramProp,
-    setOrigin,
 } from './core.js'
 import '../tone.js'
 
@@ -44,7 +43,7 @@ export default class Phaser extends EffectsNode {
                 value => ph.stages = value
             ),
         })
-        Tone.connect(setOrigin(this, input), ph)
+        Tone.connect(EffectsNode.setInput(this, input), ph)
         ph.connect(this.output)
         this.update(opts)
     }
