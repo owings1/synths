@@ -4,9 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import * as Utils from './utils.js'
- 
-const {ValueError} = Utils
+import {shuffle} from './utils.js'
  
 const FILL_REPLACE = 0.3
 const None = Symbol()
@@ -27,7 +25,7 @@ export default class Shuffler {
         if (opts.shuffle) {
             this.shuffle = opts.shuffle
         }
-        for (const opt of ['fill', 'start']) {
+        for (const opt of ['fill', 'start', 'end']) {
             this[opt] = opts[opt] ? {...opts[opt]} : {}
             this[opt].chances = opts[opt]
                 ? sortedEntries(opts[opt].chances || {})
@@ -47,6 +45,7 @@ export default class Shuffler {
     run(arr) {
         const filler = this.getValue(arr, this.fill.chances)
         const starter = this.getValue(arr, this.start.chances)
+        const ender = this.getValue(arr, this.end.chances)
         // console.log(arr[0], {filler, starter})
         if (filler !== None) {
             for (let i = 0; i < arr.length; i++) {
@@ -59,7 +58,9 @@ export default class Shuffler {
         if (starter !== None) {
             arr[0] = starter
         }
-        console.log(arr)
+        if (ender !== None) {
+            arr[arr.length - 1] = ender
+        }
     }
 
     /**
@@ -80,15 +81,17 @@ export default class Shuffler {
                 case 'undefined':
                     return undefined
             }
+            key = Number(key)
+            if (key < 0) {
+                key = arr.length + key
+            }
             return arr[key]
         }
         return None
     }
 }
 
-Shuffler.prototype.shuffle = Utils.shuffle
-Shuffler.prototype.fill = []
-Shuffler.prototype.start = []
+Shuffler.prototype.shuffle = shuffle
 Shuffler.prototype.fillReplace = FILL_REPLACE
 
 export {Shuffler}

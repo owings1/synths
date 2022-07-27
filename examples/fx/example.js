@@ -11,6 +11,10 @@ import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
 import '../../src/tone.js'
 
+let useSynth
+
+useSynth = false
+//useSynth = true
 
 
 const styles = {
@@ -31,7 +35,6 @@ const styles = {
 }
 
 const context = new AudioContext()
-Tone.setContext(context)
 
 const sample = new ScaleSample(context)
 
@@ -41,21 +44,24 @@ main.connect(context.destination)
 const dry = new GainNode(context)
 const fxsend = new GainNode(context)
 
+if (useSynth) {
+    Tone.setContext(context)
+    const instrument = new Tone.AMSynth({
+        // The glide time between notes (seconds)
+        portamento: 0.0005,
+        // Harmonicity is the ratio between the two voices.
+        // A harmonicity of 1 is no change.
+        // Harmonicity = 2 means a change of an octave
+        harmonicity: 1,
+    })
+    sample.connect(instrument)
+    instrument.connect(dry).connect(main)
+    instrument.connect(fxsend)
+} else {
+    sample.connect(dry).connect(main)
+    sample.connect(fxsend)
+}
 
-/*
-const instrument = new Tone.AMSynth({
-    // The glide time between notes (seconds)
-    portamento: 0.02,
-    // Harmonicity is the ratio between the two voices. A harmonicity of 1 is no change. Harmonicity = 2 means a change of an octave
-    harmonicity: 1,
-})
-sample.connect(instrument)
-instrument.connect(dry).connect(main)
-instrument.connect(fxsend)
-*/
-
-sample.connect(dry).connect(main)
-sample.connect(fxsend)
 
 const effects = {
     compressor: new Effects.Compressor(context),

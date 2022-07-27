@@ -49,31 +49,42 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
     }),
     SOFA: new Shuffler({
         fill: {
-            // chance: 1,
             chance: 0.35,
             chances: {
                 random: 0.8,
                 null: 1,
-                // undefined: 0.3,
             }
         },
         start: {
             chances: {
-                0: 0.5,//0.5,
+                0: 0.5,
             }
         }
     }),
     BIMOM: new Shuffler({
         shuffle: arr => {
             const mid = Math.floor(arr.length / 2)
+            shuffle(arr, 0, mid)
             return shuffle(arr, mid)
+        },
+        fill: {
+            chance: 0.05,
+            chances: {
+                0: 0.4,
+                null: 1
+            }
+        },
+        start: {
+            chances: {
+                0: 0.25,
+            }
+        },
+        end: {
+            chances: {
+                1: 0.25,
+                '-1': 0.25,
+            }
         }
-        // shuffle: arr => {
-        //     const mid = Math.floor(arr.length / 2)
-        //     shuffle(arr.slice(0, mid)).concat(
-        //         shuffle(arr.slice(mid))
-        //     ).forEach((v, i) => arr[i] = v) 
-        // }
     })
 
 }).map(([key, value]) => [Shufflers[key], value]))
