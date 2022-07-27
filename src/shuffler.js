@@ -9,6 +9,7 @@ import * as Utils from './utils.js'
 const {ValueError} = Utils
  
 const FILL_REPLACE = 0.3
+const None = Symbol()
 
 export default class Shuffler {
 
@@ -16,8 +17,8 @@ export default class Shuffler {
      * Create a shuffler
      * @param {{
      *  shuffle: Function,
-     *  fill: {replace: Number, probabilities: {}},
-     *  start: {probabilities: {}}
+     *  fill: {chance: Number, chances: {}},
+     *  start: {chances: {}}
      * }} opts
      * @return {Function} Anonymous function
      */
@@ -26,13 +27,11 @@ export default class Shuffler {
         if (opts.shuffle) {
             this.shuffle = opts.shuffle
         }
-        if (opts.fill && opts.fill.replace) {
-            this.fillReplace = opts.fill.replace
-        }
         for (const opt of ['fill', 'start']) {
-            if (opts[opt] && opts[opt].probabilities) {
-                this[opt] = sortedEntries(opts[opt].probabilities)
-            }
+            this[opt] = opts[opt] ? {...opts[opt]} : {}
+            this[opt].chances = opts[opt]
+                ? sortedEntries(opts[opt].chances || {})
+                : []
         }
         return arr => {
             if (arr.length > 1) {
@@ -46,60 +45,44 @@ export default class Shuffler {
      * @param {Array} arr
      */
     run(arr) {
-        const filler = this.getFiller(arr)
-        const starter = this.getStarter(arr)
-        this.shuffle(arr)
-        if (filler !== undefined) {
+        const filler = this.getValue(arr, this.fill.chances)
+        const starter = this.getValue(arr, this.start.chances)
+        // console.log(arr[0], {filler, starter})
+        if (filler !== None) {
             for (let i = 0; i < arr.length; i++) {
-                if (this.fillReplace >= Math.random()) {
+                if (this.fill.chance >= Math.random()) {
                     arr[i] = filler
                 }
             }
-            this.shuffle(arr)
         }
-        if (starter !== undefined) {
+        this.shuffle(arr)
+        if (starter !== None) {
             arr[0] = starter
         }
+        console.log(arr)
     }
 
     /**
      * @param {Array} arr
      */
-    getFiller(arr) {
+    getValue(arr, chances) {
         const p = Math.random()
-        for (let i = 0; i < this.fill.length; i++) {
-            let [key, value] = this.fill[i]
+        for (let i = 0; i < chances.length; i++) {
+            let [key, value] = chances[i]
             if (value < p) {
                 continue
             }
             switch (key) {
                 case 'random':
                     return randomElement(arr)
-                case 'none':
+                case 'null':
                     return null
-            }
-            if (arr[+key] === undefined) {
-                throw new ValueError(`Unknown fill: ${key}`)
-            }
-            return arr[key]
-        }
-    }
-
-    /**
-     * @param {Array} arr
-     */
-    getStarter(arr) {
-        const p = Math.random()
-        for (let i = 0; i < this.start.length; i++) {
-            let [key, value] = this.start[i]
-            if (value < p) {
-                continue
-            }
-            if (arr[+key] === undefined) {
-                throw new ValueError(`Unknown start: ${key}`)
+                case 'undefined':
+                    return undefined
             }
             return arr[key]
         }
+        return None
     }
 }
 

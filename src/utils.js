@@ -60,10 +60,18 @@ export function closest(target, arr) {
  * Shuffle an array in place
  * 
  * @param {Array} arr The array
+ * @param {Number} lo A low index
+ * @param {Number} hi A high index. NB: still swaps below `lo`
  * @return {Array} The array
  */
-export function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
+export function shuffle(arr, lo = undefined, hi = undefined) {
+    if (lo === undefined || lo < 0) {
+        lo = 0
+    }
+    if (hi === undefined || hi >= arr.length) {
+        hi = arr.length - 1
+    }
+    for (let i = hi; i > lo; i--) {
         let j = Math.floor(Math.random() * (i + 1))
         let temp = arr[i]
         arr[i] = arr[j]
@@ -83,6 +91,8 @@ export function flip(obj) {
 }
 
 /**
+ * Map inclusive range
+ * 
  * @param {Number} start
  * @param {Number} end
  * @param {Number|Function} stepOrCb
@@ -100,6 +110,8 @@ export function mapRange(start, end, ...args) {
 }
 
 /**
+ * Inclusive range
+ * 
  * @param {Number} start
  * @param {Number} end
  * @param {Number} step

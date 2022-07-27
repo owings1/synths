@@ -73,7 +73,7 @@ export const DegLabels = Object.fromEntries(
  * @param {Boolean} opts.clip Clip out of bounds frequencies
  * @return {Number[]} Array of note frequencies
  */
- export function scaleSample(degree, opts = undefined) {
+export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
     let {octave, direction} = opts
     const tonic = freqAtDegree(degree, octave)
@@ -89,6 +89,22 @@ export const DegLabels = Object.fromEntries(
         freqs = scaleFreqs(tonic, opts)
     }
     return freqs
+}
+
+function scaleDegrees(tonality, descend) {
+    const base = SCALE_INTERVALS[tonality]
+    if (!base) {
+        throw new ValueError(`Invalid tonality: ${tonality}`)
+    }
+    const intervals = base[descend ? 1 : 0]
+    const dir = descend ? -1 : 1
+    let degree = descend ? 12 : 0
+    const degrees = [degree]
+    intervals.forEach(ival => {
+        degree += ival * dir
+        degrees.push(degree)
+    })
+    return degrees
 }
 
 /**
@@ -231,30 +247,30 @@ Object.defineProperties(Tonality, {
  * The descending array is generated from the reverse of the ascending,
  * unless it is directly given here.
  */
-const SCALE_INTERVALS = Object.fromEntries([
-    [Tonality.MAJOR, [[2, 2, 1, 2, 2, 2, 1]]],
-    [Tonality.NATURAL_MINOR, [[2, 1, 2, 2, 1, 2, 2]]],
-    [Tonality.HARMONIC_MINOR, [[2, 1, 2, 2, 1, 3, 1]]],
-    [Tonality.MELODIC_MINOR, [[2, 1, 2, 2, 2, 2, 1], [2, 2, 1, 2, 2, 1, 2]]],
-    [Tonality.DORIAN, [[2, 1, 2, 2, 2, 1, 2]]],
-    [Tonality.PHRYGIAN, [[1, 2, 2, 2, 1, 2, 2]]],
-    [Tonality.LYDIAN, [[2, 2, 2, 1, 2, 2, 1]]],
-    [Tonality.MIXOLYDIAN, [[2, 2, 1, 2, 2, 1, 2]]],
-    [Tonality.LOCRIAN, [[1, 2, 2, 1, 2, 2, 2]]],
-    [Tonality.DIMINISHED, [[1, 2, 1, 2, 1, 2, 1, 2]]],
-    [Tonality.WHOLE_TONE, [[2, 2, 2, 2, 2, 2]]],
-    [Tonality.AUGMENTED, [[3, 1, 3, 1, 3, 1]]],
-    [Tonality.PROMETHEUS, [[2, 2, 2, 3, 1, 2]]],
-    [Tonality.BLUES, [[3, 2, 1, 1, 3, 2]]],
-    [Tonality.TRITONE, [[1, 3, 2, 1, 3, 2]]],
-    [Tonality.MAJOR_PENTATONIC, [[2, 2, 3, 2, 3]]],
-    [Tonality.MINOR_PENTATONIC, [[3, 2, 2, 3, 2]]],
-    [Tonality.JAPANESE, [[1, 4, 2, 1, 4]]],
-])
+const SCALE_INTERVALS = Object.fromEntries(Object.entries({
+    MAJOR: [[2, 2, 1, 2, 2, 2, 1], null],
+    NATURAL_MINOR: [[2, 1, 2, 2, 1, 2, 2], null],
+    HARMONIC_MINOR: [[2, 1, 2, 2, 1, 3, 1], null],
+    MELODIC_MINOR: [[2, 1, 2, 2, 2, 2, 1], [2, 2, 1, 2, 2, 1, 2]],
+    DORIAN: [[2, 1, 2, 2, 2, 1, 2], null],
+    PHRYGIAN: [[1, 2, 2, 2, 1, 2, 2], null],
+    LYDIAN: [[2, 2, 2, 1, 2, 2, 1], null],
+    MIXOLYDIAN: [[2, 2, 1, 2, 2, 1, 2], null],
+    LOCRIAN: [[1, 2, 2, 1, 2, 2, 2], null],
+    DIMINISHED: [[1, 2, 1, 2, 1, 2, 1, 2], null],
+    WHOLE_TONE: [[2, 2, 2, 2, 2, 2], null],
+    AUGMENTED: [[3, 1, 3, 1, 3, 1], null],
+    PROMETHEUS: [[2, 2, 2, 3, 1, 2], null],
+    BLUES: [[3, 2, 1, 1, 3, 2], null],
+    TRITONE: [[1, 3, 2, 1, 3, 2], null],
+    MAJOR_PENTATONIC: [[2, 2, 3, 2, 3], null],
+    MINOR_PENTATONIC: [[3, 2, 2, 3, 2], null],
+    JAPANESE: [[1, 4, 2, 1, 4], null],
+}).map(([key, value]) => [Tonality[key], value]))
 
 Object.values(SCALE_INTERVALS).forEach(arr => {
-    if (arr.length === 1) {
-        arr.push(arr[0].slice(0).reverse())
+    if (arr[1] === null) {
+        arr[1] = arr[0].slice(0).reverse()
     }
 })
 

@@ -15,51 +15,67 @@ import * as Music from './music.js'
 import * as Utils from './utils.js'
 import Shuffler from './shuffler.js'
 
+const {shuffle} = Utils
 const symState = Symbol()
 const symSched = Symbol()
 
 const Lookahead = 25.0
 const StopDelay = Lookahead * 10
 const Shufflers = {
-    RANDO: 1,
-    TONIK: 2,
-    SOFO: 3,
-    NONE: 4,
+    NONE: 0,
+    RANDY: 1,
+    TONAK: 2,
+    SOFA: 3,
+    BIMOM: 4,
 }
 
 const SHUFFLERS = Object.fromEntries(Object.entries({
     NONE: arr => arr,
-    RANDO: Utils.shuffle,
-    TONIK: new Shuffler({
+    RANDY: shuffle,
+    TONAK: new Shuffler({
         fill: {
-            // How often a note is replaced.
-            replace: 0.3,
-            probabilities: {
+            chance: 0.3,
+            chances: {
                 0: 0.5,
                 random: 0.6,
-                none: 1,
+                null: 1,
             }
         },
         start: {
-            probabilities: {
-                0: 0.2,
+            chances: {
+                0: 0.55,
             }
         }
     }),
-    SOFO: new Shuffler({
+    SOFA: new Shuffler({
         fill: {
-            replace: 0.35,
-            probabilities: {
+            // chance: 1,
+            chance: 0.35,
+            chances: {
                 random: 0.8,
-                none: 1,
+                null: 1,
+                // undefined: 0.3,
             }
         },
         start: {
-            probabilities: {
-                0: 1,//0.5,
+            chances: {
+                0: 0.5,//0.5,
             }
         }
     }),
+    BIMOM: new Shuffler({
+        shuffle: arr => {
+            const mid = Math.floor(arr.length / 2)
+            return shuffle(arr, mid)
+        }
+        // shuffle: arr => {
+        //     const mid = Math.floor(arr.length / 2)
+        //     shuffle(arr.slice(0, mid)).concat(
+        //         shuffle(arr.slice(mid))
+        //     ).forEach((v, i) => arr[i] = v) 
+        // }
+    })
+
 }).map(([key, value]) => [Shufflers[key], value]))
 
 
@@ -217,9 +233,7 @@ function schedule() {
             state.shuffler(state.sample)
         }
         state.sample.forEach(freq => {
-            if (freq) {
-                scheduleNote.call(this, freq, state.noteDur, state.nextTime)
-            }
+            scheduleNote.call(this, freq, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
         })
         state.counter += 1
@@ -244,6 +258,9 @@ function schedule() {
  * @param {Number} time
  */
 function scheduleNote(freq, dur, time) {
+    if (freq === undefined || freq === null) {
+        return
+    }
     if (this.instrument) {
         this.instrument.triggerAttackRelease(freq, dur, time)
     }
@@ -314,7 +331,7 @@ ScaleSample.Meta = {
         },
         shuffler: {
             type: 'enum',
-            default: Shufflers.RANDO,
+            default: Shufflers.RANDY,
             values: Utils.flip(Shufflers),
         }
     },
