@@ -11,7 +11,6 @@ import {
     fusedParam,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
 const COMB_TUNINGS = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
@@ -56,12 +55,11 @@ export default class Freeverb extends EffectsNode {
         const combLeft = combs.slice(0, combsMid)
         const combRight = combs.slice(combsMid)
         const passes = ALLPASS_FREQS.map(freq => {
-            const node = new BiquadFilterNode(context)
-            node.type = 'allpass'
+            const node = new BiquadFilterNode(context, {type: 'allpass'})
             node.frequency.value = freq
             return node
         })
-        input.connect(dry).connect(this[symOutpt])
+        input.connect(dry).connect(this.output)
         input.connect(wet).connect(splitter)
         combLeft.forEach(comb => {
             splitter.connect(comb, 0).connect(merger, 0, 0)
@@ -70,10 +68,8 @@ export default class Freeverb extends EffectsNode {
             splitter.connect(comb, 1).connect(merger, 0, 1)
         })
         let node = merger
-        for (let i = 0; i < passes.length; i++) {
-            node = node.connect(passes[i])
-        }
-        node.connect(this[symOutpt])
+        passes.forEach(fn => node = node.connect(fn))
+        node.connect(this.output)
         this.update(opts)
     }
 }
@@ -141,7 +137,7 @@ class LowpassCombFilter extends EffectsNode {
             .connect(lp)
             .connect(gn)
             .connect(input)
-            .connect(this[symOutpt])
+            .connect(this.output)
         this.update(opts)
     }
 }

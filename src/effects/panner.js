@@ -8,7 +8,6 @@ import {
     EffectsNode,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 import '../tone.js'
 
@@ -25,15 +24,15 @@ export default class Panner extends EffectsNode {
         super(context)
         Tone.setContext(context)
         opts = optsMerge(this.meta.params, opts)
-        const gn = new GainNode(context)
+        const input = new GainNode(context)
         const pn = new Tone.AutoPanner()
         Object.defineProperties(this, {
             frequency: {value: pn.frequency},
             depth: {value: pn.depth},
             wet: {value: pn.wet},
         })
-        Tone.connect(setOrigin(this, gn), pn)
-        pn.connect(this[symOutpt])
+        Tone.connect(setOrigin(this, input), pn)
+        pn.connect(this.output)
         pn.start()
         this.update(opts)
     }

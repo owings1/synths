@@ -5,7 +5,8 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-export const symOutpt = Symbol('outpt')
+
+const symOutpt = Symbol('outpt')
 
 /**
  * Effects base class.
@@ -19,6 +20,10 @@ export class EffectsNode extends GainNode {
     constructor(context, opts = {}) {
         super(context, opts)
         this[symOutpt] = new GainNode(context)
+    }
+
+    get output() {
+        return this[symOutpt]
     }
 
     /**
@@ -60,7 +65,7 @@ export class EffectsNode extends GainNode {
  * @return {object} Modified `opts` or new object.
  */
 export function optsMerge(defs, opts) {
-    opts = opts || {}
+    opts = opts ? {...opts} : {}
     Object.entries(defs).forEach(([name, def]) => {
         opts[name] = opts[name] || def.default
     })

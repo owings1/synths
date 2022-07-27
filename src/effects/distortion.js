@@ -10,7 +10,6 @@ import {
     optsMerge,
     paramProp,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
 /**
@@ -27,21 +26,21 @@ export default class Distortion extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        const ws = new WaveShaperNode(context)
-        ws.oversample = '4x'
+        const input = new WaveShaperNode(context)
+        input.oversample = '4x'
         const fb = new GainNode(context)
         let drive
         Object.defineProperties(this, {
             drive: paramProp(() => drive, value => {
                 drive = Number(value)
-                ws.curve = makeDistortionCurve(drive * 1000)
+                input.curve = makeDistortionCurve(drive * 1000)
             }),
             feedback: {value: fb.gain},
         })
-        setOrigin(this, ws)
+        setOrigin(this, input)
             .connect(fb)
-            .connect(ws)
-            .connect(this[symOutpt])
+            .connect(input)
+            .connect(this.output)
         this.update(opts)
     }
 }

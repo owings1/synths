@@ -12,9 +12,9 @@ import {
     optsMerge,
     paramProp,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
+const SAMPLES = 22050
 /**
  * Overdrive effect.
  * 
@@ -43,56 +43,31 @@ export default class Overdrive extends EffectsNode {
      * @param {Number} opts.gain
      * @param {Number} opts.drive
      * @param {Number} opts.color
-     * @param {Number} opts.preBand
+     * @param {Number} opts.wet
      * @param {Number} opts.postCut
      */
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-
-        const bp = new BiquadFilterNode(context)
-        const bpWet = new GainNode(context)
-        const bpDry = new GainNode(context)
+        const input = new BiquadFilterNode(context)
         const ws = new WaveShaperNode(context)
         const lp = new BiquadFilterNode(context)
         const fb = new GainNode(context)
-
         let drive
-
         Object.defineProperties(this, {
-            color: paramProp(() => bp.frequency.value, value => {
-                bp.frequency.setValueAtTime(value, 0)
-            }),
+            color: {value: input.frequency},
             drive: paramProp(() => drive, value => {
                 drive = Number(value)
-                ws.curve = makeDistortionCurve(drive * 100, 22050)
+                ws.curve = makeDistortionCurve(value * 100, SAMPLES)
             }),
             feedback: {value: fb.gain},
-            preBand: paramProp(() => bpWet.gain.value, value => {
-                value = Number(value)
-                bpWet.gain.setValueAtTime(value, 0)
-                bpDry.gain.setValueAtTime(1 - value, 0)
-            }),
-            postCut: paramProp(() => lp.frequency.value, value => {
-                lp.frequency.setValueAtTime(value, 0)
-            }),
+            postCut: {value: lp.frequency},
         })
-
-        setOrigin(this, bp)
-        bp.connect(bpWet)
-        bp.connect(bpDry)
-        bpWet.connect(ws)
-        bpDry.connect(ws)
-        ws.connect(lp)
-        lp.connect(fb) // feedback
-        fb.connect(bp)
-        lp.connect(this[symOutpt])
-
-        bp.frequency.value = opts.color
-        bpWet.gain.value = opts.preBand
-        bpDry.gain.value = 1 - opts.preBand
-        lp.frequency.value = opts.postCut
-    
+        setOrigin(this, input)
+            .connect(ws)
+            .connect(lp)
+            .connect(this.output)
+        lp.connect(fb).connect(input) // feedback
         this.update(opts)
     }
 }
@@ -127,14 +102,6 @@ Overdrive.Meta = {
             min: 0,
             max: 22050,
             step: 1,
-        },
-        preBand: {
-            label: "pre-band",
-            type: "float",
-            default: 0.5,
-            min: 0,
-            max: 1.0,
-            step: 0.01,
         },
         postCut: {
             label: "post-cut",

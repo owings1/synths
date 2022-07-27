@@ -9,7 +9,6 @@ import {
     paramProp,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
 const Samples = {
@@ -55,8 +54,8 @@ export default class Reverb extends EffectsNode {
         setOrigin(this, input)
             .connect(wet)
             .connect(cv)
-            .connect(this[symOutpt])
-        input.connect(this[symOutpt]) // dry
+            .connect(this.output)
+        input.connect(this.output) // dry
         this.update(opts)
     }
 }

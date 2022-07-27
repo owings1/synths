@@ -8,7 +8,6 @@ import {
     EffectsNode,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
 /**
@@ -29,15 +28,15 @@ export default class Compressor extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        const cp = new DynamicsCompressorNode(context)
+        const input = new DynamicsCompressorNode(context)
         Object.defineProperties(this, {
-            threshold: {value: cp.threshold},
-            knee: {value: cp.knee},
-            ratio: {value: cp.ratio},
-            attack: {value: cp.attack},
-            release: {value: cp.release},
+            threshold: {value: input.threshold},
+            knee: {value: input.knee},
+            ratio: {value: input.ratio},
+            attack: {value: input.attack},
+            release: {value: input.release},
         })
-        setOrigin(this, cp).connect(this[symOutpt])
+        setOrigin(this, input).connect(this.output)
         this.update(opts)
     }
 }

@@ -8,7 +8,6 @@
     EffectsNode,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 import '../tone.js'
 
@@ -25,16 +24,16 @@ export default class Tremolo extends EffectsNode {
         super(context)
         Tone.setContext(context)
         opts = optsMerge(this.meta.params, opts)
-        const gn = new GainNode(context)
-        const pn = new Tone.Tremolo()
+        const input = new GainNode(context)
+        const tn = new Tone.Tremolo()
         Object.defineProperties(this, {
-            frequency: {value: pn.frequency},
-            depth: {value: pn.depth},
-            wet: {value: pn.wet},
+            frequency: {value: tn.frequency},
+            depth: {value: tn.depth},
+            wet: {value: tn.wet},
         })
-        Tone.connect(setOrigin(this, gn), pn)
-        pn.connect(this[symOutpt])
-        pn.start()
+        Tone.connect(setOrigin(this, input), tn)
+        tn.connect(this.output)
+        tn.start()
         this.update(opts)
     }
 }

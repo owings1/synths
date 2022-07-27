@@ -8,7 +8,6 @@ import {
     EffectsNode,
     optsMerge,
     setOrigin,
-    symOutpt,
 } from './core.js'
 
 /**
@@ -26,13 +25,12 @@ export default class Lowpass extends EffectsNode {
     constructor(context, opts = {}) {
         super(context)
         opts = optsMerge(this.meta.params, opts)
-        const bq = new BiquadFilterNode(context)
-        bq.type = 'lowpass'
+        const input = new BiquadFilterNode(context, {type: 'lowpass'})
         Object.defineProperties(this, {
-            cutoff: {value: bq.frequency},
-            quality: {value: bq.Q},
+            cutoff: {value: input.frequency},
+            quality: {value: input.Q},
         })
-        setOrigin(this, bq).connect(this[symOutpt])
+        setOrigin(this, input).connect(this.output)
         this.update(opts)
     }
 }

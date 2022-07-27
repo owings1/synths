@@ -9,7 +9,6 @@
     optsMerge,
     paramProp,
     setOrigin,
-    symOutpt,
 } from './core.js'
 import '../tone.js'
 
@@ -27,25 +26,25 @@ export default class Chorus extends EffectsNode {
         Tone.setContext(context)
         opts = optsMerge(this.meta.params, opts)
         const input = new GainNode(context)
-        const cn = new Tone.Chorus()
+        const ch = new Tone.Chorus()
         Object.defineProperties(this, {
-            wet: {value: cn.wet},
-            frequency: {value: cn.frequency},
+            wet: {value: ch.wet},
+            frequency: {value: ch.frequency},
             depth: paramProp(
-                () => cn.depth,
-                value => cn.depth = value
+                () => ch.depth,
+                value => ch.depth = value
             ),
             delay: paramProp(
-                () => cn.delayTime,
-                value => cn.delayTime = value
+                () => ch.delayTime,
+                value => ch.delayTime = value
             ),
             spread: paramProp(
-                () => cn.spread,
-                value => cn.spread = value
+                () => ch.spread,
+                value => ch.spread = value
             ),
         })
-        Tone.connect(setOrigin(this, input), cn)
-        cn.connect(this[symOutpt])
+        Tone.connect(setOrigin(this, input), ch)
+        ch.connect(this.output)
         this.update(opts)
     }
 }
