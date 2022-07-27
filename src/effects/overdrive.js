@@ -3,20 +3,9 @@
  * 
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
- * 
- * `Overdrive` class adapted from code by Nick Thompson
  */
-import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-} from './core.js'
-
-import {makeCurve} from './distortion.js'
-
-const SAMPLES = 22050
 /**
- * Overdrive effect
+ * `Overdrive` class inspired by code by Nick Thompson
  * 
  * @see https://github.com/web-audio-components/overdrive
  * 
@@ -31,11 +20,16 @@ const SAMPLES = 22050
  * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
- * -----
- * Adapted to class.
  */
-export default class Overdrive extends EffectsNode {
+import {BaseNode, paramProp} from '../core.js'
+import {makeCurve} from './distortion.js'
+
+const SAMPLES = 22050
+
+/**
+ * Overdrive effect
+ */
+export default class Overdrive extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -48,7 +42,7 @@ export default class Overdrive extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new BiquadFilterNode(context)
         const ws = new WaveShaperNode(context)
         const lp = new BiquadFilterNode(context)
@@ -63,7 +57,7 @@ export default class Overdrive extends EffectsNode {
             feedback: {value: fb.gain},
             postCut: {value: lp.frequency},
         })
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
             .connect(ws)
             .connect(lp)
             .connect(this.output)

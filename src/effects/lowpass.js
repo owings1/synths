@@ -4,15 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    optsMerge,
-} from './core.js'
+import {BaseNode} from '../core.js'
 
 /**
  * Basic lowpass filter
  */
-export default class Lowpass extends EffectsNode {
+export default class Lowpass extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -23,13 +20,13 @@ export default class Lowpass extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new BiquadFilterNode(context, {type: 'lowpass'})
         Object.defineProperties(this, {
             cutoff: {value: input.frequency},
             quality: {value: input.Q},
         })
-        EffectsNode.setInput(this, input).connect(this.output)
+        BaseNode.setInput(this, input).connect(this.output)
         this.update(opts)
     }
 }

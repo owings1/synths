@@ -4,15 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    optsMerge,
-} from './core.js'
+import {BaseNode} from '../core.js'
 
 /**
  * Compressor.
  */
-export default class Compressor extends EffectsNode {
+export default class Compressor extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -26,7 +23,7 @@ export default class Compressor extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new DynamicsCompressorNode(context)
         Object.defineProperties(this, {
             threshold: {value: input.threshold},
@@ -35,7 +32,7 @@ export default class Compressor extends EffectsNode {
             attack: {value: input.attack},
             release: {value: input.release},
         })
-        EffectsNode.setInput(this, input).connect(this.output)
+        BaseNode.setInput(this, input).connect(this.output)
         this.update(opts)
     }
 }

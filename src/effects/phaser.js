@@ -4,17 +4,13 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
- import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-} from './core.js'
+import {BaseNode, paramProp} from '../core.js'
 import '../tone.js'
 
 /**
  * Phaser effect.
  */
-export default class Phaser extends EffectsNode {
+export default class Phaser extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -23,7 +19,7 @@ export default class Phaser extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const ph = new Tone.Phaser()
         Object.defineProperties(this, {
@@ -43,7 +39,7 @@ export default class Phaser extends EffectsNode {
                 value => ph.stages = value
             ),
         })
-        Tone.connect(EffectsNode.setInput(this, input), ph)
+        Tone.connect(BaseNode.setInput(this, input), ph)
         ph.connect(this.output)
         this.update(opts)
     }

@@ -4,16 +4,13 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
- import {
-    EffectsNode,
-    optsMerge,
-} from './core.js'
+import {BaseNode} from '../core.js'
 import '../tone.js'
 
 /**
  * Tremolo effect.
  */
-export default class Tremolo extends EffectsNode {
+export default class Tremolo extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -22,7 +19,7 @@ export default class Tremolo extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const tn = new Tone.Tremolo()
         Object.defineProperties(this, {
@@ -30,7 +27,7 @@ export default class Tremolo extends EffectsNode {
             depth: {value: tn.depth},
             wet: {value: tn.wet},
         })
-        Tone.connect(EffectsNode.setInput(this, input), tn)
+        Tone.connect(BaseNode.setInput(this, input), tn)
         tn.connect(this.output)
         tn.start()
         this.update(opts)

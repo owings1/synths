@@ -4,15 +4,11 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-} from './effects/core.js'
-import './tone.js'
-import * as Music from './music.js'
+import {BaseNode, paramProp} from './core.js'
 import {flip, range, shuffle} from './utils.js'
+import * as Music from './music.js'
 import Shuffler from './shuffler.js'
+import './tone.js'
 
 const symState = Symbol()
 const symSched = Symbol()
@@ -30,7 +26,7 @@ const Shufflers = {
 /**
  * Scale oscillator.
  */
-export default class ScaleSample extends EffectsNode {
+export default class ScaleSample extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -45,7 +41,7 @@ export default class ScaleSample extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         this.instrument = opts.instrument
         this[symSched] = schedule.bind(this)
         this[symState] = new SampleState

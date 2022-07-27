@@ -4,16 +4,13 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    optsMerge,
-} from './core.js'
+import {BaseNode} from '../core.js'
 import '../tone.js'
 
 /**
  * Panner effect.
  */
-export default class Panner extends EffectsNode {
+export default class Panner extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -22,7 +19,7 @@ export default class Panner extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const pn = new Tone.AutoPanner()
         Object.defineProperties(this, {
@@ -30,7 +27,7 @@ export default class Panner extends EffectsNode {
             depth: {value: pn.depth},
             wet: {value: pn.wet},
         })
-        Tone.connect(EffectsNode.setInput(this, input), pn)
+        Tone.connect(BaseNode.setInput(this, input), pn)
         pn.connect(this.output)
         pn.start()
         this.update(opts)

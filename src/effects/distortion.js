@@ -4,16 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-} from './core.js'
+import {BaseNode, paramProp} from '../core.js'
 
 /**
  * Basic distortion effect.
  */
-export default class Distortion extends EffectsNode {
+export default class Distortion extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -23,7 +19,7 @@ export default class Distortion extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new WaveShaperNode(context)
         input.oversample = '4x'
         const fb = new GainNode(context)
@@ -35,7 +31,7 @@ export default class Distortion extends EffectsNode {
             }),
             feedback: {value: fb.gain},
         })
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
             .connect(fb)
             .connect(input)
             .connect(this.output)

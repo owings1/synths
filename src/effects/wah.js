@@ -4,17 +4,13 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
- import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-} from './core.js'
+import {BaseNode, paramProp} from '../core.js'
 import '../tone.js'
 
 /**
  * Wah effect.
  */
-export default class Wah extends EffectsNode {
+export default class Wah extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -23,7 +19,7 @@ export default class Wah extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const wn = new Tone.AutoWah()
         Object.defineProperties(this, {
@@ -42,7 +38,7 @@ export default class Wah extends EffectsNode {
             ),
             quality: {value: wn.Q},
         })
-        Tone.connect(EffectsNode.setInput(this, input), wn)
+        Tone.connect(BaseNode.setInput(this, input), wn)
         wn.connect(this.output)
         this.update(opts)
     }

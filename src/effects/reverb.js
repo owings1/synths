@@ -4,11 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    paramProp,
-    optsMerge,
-} from './core.js'
+import {BaseNode, paramProp} from '../core.js'
 
 const Samples = {
     1: {
@@ -24,7 +20,7 @@ const Samples = {
 /**
  * Reverb effect using Convolver from audio sample
  */
-export default class Reverb extends EffectsNode {
+export default class Reverb extends BaseNode {
     /**
      * @param {AudioContext} context
      * @param {object} opts
@@ -32,7 +28,7 @@ export default class Reverb extends EffectsNode {
      */
     constructor(context, opts) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const wet = new GainNode(context)
         const cv = new ConvolverNode(context)
@@ -50,7 +46,7 @@ export default class Reverb extends EffectsNode {
                 }
             })
         })
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
             .connect(wet)
             .connect(cv)
             .connect(this.output)

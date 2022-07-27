@@ -6,11 +6,7 @@
  * 
  * `Freeverb` class adapted from code by Anton Miselaytes
  */
-import {
-    EffectsNode,
-    fusedParam,
-    optsMerge,
-} from './core.js'
+import {BaseNode, fusedParam} from '../core.js'
 
 const COMB_TUNINGS = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
 const ALLPASS_FREQS = [225, 556, 441, 341]
@@ -22,7 +18,7 @@ const ALLPASS_FREQS = [225, 556, 441, 341]
  * 
  * https://github.com/miselaytes-anton/web-audio-experiments/
  */
-export default class Freeverb extends EffectsNode {
+export default class Freeverb extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -34,7 +30,7 @@ export default class Freeverb extends EffectsNode {
      */
     constructor(context, opts) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const wet = new GainNode(context)
         const dry = new GainNode(context)
@@ -47,7 +43,7 @@ export default class Freeverb extends EffectsNode {
             resonance: {value: fusedParam(combs.map(comb => comb.resonance))},
             dampening: {value: fusedParam(combs.map(comb => comb.dampening))},
         })
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
         const merger = new ChannelMergerNode(context, {numberOfInputs: 2})
         const splitter = new ChannelSplitterNode(context, {numberOfOutputs: 2})
         const combsMid = Math.floor(combs.length / 2)
@@ -117,11 +113,11 @@ export {Freeverb}
  * 
  * https://github.com/miselaytes-anton/web-audio-experiments/
  */
-class LowpassCombFilter extends EffectsNode {
+class LowpassCombFilter extends BaseNode {
 
     constructor(context, opts) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const dn = new DelayNode(context)
         const lp = new BiquadFilterNode(context)
@@ -131,7 +127,7 @@ class LowpassCombFilter extends EffectsNode {
             resonance: {value: gn.gain},
             dampening: {value: lp.frequency},
         })
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
             .connect(dn)
             .connect(lp)
             .connect(gn)

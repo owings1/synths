@@ -4,18 +4,13 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
- import {
-    EffectsNode,
-    optsMerge,
-    paramProp,
-
-} from './core.js'
+import {BaseNode, paramProp} from '../core.js'
 import '../tone.js'
 
 /**
  * Chorus effect.
  */
-export default class Chorus extends EffectsNode {
+export default class Chorus extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -24,7 +19,7 @@ export default class Chorus extends EffectsNode {
      constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const input = new GainNode(context)
         const ch = new Tone.Chorus()
         Object.defineProperties(this, {
@@ -43,7 +38,7 @@ export default class Chorus extends EffectsNode {
                 value => ch.spread = value
             ),
         })
-        Tone.connect(EffectsNode.setInput(this, input), ch)
+        Tone.connect(BaseNode.setInput(this, input), ch)
         ch.connect(this.output)
         this.update(opts)
     }

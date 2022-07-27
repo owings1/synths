@@ -9,20 +9,36 @@
 const symOutpt = Symbol('outpt')
 
 /**
- * Effects base class.
+ * Base node class.
  */
-export class EffectsNode extends GainNode {
+export class BaseNode extends GainNode {
 
     /**
-     * Setup `EffectsNode` wrapper origin
+     * Setup `Effect` wrapper origin
      * 
-     * @param {EffectsNode} node The `EffectsNode` instance
+     * @param {Effect} node The `Effect` instance
      * @param {AudioNode} dest The `AudioNode` destination
      * @return {AudioNode} The destination
      */
     static setInput(node, dest) {
         return GainNode.prototype.connect.call(node, dest)
     }
+
+    /**
+     * Merge user options from param definitions
+     * 
+     * @param {object[]} defs Param definitions with `default`
+     * @param {*} opts User options
+     * @return {object} Modified `opts` or new object.
+     */
+    static mergeOpts(defs, opts) {
+        opts = opts ? {...opts} : {}
+        Object.entries(defs).forEach(([name, def]) => {
+            opts[name] = opts[name] || def.default
+        })
+        return opts
+    }
+
     /**
      * @param {AudioContext} context
      * @param {object} opts
@@ -48,7 +64,7 @@ export class EffectsNode extends GainNode {
     }
 
     /**
-     * Update parameter values.
+     * Update parameter values
      * 
      * @param {object} opts
      */
@@ -66,22 +82,6 @@ export class EffectsNode extends GainNode {
         return this.constructor.Meta
     }
 }
-
-/**
- * Merge user options from param definitions
- * 
- * @param {object[]} defs Param definitions with `default`.
- * @param {*} opts User options.
- * @return {object} Modified `opts` or new object.
- */
-export function optsMerge(defs, opts) {
-    opts = opts ? {...opts} : {}
-    Object.entries(defs).forEach(([name, def]) => {
-        opts[name] = opts[name] || def.default
-    })
-    return opts
-}
-
 
 /**
  * Make a property definition for a stub param object

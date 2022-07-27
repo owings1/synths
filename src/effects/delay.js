@@ -4,16 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {
-    EffectsNode,
-    fusedParam,
-    optsMerge,
-} from './core.js'
+import {BaseNode, fusedParam} from '../core.js'
 
 /**
  * Delay with feedback and arbitrary delay time.
  */
-export default class Delay extends EffectsNode {
+export default class Delay extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -23,7 +19,7 @@ export default class Delay extends EffectsNode {
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = optsMerge(this.meta.params, opts)
+        opts = BaseNode.mergeOpts(this.meta.params, opts)
         const fb = new GainNode(context)
         // Make enough delay nodes to support max value, since each has max 1.
         const dyCount = Math.max(1, Math.ceil(this.meta.params.delayTime.max))
@@ -41,7 +37,7 @@ export default class Delay extends EffectsNode {
             feedback: {value: fb.gain},
         })
 
-        EffectsNode.setInput(this, input)
+        BaseNode.setInput(this, input)
         let node = input
         for (let i = 1; i < dyChain.length; i++) {
             node = node.connect(dyChain[i])
