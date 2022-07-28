@@ -17,16 +17,16 @@ const styles = {
     synth: 'fx6',
 
     compressor: 'fx3',
-    wah: 'fx4',
-    overdrive: 'fx5',
-    tremolo: 'fx6',
-    chorus: 'fx7',
-    panner: 'fx3',
-    phaser: 'fx4',
-    reverb: 'fx5',
-    delay: 'fx8',
-    lowpass: 'fx6',
-    highpass: 'fx7',
+    wah:        'fx4',
+    overdrive:  'fx5',
+    tremolo:    'fx6',
+    chorus:     'fx7',
+    panner:     'fx3',
+    phaser:     'fx4',
+    reverb:     'fx5',
+    delay:      'fx8',
+    lowpass:    'fx6',
+    highpass:   'fx7',
 }
 
 const context = new AudioContext()
@@ -84,25 +84,25 @@ const mixer = [
         param: sampleDry.gain,
     },
     {
-        name: 'sampleFx',
-        label: 'Sample FX Send',
-        param: sampleFx.gain,
-    },
-    {
         name: 'synthDry',
         label: 'Synth Dry',
         param: synthDry.gain,
+    },
+    {
+        name: 'sampleFx',
+        label: 'Sample FX Send',
+        param: sampleFx.gain,
     },
     {
         name: 'synthFx',
         label: 'Synth FX Send',
         param: synthFx.gain,
     },
-    {
-        name: 'fxsend',
-        label: 'FX Send',
-        param: fxsend.gain,
-    },
+    // {
+    //     name: 'fxsend',
+    //     label: 'FX Send',
+    //     param: fxsend.gain,
+    // },
     {
         name: 'fxout',
         label: 'FX Out',
@@ -116,7 +116,7 @@ mixer.forEach(({param}) => param.value = 0.5)
 $(() => {
     mixerWidget('mixer', 'Mixer', mixer).appendTo('#mixer-wrapper')
     nodeWidget('scale', sample).appendTo('#effects')
-    synthWidget('synth', synth).appendTo('#effects')
+    nodeWidget('synth', createSynthNode(synth)).appendTo('#effects')
 
     $.each(effects, (id, node) => {
         nodeWidget(id, node).appendTo('#effects')
@@ -125,9 +125,7 @@ $(() => {
     $('button').button()
 })
 
-
-function synthWidget(id, synth) {
-
+function createSynthNode(synth) {
     const meta = {
         name: synth.name,
         params: {
@@ -150,8 +148,7 @@ function synthWidget(id, synth) {
             }
         }
     }
-    // faux node
-    const node = {
+    return {
         meta,
         harmonicity: synth.harmonicity,
         portamento: {
@@ -159,5 +156,4 @@ function synthWidget(id, synth) {
             set value(value) { synth.portamento = value },
         }
     }
-    return nodeWidget(id, node)
 }

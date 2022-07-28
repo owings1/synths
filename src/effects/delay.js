@@ -36,7 +36,6 @@ export default class Delay extends BaseNode {
             delayTime: {value: dyTimes},
             feedback: {value: fb.gain},
         })
-
         BaseNode.setInput(this, input)
         let node = input
         for (let i = 1; i < dyChain.length; i++) {
