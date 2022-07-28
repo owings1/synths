@@ -217,6 +217,10 @@ ScaleSample.Meta = {
     }
 }
 
+function halfShuffle(arr) {
+    shuffle(arr, {limit: Math.floor(arr.length / 2)})
+}
+
 const SHUFFLERS = Object.fromEntries(Object.entries({
     NONE: () => {},
     RANDY: shuffle,
@@ -236,9 +240,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
         }
     }),
     SOFA: new Shuffler({
-        shuffle: arr => {
-            shuffle(arr, {limit: Math.floor(arr.length / 2)})
-        },
+        shuffle: halfShuffle,
         fill: {
             chance: 0.45,
             chances: {
@@ -255,9 +257,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
         }
     }),
     BIMOM: new Shuffler({
-        shuffle: arr => {
-            shuffle(arr, {limit: Math.floor(arr.length / 2)})
-        },
+        shuffle: halfShuffle,
         fill: {
             chance: 0.05,
             chances: {
@@ -326,6 +326,11 @@ function build() {
     updateState.call(this)
 }
 
+/**
+ * Update state from params
+ * 
+ * @private
+ */
 function updateState() {
     const state = this[symState]
     state.beat = this.beat.value
@@ -418,6 +423,7 @@ class State {
         if (this.shuffle && this.counter % this.shuffle === 0) {
             this.sample = this.scale.slice(0)
             this.sample.opts = this.sampleOpts
+            this.sample.scale = this.scale
             this.shuffler(this.sample)
             return true
         }
