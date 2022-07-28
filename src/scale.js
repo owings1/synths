@@ -23,6 +23,16 @@ const Shufflers = {
     BIMOM: 4,
 }
 
+const SCALE_OPTHASH = {
+    degree: true,
+    octave: true,
+    tonality: true,
+    direction: true,
+    octaves: true,
+    arpeggio: true,
+}
+const SCALE_OPTKEYS = Object.keys(SCALE_OPTHASH)
+
 /**
  * Scale oscillator.
  */
@@ -31,25 +41,19 @@ export default class ScaleSample extends BaseNode {
     /**
      * @param {AudioContext} context
      * @param {object} opts
-     * @param {Number} opts.tonality
-     * @param {Number} opts.degree
-     * @param {Number} opts.octave
-     * @param {Number} opts.duration
-     * @param {Number} opts.direction
-     * @param {Boolean} opts.loop
-     * @param {Boolean} opts.shuffle
      */
     constructor(context, opts = {}) {
         super(context)
-        opts = BaseNode.mergeOpts(this.meta.params, opts)
-        this.instrument = opts.instrument
+        const {params} = this.meta
+        opts = BaseNode.mergeOpts(params, opts)
+        this.instruments = []
         this[symSched] = schedule.bind(this)
         this[symState] = new SampleState
         this.oscillator = new OscillatorNode(this.context, {frequency: 0})
         this.oscillator.connect(this.output)
         this.oscillator.start()
         const prox = Object.create(null)
-        const pentries = Object.entries(this.meta.params).map(([name, {type}]) => {
+        const pentries = Object.entries(params).map(([name, {type}]) => {
             const cast = type === 'boolean' ? Boolean : Number
             const getter = () => prox[name]
             const setter = value => {
@@ -57,7 +61,14 @@ export default class ScaleSample extends BaseNode {
                 if (value !== prox[name]) {
                     prox[name] = value
                     if (this.playing) {
-                        build.call(this)
+                        if (SCALE_OPTHASH[name] === true) {
+                            build.call(this)
+                        } else {
+                            updateState.call(this)
+                        }
+                        if (name === 'shuffler') {
+                            this[symState].counter = 0
+                        }
                         clearTimeout(this[symState].stopId)
                         if (name === 'loop' && value) {
                             this[symSched]()
@@ -71,27 +82,28 @@ export default class ScaleSample extends BaseNode {
         this.update(opts)
     }
 
-    /**
-     * @param {AudioNode} dest
-     */
     connect(dest) {
         if (isInstrument(dest)) {
-            if (this.instrument) {
-                throw new Error('Already connected to an instrument')
+            if (this.instruments.includes(dest)) {
+                throw new Error('Already connected to that instrument')
             }
-            this.instrument = dest
+            this.instruments.push(dest)
             return dest
         }
         return super.connect(dest)
     }
 
     disconnect(...args) {
-        if (this.instrument && isInstrument(args[0])) {
-            this.instrument = null
+        if (this.instruments.length && isInstrument(args[0])) {
+            let i = this.instruments.indexOf(args[0])
+            if (i < 0) {
+                throw new Error('Not connected to that instrument')
+            }
+            this.instruments.splice(i, 1)
         } else {
             this.output.disconnect(...args)
             if (!args.length) {
-                this.instrument = null
+                this.instruments.splice(0)
             }
         }
     }
@@ -155,6 +167,10 @@ ScaleSample.Meta = {
             type: 'enum',
             default: Music.Dir.ASCEND,
             values: flip(Music.Dir),
+        },
+        arpeggio: {
+            type: 'boolean',
+            default: false,
         },
         loop: {
             type: 'boolean',
@@ -236,15 +252,16 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
     }),
     SOFA: new Shuffler({
         fill: {
-            chance: 0.35,
+            chance: 0.5,//0.35,
             chances: {
-                random: 0.8,
+                2: 0.25,
+                random: 0.4,//0.8,
                 null: 1,
             }
         },
         start: {
             chances: {
-                0: 0.5,
+                0: 0.2,
             }
         }
     }),
@@ -252,7 +269,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
         shuffle: arr => {
             const mid = Math.floor(arr.length / 2)
             shuffle(arr, 0, mid)
-            return shuffle(arr, mid)
+            shuffle(arr, mid)
         },
         fill: {
             chance: 0.05,
@@ -272,7 +289,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
                 '-1': 0.25,
             }
         }
-    })
+    }),
 
 }).map(([key, value]) => [Shufflers[key], value]))
 
@@ -284,21 +301,21 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
  */
 function build() {
     const state = this[symState]
-    state.opts = {
-        octave: this.octave.value,
-        tonality: this.tonality.value,
-        direction: this.direction.value,
-        octaves: this.octaves.value,
-        clip: true,
-    }
-    state.scale = Music.scaleSample(this.degree.value, state.opts)
-    if (this.loop.value && this.direction.value & Music.MULTIDIR_FLAG) {
+    state.scaleOpts = Object.fromEntries(SCALE_OPTKEYS.map(key => [key, this[key].value]))
+    state.scaleOpts.clip = true
+    state.scale = Music.scaleSample(this.degree.value, state.scaleOpts)
+    if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
         state.scale.pop()
     }
     state.sample = state.scale
-    state.noteDur = this.beat.value / this.bpm.value
+    updateState.call(this)
+}
+
+function updateState() {
+    const state = this[symState]
+    state.beat = this.beat.value
+    state.bpm = this.bpm.value
     state.loop = this.loop.value
-    state.counter = 0
     state.shuffle = this.shuffle.value
     if (this.shuffle.value) {
         state.shuffler = SHUFFLERS[this.shuffler.value]
@@ -353,13 +370,21 @@ function play(freq, dur, time) {
     if (freq === undefined || freq === null) {
         return
     }
-    if (this.instrument) {
-        this.instrument.triggerAttackRelease(freq, dur, time)
-    }
+    this.instruments.forEach(inst => {
+        inst.triggerAttackRelease(freq, dur, time)
+    })
     this.oscillator.frequency.setValueAtTime(freq, time)
 }
 
 class SampleState {
+
+    constructor() {
+        this.counter = 0
+    }
+
+    get noteDur() {
+        return this.beat / this.bpm
+    }
 
     get sampleDur() {
         return this.noteDur * this.sample.length
@@ -373,12 +398,11 @@ class SampleState {
         }
         return false
     }
-
 }
 /**
- * @param {object} obj
+ * @param {*} obj
  * @return {Boolean}
  */
 function isInstrument(obj) {
-    return typeof obj.triggerAttackRelease === 'function'
+    return obj && typeof obj.triggerAttackRelease === 'function'
 }

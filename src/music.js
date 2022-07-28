@@ -38,11 +38,17 @@ export const Dir = {
 Object.defineProperties(Dir, {
     isMulti: {
         value: dir => Boolean(dir & 4),
-        writable: false,
         enumerable: false,
     }
 })
-export const MULTIDIR_FLAG = 4
+
+const H = 1
+const W = 2
+const m3 = 3
+const M3 = 4
+const P4 = 5
+const OCTV = 12
+
 
 /**
  * Adjust a frequency by a number of half-steps
@@ -70,6 +76,7 @@ export const MULTIDIR_FLAG = 4
  * @param {Number} opts.tonality Tonality indicator (1-18)
  * @param {Number} opts.direction Directionality indicator (1, 3, 7, 11)
  * @param {Number} opts.octaves Number of octaves
+ * @param {Boolean} opts.arpeggio Use arpeggio intervals
  * @param {Boolean} opts.strict Fail for unknown tonic frequency
  * @param {Boolean} opts.clip Clip out of bounds frequencies
  * @return {Number[]} Array of note frequencies
@@ -81,7 +88,6 @@ export function scaleSample(degree, opts = undefined) {
     let freqs
     direction = Number(direction)
     if (Dir.isMulti(direction)) {
-    // if (direction & MULTIDIR_FLAG) {
         opts.descend = direction === Dir.DESCEND_ASCEND
         freqs = scaleFreqs(tonic, opts)
         opts.descend = !opts.descend
@@ -93,22 +99,6 @@ export function scaleSample(degree, opts = undefined) {
     return freqs
 }
 
-function scaleDegrees(tonality, descend) {
-    const base = SCALE_INTERVALS[tonality]
-    if (!base) {
-        throw new ValueError(`Invalid tonality: ${tonality}`)
-    }
-    const intervals = base[descend ? 1 : 0]
-    const dir = descend ? -1 : 1
-    let degree = descend ? 12 : 0
-    const degrees = [degree]
-    intervals.forEach(ival => {
-        degree += ival * dir
-        degrees.push(degree)
-    })
-    return degrees
-}
-
 /**
  * Return a unidirectional scale starting from a frequency
  * 
@@ -117,6 +107,7 @@ function scaleDegrees(tonality, descend) {
  * @param {Number} opts.tonality
  * @param {Boolean} opts.descend
  * @param {Number} opts.octaves
+ * @param {Boolean} opts.arpeggio
  * @param {Boolean} opts.strict
  * @param {Boolean} opts.clip
  * @return {Number[]}
@@ -131,7 +122,9 @@ function scaleFreqs(tonic, opts) {
     if (tonality === undefined) {
         tonality = Tonality.MAJOR
     }
-    const base = SCALE_INTERVALS[tonality]
+    const base = opts.arpeggio
+        ? ARPEGGIO_INTERVALS[tonality]
+        : SCALE_INTERVALS[tonality]
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
     }
@@ -158,7 +151,7 @@ function scaleFreqs(tonic, opts) {
     const freqs = [tonic]
     let freq = tonic
     for (let o = 0; o < octaves; ++o) {
-        for (let i = 0; i < intervals.length; i++) {
+        for (let i = 0; i < intervals.length; ++i) {
             freq = stepFreq(freq, dir * intervals[i], true)
             freqs.push(freq)
         }
@@ -250,31 +243,64 @@ Object.defineProperties(Tonality, {
  * unless it is directly given here.
  */
 const SCALE_INTERVALS = Object.fromEntries(Object.entries({
-    MAJOR: [[2, 2, 1, 2, 2, 2, 1], null],
-    NATURAL_MINOR: [[2, 1, 2, 2, 1, 2, 2], null],
-    HARMONIC_MINOR: [[2, 1, 2, 2, 1, 3, 1], null],
-    MELODIC_MINOR: [[2, 1, 2, 2, 2, 2, 1], [2, 2, 1, 2, 2, 1, 2]],
-    DORIAN: [[2, 1, 2, 2, 2, 1, 2], null],
-    PHRYGIAN: [[1, 2, 2, 2, 1, 2, 2], null],
-    LYDIAN: [[2, 2, 2, 1, 2, 2, 1], null],
-    MIXOLYDIAN: [[2, 2, 1, 2, 2, 1, 2], null],
-    LOCRIAN: [[1, 2, 2, 1, 2, 2, 2], null],
-    DIMINISHED: [[1, 2, 1, 2, 1, 2, 1, 2], null],
-    WHOLE_TONE: [[2, 2, 2, 2, 2, 2], null],
-    AUGMENTED: [[3, 1, 3, 1, 3, 1], null],
-    PROMETHEUS: [[2, 2, 2, 3, 1, 2], null],
-    BLUES: [[3, 2, 1, 1, 3, 2], null],
-    TRITONE: [[1, 3, 2, 1, 3, 2], null],
-    MAJOR_PENTATONIC: [[2, 2, 3, 2, 3], null],
-    MINOR_PENTATONIC: [[3, 2, 2, 3, 2], null],
-    JAPANESE: [[1, 4, 2, 1, 4], null],
+    // Normal modes
+    MAJOR:          [[W, W, H, W, W, W, H], null],
+    DORIAN:         [[W, H, W, W, W, H, W], null],
+    PHRYGIAN:       [[H, W, W, W, H, W, W], null],
+    LYDIAN:         [[W, W, W, H, W, W, H], null],
+    MIXOLYDIAN:     [[W, W, H, W, W, H, W], null],
+    NATURAL_MINOR:  [[W, H, W, W, H, W, W], null],
+    LOCRIAN:        [[H, W, W, H, W, W, W], null],
+    // Other minor
+    HARMONIC_MINOR: [[W, H, W, W, H, m3, H], null],
+    MELODIC_MINOR:  [[W, H, W, W, W, W, H], [W, W, H, W, W, H, W]],
+    // Octatonic
+    DIMINISHED:  [[H, W, H, W, H, W, H, W], null],
+    // Hexatonic
+    WHOLE_TONE: [[W,  W, W,  W, W,  W], null],
+    AUGMENTED:  [[m3, H, m3, H, m3, H], null],
+    PROMETHEUS: [[W,  W, W, m3, H,  W], null],
+    BLUES:      [[m3, W, H,  H, m3, W], null],
+    TRITONE:    [[H, m3, W,  H, m3, W], null],
+    // Pentatonic
+    MAJOR_PENTATONIC: [[W, W, m3, W, m3], null],
+    MINOR_PENTATONIC: [[m3, W, W, m3, W], null],
+    JAPANESE:         [[H, M3, W, H, M3], null],
 }).map(([key, value]) => [Tonality[key], value]))
 
-Object.values(SCALE_INTERVALS).forEach(arr => {
-    if (arr[1] === null) {
-        arr[1] = arr[0].slice(0).reverse()
-    }
-})
+const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
+    // Normal modes
+    MAJOR:          [[M3, m3, P4], null],
+    DORIAN:         [[m3, M3, P4], null], // TODO
+    PHRYGIAN:       [[H, M3, W, P4], null],
+    LYDIAN:         [[M3, m3, M3, H], null], // ?
+    MIXOLYDIAN:     [[M3, H, M3, m3], null], // ?
+    NATURAL_MINOR:  [[m3, M3, P4], null],
+    LOCRIAN:        [[m3, m3, M3, W], null], // ? this avoids a tritone, other options exist
+    // Other minor
+    HARMONIC_MINOR: [[m3, M3, M3, H], null], // ?
+    MELODIC_MINOR:  [[m3, M3, W, m3], null], // ?
+    // Octatonic
+    DIMINISHED: [[m3, m3, m3, m3], null],
+    // Hexatonic
+    WHOLE_TONE: [[M3, W, W, M3], null],
+    AUGMENTED:  [[M3, M3, M3], null],
+    PROMETHEUS: [[M3, P4, H,  W], null],
+    BLUES:      [[m3, m3, M3, W], null],
+    TRITONE:    [[M3, W, M3, W], null],
+    // Pentatonic
+    MAJOR_PENTATONIC: [[M3, m3, W, m3], null],
+    MINOR_PENTATONIC: [[m3, M3, m3, W], null],
+    JAPANESE:         [[H, M3, m3, M3], null],
+}).map(([key, value]) => [Tonality[key], value]))
+
+for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
+    Object.values(base).forEach(arr => {
+        if (arr[1] === null) {
+            arr[1] = arr[0].slice(0).reverse()
+        }
+    })
+}
 
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],
@@ -289,27 +315,7 @@ const OCTAVES = [
 ]
 
 /** Flat list of frequency values. */
-const FREQS = new Float32Array(OCTAVES.length * 12)
-
-/** Frequency data, keyed by frequency ID. */
-const FREQS_DATA = Object.create(null)
-
-const DEG_LETTERS = 'CCDDEFFGGAAB'
-
-OCTAVES.forEach((freqs, octave) => {
-    freqs.forEach((freq, degree) => {
-        const freqIndex = octave * 12 + degree
-        const freqId = getFreqId(freq)
-        const letter = DEG_LETTERS[degree]
-        const raised = DEG_LETTERS[degree - 1] === letter
-        FREQS[freqIndex] = freq
-        FREQS_DATA[freqId] = {
-            freq, freqIndex, freqId, octave,
-            letter, raised, degree,
-        }
-    })
-})
-
+const FREQS = OCTAVES.flat()// new Float32Array(OCTAVES.length * OCTV)
 /** Number of supported octaves. */
 export const OCTAVE_COUNT = OCTAVES.length
 /** Number of known frequencies. */
@@ -318,3 +324,23 @@ export const FREQ_COUNT = FREQS.length
 export const FREQ_MIN = FREQS[0]
 /** Maximum known frequency. */
 export const FREQ_MAX = FREQS[FREQS.length - 1]
+
+/** Frequency data, keyed by frequency ID. */
+const FREQS_DATA = Object.create(null)
+
+const DEG_LETTERS = 'CCDDEFFGGAAB'
+
+OCTAVES.forEach((freqs, octave) => {
+    freqs.forEach((freq, degree) => {
+        const freqIndex = octave * OCTV + degree
+        const freqId = getFreqId(freq)
+        const letter = DEG_LETTERS[degree]
+        const raised = DEG_LETTERS[degree - 1] === letter
+        // FREQS[freqIndex] = freq
+        FREQS_DATA[freqId] = {
+            freq, freqIndex, freqId, octave,
+            letter, raised, degree,
+        }
+    })
+})
+
