@@ -5,9 +5,9 @@
  * @license MIT
  */
 import {BaseNode, paramProp} from './core.js'
-import {flip, range, shuffle} from './utils.js'
+import {flip, range} from './utils.js'
 import * as Music from './music.js'
-import Shuffler from './shuffler.js'
+import {shuffle, Shuffler} from './shuffler.js'
 import './tone.js'
 
 const symState = Symbol()
@@ -48,7 +48,7 @@ export default class ScaleSample extends BaseNode {
         opts = BaseNode.mergeOpts(params, opts)
         this.instruments = []
         this[symSched] = schedule.bind(this)
-        this[symState] = new SampleState
+        this[symState] = new State
         this.oscillator = new OscillatorNode(this.context, {frequency: 0})
         this.oscillator.connect(this.output)
         this.oscillator.start()
@@ -60,20 +60,7 @@ export default class ScaleSample extends BaseNode {
                 value = cast(value)
                 if (value !== prox[name]) {
                     prox[name] = value
-                    if (this.playing) {
-                        if (SCALE_OPTHASH[name] === true) {
-                            build.call(this)
-                        } else {
-                            updateState.call(this)
-                        }
-                        if (name === 'shuffler') {
-                            this[symState].counter = 0
-                        }
-                        clearTimeout(this[symState].stopId)
-                        if (name === 'loop' && value) {
-                            this[symSched]()
-                        }
-                    }
+                    afterSet.call(this, name, value)
                 }
             }
             return [name, paramProp(getter, setter)]
@@ -135,8 +122,7 @@ export default class ScaleSample extends BaseNode {
     play() {
         this.stop()
         build.call(this)
-        const state = this[symState]
-        state.playing = true
+        this[symState].playing = true
         this[symSched]()
     }
 }
@@ -231,9 +217,8 @@ ScaleSample.Meta = {
     }
 }
 
-
 const SHUFFLERS = Object.fromEntries(Object.entries({
-    NONE: arr => arr,
+    NONE: () => {},
     RANDY: shuffle,
     TONAK: new Shuffler({
         fill: {
@@ -251,11 +236,15 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
         }
     }),
     SOFA: new Shuffler({
+        shuffle: arr => {
+            shuffle(arr, {limit: Math.floor(arr.length / 2)})
+        },
         fill: {
-            chance: 0.5,//0.35,
+            chance: 0.45,
             chances: {
-                2: 0.25,
-                random: 0.4,//0.8,
+                random: 0.15,
+                '//c' : 0.30,
+                '/c2' : 0.31,
                 null: 1,
             }
         },
@@ -267,14 +256,13 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
     }),
     BIMOM: new Shuffler({
         shuffle: arr => {
-            const mid = Math.floor(arr.length / 2)
-            shuffle(arr, 0, mid)
-            shuffle(arr, mid)
+            shuffle(arr, {limit: Math.floor(arr.length / 2)})
         },
         fill: {
             chance: 0.05,
             chances: {
-                0: 0.4,
+                0: 0.1,
+                '/c2' : 0.2,
                 null: 1
             }
         },
@@ -285,14 +273,40 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
         },
         end: {
             chances: {
-                1: 0.25,
+                1: 0.1,
                 '-1': 0.25,
             }
         }
     }),
-
 }).map(([key, value]) => [Shufflers[key], value]))
 
+
+/**
+ * @param {String} name
+ * @param {Number|Boolean} value
+ * @private
+ */
+function afterSet(name, value) {
+    if (!this.playing) {
+        return
+    }
+    if (SCALE_OPTHASH[name] === true) {
+        build.call(this)
+    } else {
+        updateState.call(this)
+    }
+    clearTimeout(this[symState].stopId)
+    switch (name) {
+        case 'shuffler':
+            this[symState].counter = 0
+            break
+        case 'loop':
+            if (value) {
+                this[symSched]()
+            }
+            break
+    }
+}
 
 /**
  * Build sample and update state
@@ -301,13 +315,14 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
  */
 function build() {
     const state = this[symState]
-    state.scaleOpts = Object.fromEntries(SCALE_OPTKEYS.map(key => [key, this[key].value]))
-    state.scaleOpts.clip = true
-    state.scale = Music.scaleSample(this.degree.value, state.scaleOpts)
+    state.sampleOpts = Object.fromEntries(SCALE_OPTKEYS.map(key => [key, this[key].value]))
+    state.sampleOpts.clip = true
+    state.scale = Music.scaleSample(this.degree.value, state.sampleOpts)
     if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
         state.scale.pop()
     }
     state.sample = state.scale
+    state.counter = 0
     updateState.call(this)
 }
 
@@ -334,7 +349,7 @@ function updateState() {
  * @private
  */
 function schedule() {
-    /** @type {SampleState} */
+    /** @type {State} */
     const state = this[symState]
     clearTimeout(state.scheduleId)
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
@@ -367,19 +382,28 @@ function schedule() {
  * @param {Number} time
  */
 function play(freq, dur, time) {
-    if (freq === undefined || freq === null) {
+    if (freq === undefined) {
         return
     }
+    const state = this[symState]
+    if (freq === null) {
+        freq = state.lastFreq
+    }
+    if (freq === null) {
+        return
+    }
+    state.lastFreq = freq
     this.instruments.forEach(inst => {
         inst.triggerAttackRelease(freq, dur, time)
     })
     this.oscillator.frequency.setValueAtTime(freq, time)
 }
 
-class SampleState {
+class State {
 
     constructor() {
         this.counter = 0
+        this.lastFreq = null
     }
 
     get noteDur() {
@@ -393,12 +417,14 @@ class SampleState {
     shuffleIfNeeded() {
         if (this.shuffle && this.counter % this.shuffle === 0) {
             this.sample = this.scale.slice(0)
+            this.sample.opts = this.sampleOpts
             this.shuffler(this.sample)
             return true
         }
         return false
     }
 }
+
 /**
  * @param {*} obj
  * @return {Boolean}

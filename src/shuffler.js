@@ -4,10 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {shuffle} from './utils.js'
- 
 const OPTKEYS = ['fill', 'start', 'end']
-const FILL_CHANCE = 0.3
 const NONE = Symbol()
 
 export default class Shuffler {
@@ -31,7 +28,7 @@ export default class Shuffler {
                 : []
         })
         if (this.fill.chance === undefined) {
-            this.fill.chance = FILL_CHANCE
+            this.fill.chance = 0
         }
         return arr => {
             if (arr.length > 1) {
@@ -82,11 +79,7 @@ export default class Shuffler {
                 case 'undefined':
                     return undefined
             }
-            key = Number(key)
-            if (key < 0) {
-                key = arr.length + key
-            }
-            return arr[key]
+            return arr[keyExpr(key, arr.length)]
         }
         return NONE
     }
@@ -94,7 +87,70 @@ export default class Shuffler {
 
 export {Shuffler}
 
+/**
+ * Shuffle an array in place
+ * 
+ * @param {Array} arr The array
+ * @param {object} opts
+ * @param {Number} opts.start
+ * @param {Number} opts.end
+ * @param {Number} opts.limit
+ * @return {Array} The array
+ */
+export function shuffle(arr, opts = undefined) {
+    opts = opts || {}
+    let {start, end, limit} = opts
+    if (limit === undefined) {
+        limit = arr.length
+    }
+    if (start === undefined) {
+        start = 0
+    }
+    if (end === undefined || end >= arr.length) {
+        end = arr.length - 1
+    }
+    for (let i = end, n = 0; i > start && n <= limit; i--, n++) {
+        let j = randomInt(start, i)
+        let temp = arr[i]
+        arr[i] = arr[j]
+        arr[j] = temp
+    }
+    return arr
+}
 
+/**
+ * @param {String} key
+ * @param {Number} length
+ * @return {Number}
+ */
+function keyExpr(key, length) {
+    if (key[0] === '/') {
+        let i = 1
+        let rounder = Math.round
+        if (key[i] === '/') {
+            i += 1
+            rounder = Math.floor
+        } else if (key[i] === 'c') {
+            i += 1
+            rounder = Math.ceil
+        }
+        return rounder(length / Number(key.substring(i)))
+    }
+    key = Number(key)
+    if (key < 0) {
+        return length + key
+    }
+    return key
+}
+
+/**
+ * @param {Number} min
+ * @param {Number} max
+ * @return {Number}
+ */
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
 /**
  * @param {Array} a
  * @param {Array} b

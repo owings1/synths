@@ -49,7 +49,6 @@ const M3 = 4
 const P4 = 5
 const OCTV = 12
 
-
 /**
  * Adjust a frequency by a number of half-steps
  * 
@@ -60,7 +59,7 @@ const OCTV = 12
  * @param {Boolean} strict Do not adjust base to closest known frequency
  * @return {Number|undefined} The frequency, or undefined if out of range
  */
- export function stepFreq(freq, degrees, strict = false) {
+export function stepFreq(freq, degrees, strict = false) {
     let baseData = getFreqData(freq, strict)
     if (baseData) {
         return FREQS[baseData.freqIndex + Number(degrees)]
@@ -83,10 +82,9 @@ const OCTV = 12
  */
 export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
-    let {octave, direction} = opts
-    const tonic = freqAtDegree(degree, octave)
+    const direction = Number(opts.direction)
+    const tonic = freqAtDegree(degree, opts.octave)
     let freqs
-    direction = Number(direction)
     if (Dir.isMulti(direction)) {
         opts.descend = direction === Dir.DESCEND_ASCEND
         freqs = scaleFreqs(tonic, opts)
@@ -113,29 +111,30 @@ export function scaleSample(degree, opts = undefined) {
  * @return {Number[]}
  */
 function scaleFreqs(tonic, opts) {
-    let tonicData = getFreqData(tonic, opts.strict)
+    const tonicData = getFreqData(tonic, opts.strict)
     if (!tonicData) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
     tonic = tonicData.freq
-    let {tonality, descend, octaves} = opts
-    if (tonality === undefined) {
-        tonality = Tonality.MAJOR
-    }
+    const descend = Boolean(opts.descend)
+    let octaves = opts.octaves === undefined
+        ? 1
+        : Number(opts.octaves)
+    const tonality = opts.tonality === undefined
+        ? Tonality.MAJOR
+        : Number(opts.tonality)
     const base = opts.arpeggio
         ? ARPEGGIO_INTERVALS[tonality]
         : SCALE_INTERVALS[tonality]
-    if (!base) {
-        throw new ValueError(`Invalid tonality: ${tonality}`)
-    }
-    octaves = octaves === undefined ? 1 : Number(octaves)
-    if (octaves < 1) {
-        throw new ValueError(`Invalid octaves: ${octaves}`)
-    }
-    descend = Boolean(descend)
     const olimit = descend
         ? tonicData.octave
         : OCTAVE_COUNT - tonicData.octave - 1
+    if (!base) {
+        throw new ValueError(`Invalid tonality: ${tonality}`)
+    }
+    if (octaves < 1) {
+        throw new ValueError(`Invalid octaves: ${octaves}`)
+    }
     if (olimit < 1) {
         throw new ValueError(`Scale out of bounds`)
     }
@@ -189,7 +188,7 @@ function freqAtDegree(degree, octave) {
  * @return {Number} The closest known frequency.
  */
 function closestFreq(target) {
-    return closest(target, FREQS).value
+    return closest(target, FREQS)
 }
 
 /**
@@ -272,9 +271,9 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     // Normal modes
     MAJOR:          [[M3, m3, P4], null],
     DORIAN:         [[m3, M3, P4], null], // TODO
-    PHRYGIAN:       [[H, M3, W, P4], null],
+    PHRYGIAN:       [[H,  M3, W,  P4], null],
     LYDIAN:         [[M3, m3, M3, H], null], // ?
-    MIXOLYDIAN:     [[M3, H, M3, m3], null], // ?
+    MIXOLYDIAN:     [[M3, H,  M3, m3], null], // ?
     NATURAL_MINOR:  [[m3, M3, P4], null],
     LOCRIAN:        [[m3, m3, M3, W], null], // ? this avoids a tritone, other options exist
     // Other minor
@@ -283,11 +282,11 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     // Octatonic
     DIMINISHED: [[m3, m3, m3, m3], null],
     // Hexatonic
-    WHOLE_TONE: [[M3, W, W, M3], null],
+    WHOLE_TONE: [[M3, W,  W, M3], null],
     AUGMENTED:  [[M3, M3, M3], null],
     PROMETHEUS: [[M3, P4, H,  W], null],
     BLUES:      [[m3, m3, M3, W], null],
-    TRITONE:    [[M3, W, M3, W], null],
+    TRITONE:    [[M3, W,  M3, W], null],
     // Pentatonic
     MAJOR_PENTATONIC: [[M3, m3, W, m3], null],
     MINOR_PENTATONIC: [[m3, M3, m3, W], null],
@@ -315,7 +314,7 @@ const OCTAVES = [
 ]
 
 /** Flat list of frequency values. */
-const FREQS = OCTAVES.flat()// new Float32Array(OCTAVES.length * OCTV)
+const FREQS = OCTAVES.flat()
 /** Number of supported octaves. */
 export const OCTAVE_COUNT = OCTAVES.length
 /** Number of known frequencies. */
@@ -336,7 +335,6 @@ OCTAVES.forEach((freqs, octave) => {
         const freqId = getFreqId(freq)
         const letter = DEG_LETTERS[degree]
         const raised = DEG_LETTERS[degree - 1] === letter
-        // FREQS[freqIndex] = freq
         FREQS_DATA[freqId] = {
             freq, freqIndex, freqId, octave,
             letter, raised, degree,

@@ -7,7 +7,7 @@
 export class ValueError extends Error {}
 
 /**
- * Find the closest index and value of `target` in `arr`
+ * Find the closest value of `target` in `arr`
  * 
  * @param {Number} target The search value
  * @param {Number[]} arr The array to search
@@ -20,10 +20,10 @@ export function closest(target, arr) {
         return
     }
     if (length === 1) {
-        return {index: 0, value: arr[0]}
+        arr[0]
     }
     target = Number(target)
-    let minDiff = Infinity
+    let min = Infinity
     let low = 0
     let high = length - 1
     let index
@@ -32,15 +32,15 @@ export function closest(target, arr) {
         let diff
         if (mid + 1 < length) {
             diff = Math.abs(arr[mid + 1] - target)
-            if (diff < minDiff) {
-                minDiff = diff
+            if (diff < min) {
+                min = diff
                 index = mid + 1
             }
         }
         if (mid > 0) {
             diff = Math.abs(arr[mid - 1] - target)
-            if (diff < minDiff) {
-                minDiff = diff
+            if (diff < min) {
+                min = diff
                 index = mid - 1
             }
         }
@@ -53,31 +53,7 @@ export function closest(target, arr) {
             break
         }
     }
-    return {index, value: arr[index]}
-}
-
-/**
- * Shuffle an array in place
- * 
- * @param {Array} arr The array
- * @param {Number} lo A low index
- * @param {Number} hi A high index. NB: still swaps below `lo`
- * @return {Array} The array
- */
-export function shuffle(arr, lo = undefined, hi = undefined) {
-    if (lo === undefined || lo < 0) {
-        lo = 0
-    }
-    if (hi === undefined || hi >= arr.length) {
-        hi = arr.length - 1
-    }
-    for (let i = hi; i > lo; i--) {
-        let j = Math.floor(Math.random() * (i + 1))
-        let temp = arr[i]
-        arr[i] = arr[j]
-        arr[j] = temp
-    }
-    return arr
+    arr[index]
 }
 
 /**
