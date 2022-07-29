@@ -128,7 +128,7 @@ function actionsWidget(nodeId, node, defs) {
     Object.entries(defs).forEach(([name, def]) => {
         const id = [nodeId, name].join('-')
         const cb = node[def.method].bind(node)
-        $('<button/>')
+        $('<button/>').button()
             .attr({id})
             .text(def.label || name)
             .addClass('action')
@@ -241,6 +241,61 @@ export function paramWidget(id, param, def) {
     return $tr
 }
 
+/**
+ * @param {LocalPresets} presets
+ * @param {Number} n
+ * @param {Number} per
+ * @return {object} jQuery object
+ */
+function presetsWidget(presets, n = 24, per = 12) {
+    const $section = $('<section/>').addClass('presets')
+    for (let i = 0; i < Math.ceil(n / per); i++) {
+        const $table = $('<table/>').appendTo($section)
+        const $headTr = $('<tr/>').appendTo($table)
+        const $clearTr = $('<tr/>').appendTo($table)
+        const $saveTr = $('<tr/>').appendTo($table)
+        const $loadTr = $('<tr/>').appendTo($table)
+        for (let j = 1; j <= per; j++) {
+            const key = String(j + i * per)
+            const has = presets.has(key)
+            $('<th/>').text(key).appendTo($headTr)
+            const $clearTd = $('<td/>').appendTo($clearTr)
+            const $saveTd = $('<td/>').appendTo($saveTr)
+            const $loadTd = $('<td/>').appendTo($loadTr)
+            const $clear = $('<button/>').button({disabled: !has})
+                .attr({value: key})
+                .text('clear')
+                .addClass('presets clear')
+                .appendTo($clearTd)
+                .on('click', () => {
+                    presets.clear(key)
+                    $clear.button({disabled: true})
+                    $load.button({disabled: true})
+                })
+            const $save = $('<button/>').button()
+                .attr({value: key})
+                .text('save')
+                .addClass('presets save')
+                .appendTo($saveTd)
+                .on('click', () => {
+                    presets.save(key)
+                    $clear.button({disabled: false})
+                    $load.button({disabled: false})
+                })
+            const $load = $('<button/>').button({disabled: !has})
+                .attr({value: key})
+                .text('load')
+                .addClass('presets load')
+                .appendTo($loadTd)
+                .on('click', () => {
+                    presets.load(key)
+                    $('button.load', $section).removeClass('active')
+                    $load.addClass('active')
+                })
+        }
+    }
+    return $section
+}
 
 /**
  * Save and load presets from localStorage
@@ -264,6 +319,15 @@ export class LocalPresets {
     }
 
     /**
+     * @param {Number} n
+     * @param {Number} per
+     * @return {object} jQuery object
+     */
+    widget(n = 24, per = 12) {
+        return presetsWidget(this, n, per)
+    }
+
+    /**
      * Read and save presets, and write
      * @param {String} key
      */
@@ -282,6 +346,14 @@ export class LocalPresets {
     }
 
     /**
+     * @param {String} key
+     * @return {Boolean}
+     */
+    has(key) {
+        return Boolean(this.data[key])
+    }
+
+    /**
      * Read the settings from the page
      * @return {object}
      */
@@ -295,8 +367,6 @@ export class LocalPresets {
                     [id, {active: node.active, params: node.paramValues()}]
                 )
             ),
-            // shows: $('.params:visible').toArray().map(params => params.id),
-            // hides: $('.params:hidden').toArray().map(params => params.id),
         }
     }
     /**
@@ -325,48 +395,14 @@ export class LocalPresets {
                 $param.trigger('change')
             })
         })
-        // if (settings.shows) {
-        //     settings.shows.forEach(id => $(`#${id}`).show())
-        // }
-        // if (settings.hides) {
-        //     settings.hides.forEach(id => $(`#${id}`).hide())
-        // }
     }
+
     /**
      * Write to local storage
      */
     write() {
         localStorage.setItem(this.key, JSON.stringify(this.data))
     }
-
-    // static getDiff(a, b) {
-    //     const diff = {mixer: {}, nodes: {}}
-    //     $.each(b.mixer, (name, value) => {
-    //         if (a.mixer[name] !== value) {
-    //             diff.mixer[name] = value
-    //         }
-    //     })
-    //     $.each(b.nodes, (id, {active, params}) => {
-    //         if (!a.nodes[id]) {
-    //             diff.nodes[id] = {active, params}
-    //             return
-    //         }
-    //         diff.nodes[id] = {params: {}}
-    //         if (a.nodes[id].active !== active) {
-    //             diff.nodes[id].active = active
-    //         }
-    //         if (!a.nodes[id].params) {
-    //             diff.nodes[id].params = params
-    //             return
-    //         }
-    //         $.each(params, (name, value) => {
-    //             if (a.nodes[id].params[name] !== value) {
-    //                 diff.nodes[id].params[name] = value
-    //             }
-    //         })
-    //     })
-    //     return diff
-    // }
 }
 
 
@@ -401,11 +437,11 @@ export function intervalButtons(name) {
     )
     trs.forEach($tr => $tr.append('<td/>'))
     for (let i = 1; i < 13; i++) {
-        $('<button/>')
+        $('<button/>').button()
             .attr({name, value: String(i)})
             .text(labels[i])
             .appendTo($up)
-        $('<button/>')
+        $('<button/>').button()
             .attr({name, value: String(-i)})
             .text(labels[i])
             .appendTo($down)

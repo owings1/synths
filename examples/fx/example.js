@@ -6,7 +6,6 @@
  *  - https://github.com/mdn/webaudio-examples/
  */
 import $ from '../../lib/jquery.js'
-// import Cookie from '../../lib/cookie.js'
 import * as Effects from '../../src/effects.js'
 import {AMSynth} from '../../src/synths.js'
 import ScaleSample from '../../src/scale.js'
@@ -15,7 +14,7 @@ import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 const styles = {
     mixer: 'fx1',
     sample: 'fx2',
-    amSynth: 'fx6',
+    amSynth: 'fx7',
 
     compressor: 'fx3',
     wah:        'fx4',
@@ -37,11 +36,10 @@ const fxsend = new GainNode(context)
 const fxout = new GainNode(context)
 
 const sample = new ScaleSample(context)
-const amSynth = new AMSynth(context)
-
 const sampleDry = new GainNode(context)
 const sampleFx = new GainNode(context)
 
+const amSynth = new AMSynth(context)
 const amSynthGain = new GainNode(context)
 const amSynthDry = new GainNode(context)
 const amSynthFx = new GainNode(context)
@@ -59,7 +57,6 @@ const effects = {
     lowpass: new Effects.Lowpass(context),
     highpass: new Effects.Highpass(context),
 }
-const nodes = {sample, amSynth, ...effects}
 
 sample.connect(amSynth)
 sample.connect(sampleDry).connect(main)
@@ -109,22 +106,13 @@ const mixer = [
 mixer.forEach(({param}) => param.value = 0.5)
 
 $(() => {
-    mixerWidget('mixer', 'Mixer', mixer).appendTo('#main')
+    const mixerId = 'mixer'
+    const nodes = {sample, amSynth, ...effects}
+    const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
+    mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
     nodeWidget('sample', sample).appendTo('#main')
     nodeWidget('amSynth', amSynth).appendTo('#main')
-    $.each(effects, (id, node) => {
-        nodeWidget(id, node).appendTo('#effects')
-    })
+    $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
-    const presets = new LocalPresets('fx-example', nodes, mixer, 'mixer')
-    $('button.preset.save').on('click', function() {
-        presets.save($(this).val())
-    })
-    $('button.preset.load').on('click', function() {
-        presets.load($(this).val())
-    })
-    $('button.preset.clear').on('click', function() {
-        presets.clear($(this).val())
-    })
-    $('button').button()
+    presets.widget().appendTo('#presets')
 })

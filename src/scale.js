@@ -21,6 +21,8 @@ const Shufflers = {
     TONAK: 2,
     SOFA: 3,
     BIMOM: 4,
+    JARD: 5,
+    CHUNE: 6,
 }
 
 const SCALE_OPTHASH = {
@@ -224,8 +226,11 @@ function halfShuffle(arr) {
 }
 
 const SHUFFLERS = Object.fromEntries(Object.entries({
+    // No shuffle.
     NONE: () => {},
+    // Completely random.
     RANDY: shuffle,
+    // Heavy on the first note.
     TONAK: new Shuffler({
         fill: {
             chance: 0.3,
@@ -241,6 +246,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             }
         }
     }),
+    // A lot of ties.
     SOFA: new Shuffler({
         shuffle: halfShuffle,
         fill: {
@@ -258,6 +264,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             }
         }
     }),
+    // Very few fills.
     BIMOM: new Shuffler({
         shuffle: halfShuffle,
         fill: {
@@ -280,6 +287,41 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             }
         }
     }),
+    // Lightly shuffle - keep a lot of runs.
+    JARD: new Shuffler({
+        shuffle: arr => {
+            // Shuffle the 2nd-5th notes
+            shuffle(arr, {start: 1, end: 4})
+            // Shuffle 25% of the upper half of the notes
+            const start = Math.floor(arr.length / 2)
+            const limit = Math.max(3, Math.floor(arr.length / 4))
+            shuffle(arr, {limit, start})
+        },
+        fill: {
+            chance: 0.15,
+            chances: {
+                random: 0.15,
+                '//c' : 0.30,
+                '/c2' : 0.31,
+                null: 1,
+            }
+        }
+    }),
+    // Alternate select other shufflers deterministically.
+    CHUNE: arr => {
+        const {counter} = arr.state
+        let shufflerId = Shufflers.SOFA
+        if (counter > 0) {
+            if (counter % 13 === 0) {
+                shufflerId = Shufflers.BIMOM
+            } else if (counter % 8 === 0) {
+                shufflerId = Shufflers.JARD
+            } else if (counter % 5 === 0) {
+                shufflerId = Shufflers.TONAK
+            }
+        }
+        SHUFFLERS[shufflerId](arr)
+    }
 }).map(([key, value]) => [Shufflers[key], value]))
 
 

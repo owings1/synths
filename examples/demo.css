@@ -43,16 +43,22 @@ input[type="checkbox"] {
     margin-bottom: 5px;
 }
 
+.presets,
 .node {
     margin-right: 5px;
 }
 
+.presets button.active {
+    background-color: var(--blue);
+    color: var(--white);
+}
 th,
 td {
     border-top: 1px solid var(--grey);
     border-bottom: 1px solid var(--grey);
 }
 
+.presets,
 .node {
     border: 1px solid var(--grey);
 }
@@ -62,11 +68,15 @@ td {
     padding: 24px;
 }
 
+table,
+.params td:nth-child(2),
+input[type=range] {
+    width: 100%;
+}
 
 .params table,
 .params td:nth-child(2),
 input[type=range] {
-    width: 100%;
     text-align:left;
 }
 
@@ -158,7 +168,7 @@ input[type=range]::-webkit-slider-thumb {
 /*  */
 
 .fx2 {
-    background-color: var(--lime);
+    background-color: var(--green);
 }
 
 .fx2 input[type=range]::-webkit-slider-thumb {

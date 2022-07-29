@@ -62,7 +62,6 @@ $(() => {
     oscillatorWidget('oscillator', source)
 
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
-    $('button').button()
 })
  
  /**

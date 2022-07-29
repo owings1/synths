@@ -36,6 +36,5 @@ $(() => {
     $('#mixer').addClass('fx1')
     $('#scale').addClass('fx2')
 
-    $('button').button()
 
 })

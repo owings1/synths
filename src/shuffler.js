@@ -7,10 +7,13 @@
 const OPTKEYS = ['fill', 'start', 'end']
 const NONE = Symbol()
 
+/**
+ * Shuffler
+ */
 export default class Shuffler {
 
     /**
-     * Create a shuffler
+     * Create a shuffler, returns an anonymous function
      * @param {{
      *  shuffle: Function,
      *  fill: {chance: Number, chances: {}},
