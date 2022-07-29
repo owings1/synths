@@ -69,9 +69,12 @@ export function nodeWidget(id, node, opts = {}) {
             .addClass('heading')
             .text(title)
             .appendTo($section)
-            .on('click', function() { $table.toggle('fast')})
+            .on('click', function() { $(`#${id}-params`).toggle('fast')})
     }
-    const $table = $('<table/>').appendTo($section)
+    const $table = $('<table/>')
+        .attr({id: `${id}-params`})
+        .addClass('params')
+        .appendTo($section)
     // Active checkbox
     if (node.active !== undefined) {
         $table.append(nodeActiveWidget(id, node, $section))
@@ -238,6 +241,104 @@ export function paramWidget(id, param, def) {
     return $tr
 }
 
+
+/**
+ * Save and load presets from localStorage
+ */
+export class LocalPresets {
+
+    /**
+     * @param {String} key The localStorage key
+     * @param {object} nodes Map of id to node
+     * @param {object[]} mixer Array of mixer infos `name`, `param`
+     * @param {String} mixerId The id of the mixer element
+     */
+    constructor(key, nodes, mixer, mixerId = 'mixer') {
+        this.key = key
+        this.data = JSON.parse(localStorage.getItem(this.key) || '{}')
+        this.nodes = nodes || {}
+        this.mixer = mixer || []
+        this.mixerId = mixerId
+    }
+
+    /**
+     * Read and save presets, and write
+     * @param {String} key
+     */
+    save(key) {
+        this.data[key] = this.read()
+        this.write()
+    }
+
+    /**
+     * Clear presets and write
+     * @param {String} key
+     */
+    clear(key) {
+        delete this.data[key]
+        this.write()
+    }
+
+    /**
+     * Read the settings from the page
+     * @return {object}
+     */
+    read() {
+        return {
+            mixer: Object.fromEntries(
+                this.mixer.map(({name, param}) => [name, param.value])
+            ),
+            nodes: Object.fromEntries(
+                Object.entries(this.nodes).map(([id, node]) =>
+                    [id, {active: node.active, params: node.paramValues()}]
+                )
+            ),
+            shows: $('.params:visible').toArray().map(params => params.id),
+            hides: $('.params:hidden').toArray().map(params => params.id),
+        }
+    }
+    /**
+     * Load presets to the page
+     * @param {String} key
+     */
+    load(key) {
+        const settings = this.data[key]
+        if (!settings) {
+            return
+        }
+        $.each(settings.mixer || {}, (name, value) => {
+            $(`#${this.mixerId}-${name}`).val(value).trigger('change')
+        })
+        $.each(settings.nodes || {}, (id, {active, params}) => {
+            if (active !== undefined) {
+                $(`#${id}-active`).prop('checked', active).trigger('change')
+            }
+            $.each(params, (name, value) => {
+                const $param = $(`#${id}-${name}`)
+                if (typeof value === 'boolean') {
+                    $param.prop('checked', value)
+                } else {
+                    $param.val(value)
+                }
+                $param.trigger('change')
+            })
+        })
+        if (settings.shows) {
+            settings.shows.forEach(id => $(`#${id}`).show())
+        }
+        if (settings.hides) {
+            settings.hides.forEach(id => $(`#${id}`).hide())
+        }
+    }
+    /**
+     * Write to local storage
+     */
+    write() {
+        localStorage.setItem(this.key, JSON.stringify(this.data))
+    }
+}
+
+
 /**
  * @param {String} name
  * @return {object} jQuery object
@@ -307,3 +408,4 @@ function countDecimals(value) {
     }
     return String(value).split('.')[1].length || 0
 }
+

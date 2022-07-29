@@ -57,28 +57,28 @@ td {
     border: 1px solid var(--grey);
 }
 
-th,
-td {
+.params th,
+.params td {
     padding: 24px;
 }
 
 
-table,
-td:nth-child(2),
+.params table,
+.params td:nth-child(2),
 input[type=range] {
     width: 100%;
     text-align:left;
 }
 
-td:last-child,
-th:last-child {
+.params td:last-child,
+.params th:last-child {
     min-width: 60px;
 }
 
-td:first-child,
-th:first-child,
-td:last-child,
-th:last-child {
+.params td:first-child,
+.params th:first-child,
+.params td:last-child,
+.params th:last-child {
     text-align: right;
 }
 

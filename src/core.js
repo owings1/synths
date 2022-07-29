@@ -102,6 +102,17 @@ export class BaseNode extends GainNode {
     }
 }
 
+export class InstrumentWrapper extends BaseNode {
+    triggerAttack(...args) {
+        return this.instrument.triggerAttack(...args)
+    }
+    triggerAttackRelease(...args) {
+        return this.instrument.triggerAttackRelease(...args)
+    }
+    triggerRelease(...args) {
+        return this.instrument.triggerRelease(...args)
+    }
+}
 /**
  * Make a property definition for a stub param object
  * 
