@@ -53,19 +53,19 @@ export default class ScaleSample extends BaseNode {
         this.oscillator.connect(this.output)
         this.oscillator.start()
         const prox = Object.create(null)
-        const pentries = Object.entries(params).map(([name, {type}]) => {
+        const props = Object.entries(params).map(([name, {type}]) => {
             const cast = type === 'boolean' ? Boolean : Number
             const getter = () => prox[name]
             const setter = value => {
                 value = cast(value)
                 if (value !== prox[name]) {
                     prox[name] = value
-                    afterSet.call(this, name, value)
+                    afterSet(this, name, value)
                 }
             }
             return [name, paramProp(getter, setter)]
         })
-        Object.defineProperties(this, Object.fromEntries(pentries))
+        Object.defineProperties(this, Object.fromEntries(props))
         this.update(opts)
     }
 
@@ -121,7 +121,7 @@ export default class ScaleSample extends BaseNode {
      */
     play() {
         this.stop()
-        build.call(this)
+        build(this)
         this[symState].playing = true
         this[symSched]()
     }
@@ -284,69 +284,69 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
 
 
 /**
+ * @param {ScaleSample} node
  * @param {String} name
  * @param {Number|Boolean} value
- * @private
  */
-function afterSet(name, value) {
-    if (!this.playing) {
+function afterSet(node, name, value) {
+    if (!node.playing) {
         return
     }
     if (SCALE_OPTHASH[name] === true) {
-        build.call(this)
+        build(node)
     } else {
-        updateState.call(this)
+        updateState(node)
     }
-    clearTimeout(this[symState].stopId)
+    clearTimeout(node[symState].stopId)
     switch (name) {
         case 'shuffler':
-            this[symState].counter = 0
+            node[symState].counter = 0
             break
         case 'loop':
             if (value) {
-                this[symSched]()
+                node[symSched]()
             }
             break
     }
 }
 
 /**
- * Build sample and update state
+ * Build sample and update state from node
  * 
- * @private
+ * @param {ScaleSample} node
  */
-function build() {
-    const state = this[symState]
-    state.sampleOpts = Object.fromEntries(SCALE_OPTKEYS.map(key => [key, this[key].value]))
+function build(node) {
+    const state = node[symState]
+    state.sampleOpts = Object.fromEntries(SCALE_OPTKEYS.map(key => [key, node[key].value]))
     state.sampleOpts.clip = true
-    state.scale = Music.scaleSample(this.degree.value, state.sampleOpts)
-    if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
+    state.scale = Music.scaleSample(node.degree.value, state.sampleOpts)
+    if (node.loop.value && node.direction.value & Music.Dir.isMulti(node.direction.value)) {
         state.scale.pop()
     }
     state.sample = state.scale
     state.counter = 0
-    updateState.call(this)
+    updateState(node)
 }
 
 /**
- * Update state from params
+ * Update state from node params
  * 
- * @private
+ * @param {ScaleSample} node
  */
-function updateState() {
-    const state = this[symState]
-    state.beat = this.beat.value
-    state.bpm = this.bpm.value
-    state.loop = this.loop.value
-    state.shuffle = this.shuffle.value
-    if (this.shuffle.value) {
-        state.shuffler = SHUFFLERS[this.shuffler.value]
+function updateState(node) {
+    const state = node[symState]
+    state.beat = node.beat.value
+    state.bpm = node.bpm.value
+    state.loop = node.loop.value
+    state.shuffle = node.shuffle.value
+    if (node.shuffle.value) {
+        state.shuffler = SHUFFLERS[node.shuffler.value]
     } else {
         state.shuffler = SHUFFLERS[Shufflers.NONE]
     }
     if (!state.nextTime) {
         // hot rebuild
-        state.nextTime = this.context.currentTime
+        state.nextTime = node.context.currentTime
     }
 }
 
@@ -362,7 +362,7 @@ function schedule() {
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
         state.shuffleIfNeeded()
         state.sample.forEach(freq => {
-            play.call(this, freq, state.noteDur, state.nextTime)
+            play(this, freq, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
         })
         state.counter += 1
@@ -383,16 +383,16 @@ function schedule() {
 /**
  * Schedule a note to be played
  * 
- * @private
+ * @param {ScaleSample} node
  * @param {Number} freq
  * @param {Number} dur
  * @param {Number} time
  */
-function play(freq, dur, time) {
+function play(node, freq, dur, time) {
     if (freq === undefined) {
         return
     }
-    const state = this[symState]
+    const state = node[symState]
     if (freq === null) {
         freq = state.lastFreq
     }
@@ -400,10 +400,10 @@ function play(freq, dur, time) {
         return
     }
     state.lastFreq = freq
-    this.instruments.forEach(inst => {
+    node.instruments.forEach(inst => {
         inst.triggerAttackRelease(freq, dur, time)
     })
-    this.oscillator.frequency.setValueAtTime(freq, time)
+    node.oscillator.frequency.setValueAtTime(freq, time)
 }
 
 class State {
@@ -424,8 +424,7 @@ class State {
     shuffleIfNeeded() {
         if (this.shuffle && this.counter % this.shuffle === 0) {
             this.sample = this.scale.slice(0)
-            this.sample.opts = this.sampleOpts
-            this.sample.scale = this.scale
+            this.sample.state = this
             this.shuffler(this.sample)
             return true
         }
