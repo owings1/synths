@@ -259,6 +259,8 @@ export class LocalPresets {
         this.nodes = nodes || {}
         this.mixer = mixer || []
         this.mixerId = mixerId
+        this.initial = this.read()
+        this.current = $.extend(true, {}, this.initial)
     }
 
     /**
@@ -293,8 +295,8 @@ export class LocalPresets {
                     [id, {active: node.active, params: node.paramValues()}]
                 )
             ),
-            shows: $('.params:visible').toArray().map(params => params.id),
-            hides: $('.params:hidden').toArray().map(params => params.id),
+            // shows: $('.params:visible').toArray().map(params => params.id),
+            // hides: $('.params:hidden').toArray().map(params => params.id),
         }
     }
     /**
@@ -323,12 +325,12 @@ export class LocalPresets {
                 $param.trigger('change')
             })
         })
-        if (settings.shows) {
-            settings.shows.forEach(id => $(`#${id}`).show())
-        }
-        if (settings.hides) {
-            settings.hides.forEach(id => $(`#${id}`).hide())
-        }
+        // if (settings.shows) {
+        //     settings.shows.forEach(id => $(`#${id}`).show())
+        // }
+        // if (settings.hides) {
+        //     settings.hides.forEach(id => $(`#${id}`).hide())
+        // }
     }
     /**
      * Write to local storage
@@ -336,6 +338,35 @@ export class LocalPresets {
     write() {
         localStorage.setItem(this.key, JSON.stringify(this.data))
     }
+
+    // static getDiff(a, b) {
+    //     const diff = {mixer: {}, nodes: {}}
+    //     $.each(b.mixer, (name, value) => {
+    //         if (a.mixer[name] !== value) {
+    //             diff.mixer[name] = value
+    //         }
+    //     })
+    //     $.each(b.nodes, (id, {active, params}) => {
+    //         if (!a.nodes[id]) {
+    //             diff.nodes[id] = {active, params}
+    //             return
+    //         }
+    //         diff.nodes[id] = {params: {}}
+    //         if (a.nodes[id].active !== active) {
+    //             diff.nodes[id].active = active
+    //         }
+    //         if (!a.nodes[id].params) {
+    //             diff.nodes[id].params = params
+    //             return
+    //         }
+    //         $.each(params, (name, value) => {
+    //             if (a.nodes[id].params[name] !== value) {
+    //                 diff.nodes[id].params[name] = value
+    //             }
+    //         })
+    //     })
+    //     return diff
+    // }
 }
 
 
