@@ -7,14 +7,21 @@
  */
 import $ from '../../lib/jquery.js'
 import '../../lib/tone.js'
+import Cookie from '../../lib/cookie.js'
+import {BaseNode} from '../../src/core.js'
 import * as Effects from '../../src/effects.js'
 import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
 
+const cookieId = 'settings'
+const mixerId = 'mixer'
+const sampleId = 'sample'
+const amSynthId = 'amSynth'
+
 const styles = {
     mixer: 'fx1',
-    scale: 'fx2',
-    synth: 'fx6',
+    sample: 'fx2',
+    amSynth: 'fx6',
 
     compressor: 'fx3',
     wah:        'fx4',
@@ -38,6 +45,7 @@ const fxout = new GainNode(context)
 
 const sample = new ScaleSample(context)
 const amSynth = new Tone.AMSynth()
+const amSynthNode = createAmSynthNode(amSynth)
 
 const sampleDry = new GainNode(context)
 const sampleFx = new GainNode(context)
@@ -98,11 +106,6 @@ const mixer = [
         label: 'Synth FX Send',
         param: synthFx.gain,
     },
-    // {
-    //     name: 'fxsend',
-    //     label: 'FX Send',
-    //     param: fxsend.gain,
-    // },
     {
         name: 'fxout',
         label: 'FX Out',
@@ -110,20 +113,62 @@ const mixer = [
     },
 ]
 
-
 mixer.forEach(({param}) => param.value = 0.5)
 
 $(() => {
-    mixerWidget('mixer', 'Mixer', mixer).appendTo('#effects')
-    nodeWidget('scale', sample).appendTo('#effects')
-    nodeWidget('synth', createAmSynthNode(amSynth)).appendTo('#effects')
-
+    mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
+    nodeWidget(sampleId, sample).appendTo('#main')
+    nodeWidget(amSynthId, amSynthNode).appendTo('#main')
     $.each(effects, (id, node) => {
         nodeWidget(id, node).appendTo('#effects')
     })
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
+    $('#save').on('click', saveSettings)
+    $('#load').on('click', loadSettings)
     $('button').button()
 })
+
+
+function saveSettings() {
+    const nodes = {...effects}
+    nodes[sampleId] = sample
+    nodes[amSynthId] = amSynthNode
+    Cookie.set(cookieId, JSON.stringify({
+        mixer: Object.fromEntries(
+            mixer.map(({name, param}) => [name, param.value])
+        ),
+        nodes: Object.fromEntries(
+            Object.entries(nodes).map(([id, node]) =>
+                [id, {active: node.active, params: node.paramValues()}]
+            )
+        )
+    }))
+}
+
+function loadSettings() {
+    const json = Cookie.get(cookieId)
+    if (!json) {
+        return
+    }
+    const settings = JSON.parse(json)
+    $.each(settings.mixer, (name, value) => {
+        $(`#${mixerId}-${name}`).val(value).trigger('change')
+    })
+    $.each(settings.nodes, (id, {active, params}) => {
+        if (active !== undefined) {
+            $(`#${id}-active`).prop('checked', active).trigger('change')
+        }
+        $.each(params, (name, value) => {
+            const $param = $(`#${id}-${name}`)
+            if (typeof value === 'boolean') {
+                $param.prop('checked', value)
+            } else {
+                $param.val(value)
+            }
+            $param.trigger('change')
+        })
+    })
+}
 
 function createAmSynthNode(synth) {
     const meta = {
@@ -151,6 +196,8 @@ function createAmSynthNode(synth) {
     return {
         meta,
         harmonicity: synth.harmonicity,
+        update: BaseNode.prototype.update,
+        paramValues: BaseNode.prototype.paramValues,
         portamento: {
             get value() { return synth.portamento },
             set value(value) { synth.portamento = value },

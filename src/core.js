@@ -84,6 +84,18 @@ export class BaseNode extends GainNode {
         return this
     }
 
+    /**
+     * Read parameter values
+     * @return {object}
+     */
+    paramValues() {
+        return Object.fromEntries(
+            Object.keys(this.meta.params).map(key =>
+                [key, this[key].value]
+            )
+        )
+    }
+
     /** @type {object} */
     get meta() {
         return this.constructor.Meta
