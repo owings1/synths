@@ -7,7 +7,7 @@
  */
 import $ from '../../lib/jquery.js'
 import * as Effects from '../../src/effects.js'
-import {AMSynth} from '../../src/synths.js'
+import {AMSynth, FMSynth} from '../../src/synths.js'
 import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 
@@ -15,6 +15,7 @@ const styles = {
     mixer: 'fx1',
     sample: 'fx2',
     amSynth: 'fx7',
+    fmSynth: 'fx5',
 
     compressor: 'fx3',
     wah:        'fx4',
@@ -40,9 +41,12 @@ const sampleDry = new GainNode(context)
 const sampleFx = new GainNode(context)
 
 const amSynth = new AMSynth(context)
-const amSynthGain = new GainNode(context)
 const amSynthDry = new GainNode(context)
 const amSynthFx = new GainNode(context)
+
+const fmSynth = new FMSynth(context)
+const fmSynthDry = new GainNode(context)
+const fmSynthFx = new GainNode(context)
 
 const effects = {
     compressor: new Effects.Compressor(context),
@@ -59,12 +63,15 @@ const effects = {
 }
 
 sample.connect(amSynth)
+sample.connect(fmSynth)
 sample.connect(sampleDry).connect(main)
 sample.connect(sampleFx).connect(fxsend)
 
-amSynth.connect(amSynthGain)
-amSynthGain.connect(amSynthDry).connect(main)
-amSynthGain.connect(amSynthFx).connect(fxsend)
+amSynth.connect(amSynthDry).connect(main)
+amSynth.connect(amSynthFx).connect(fxsend)
+
+fmSynth.connect(fmSynthDry).connect(main)
+fmSynth.connect(fmSynthFx).connect(fxsend)
 
 Effects.chain(fxsend, fxout, effects).connect(main)
 
@@ -75,43 +82,62 @@ const mixer = [
         name: 'main',
         label: 'Main',
         param: main.gain,
+        default: 0.5,
     },
     {
         name: 'sampleDry',
         label: 'Sample Dry',
         param: sampleDry.gain,
+        default: 0.5,
     },
     {
-        name: 'synthDry',
-        label: 'Synth Dry',
+        name: 'amSynthDry',
+        label: 'AMSynth Dry',
         param: amSynthDry.gain,
+        default: 0.02,
+    },
+    {
+        name: 'fmSynthDry',
+        label: 'FMSynth Dry',
+        param: fmSynthDry.gain,
+        default: 0.02,
     },
     {
         name: 'sampleFx',
         label: 'Sample FX Send',
         param: sampleFx.gain,
+        default: 0.5,
     },
     {
-        name: 'synthFx',
-        label: 'Synth FX Send',
+        name: 'amSynthFx',
+        label: 'AMSynth FX Send',
         param: amSynthFx.gain,
+        default: 0.02,
+    },
+    {
+        name: 'fmSynthFx',
+        label: 'FMSynth FX Send',
+        param: fmSynthFx.gain,
+        default: 0.02,
     },
     {
         name: 'fxout',
         label: 'FX Out',
         param: fxout.gain,
+        default: 0.5,
     },
 ]
 
-mixer.forEach(({param}) => param.value = 0.5)
+mixer.forEach(slot => slot.param.value = slot.default)
 
 $(() => {
     const mixerId = 'mixer'
-    const nodes = {sample, amSynth, ...effects}
+    const nodes = {sample, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
     mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
     nodeWidget('sample', sample).appendTo('#main')
     nodeWidget('amSynth', amSynth).appendTo('#main')
+    nodeWidget('fmSynth', fmSynth).appendTo('#main')
     $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     presets.widget().appendTo('#presets')

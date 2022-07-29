@@ -6,26 +6,30 @@
  */
 import {InstrumentWrapper as Base, paramProp} from '../core.js'
 import '../../lib/tone.js'
- 
+
 /**
- * AMSynth wrapper
+ * FMSynth wrapper
  */
-export default class AMSynth extends Base {
- 
+export default class FMSynth extends Base {
+
     /**
      * @param {AudioContext} context
      * @param {object} opts
      */
-    constructor(context, opts = {}) {
+    constructor(context, opts = undefined) {
         super(context)
         Tone.setContext(context)
         opts = Base.mergeOpts(this.meta.params, opts)
-        this.instrument = new Tone.AMSynth()
+        this.instrument = new Tone.FMSynth()
         Object.defineProperties(this, {
             portamento: paramProp(
                 () => this.instrument.portamento,
                 value => this.instrument.portamento = value
             ),
+            modulationIndex: paramProp(
+                () => this.instrument.modulationIndex,
+                value => this.instrument.modulationIndex = value
+            )
         })
         this.instrument.connect(this.output)
         this.update(opts)
@@ -40,10 +44,13 @@ export default class AMSynth extends Base {
     }
 }
 
-const tdefs = Tone.AMSynth.getDefaults()
+export {FMSynth}
+
+
+const tdefs = Tone.FMSynth.getDefaults()
  
-AMSynth.Meta = {
-    name: 'AMSynth',
+FMSynth.Meta = {
+    name: 'FMSynth',
     params: {
         portamento: {
             type: 'float',
@@ -62,8 +69,13 @@ AMSynth.Meta = {
             step: 0.01,
             help: "ratio between the two voices. 1 is no change, 2 is an octave, etc."
         },
+        modulationIndex: {
+            type: 'float',
+            default: tdefs.modulationIndex,
+            min: 1,
+            max: 100.0,
+            step: 1,
+            help: 'The modulation index which essentially the depth or amount of the modulation. It is the ratio of the frequency of the modulating signal (mf) to the amplitude of the modulating signal (ma) -- as in ma/mf.',
+        },
     }
 }
-
-export {AMSynth}
- 

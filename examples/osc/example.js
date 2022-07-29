@@ -7,6 +7,8 @@
  */
 import $ from '../../lib/jquery.js'
 import * as Music from '../../src/music.js'
+import Delay from '../../src/effects/delay.js'
+import Lowpass from '../../src/effects/lowpass.js'
 import {mixerWidget, intervalButtons} from '../../src/widgets.js'
 
 const styles = {
@@ -28,8 +30,14 @@ const mixer = [
 ]
 mixer.forEach(({param}) => param.value = 0.5)
 
-const source = new OscillatorNode(context, {frequency: 440})
- 
+const osc = new OscillatorNode(context, {frequency: 440})
+const delay = new Delay(context, {gain: 1.25, delayTime: 0.03, feedback: 0.28})
+const lowpass = new Lowpass(context, {cutoff: 375})
+
+osc.connect(delay).connect(lowpass)
+
+//const source = osc
+const source = lowpass
  
 let oscPlaying
 let oscStarted
@@ -41,7 +49,7 @@ function oscPlay() {
     oscPlaying = true
     source.connect(main)
     if (!oscStarted) {
-        source.start()
+        osc.start()
         oscStarted = true
     }
 }
@@ -57,11 +65,13 @@ function oscStop() {
 
 $(() => {
 
+    $('button').button()
     $('#mixer-wrapper').append(mixerWidget('mixer', 'Mixer', mixer))
 
-    oscillatorWidget('oscillator', source)
+    oscillatorWidget('oscillator', osc)
 
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
+
 })
  
  /**
