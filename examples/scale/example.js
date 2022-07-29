@@ -5,7 +5,7 @@
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
  *  - https://github.com/mdn/webaudio-examples/
  */
-import $ from '../../src/jquery.js'
+import $ from '../../lib/jquery.js'
 import * as Widgets from '../../src/widgets.js'
 import ScaleSample from '../../src/scale.js'
 

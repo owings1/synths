@@ -115,7 +115,7 @@ function scaleFreqs(tonic, opts) {
     if (!tonicData) {
         throw new ValueError(`Invalid frequency: ${tonic}`)
     }
-    tonic = tonicData.freq
+    let {freq} = tonicData
     const descend = Boolean(opts.descend)
     let octaves = opts.octaves === undefined
         ? 1
@@ -147,8 +147,7 @@ function scaleFreqs(tonic, opts) {
     }
     const dir = descend ? -1 : 1
     const intervals = base[Number(descend)]
-    const freqs = [tonic]
-    let freq = tonic
+    const freqs = [freq]
     for (let o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; ++i) {
             freq = stepFreq(freq, dir * intervals[i], true)
@@ -213,7 +212,7 @@ function getFreqId(value) {
 }
 
 // Lock Enum objects.
-;[Tonality, Dir].forEach(Enum => {
+for (const Enum of [Tonality, Dir]) {
     Object.entries(Enum).forEach(([name, value]) => {
         Object.defineProperty(Enum, name, {
             value,
@@ -221,7 +220,8 @@ function getFreqId(value) {
             writable: false,
         })
     })
-})
+}
+
 // Mode aliases.
 Object.defineProperties(Tonality, {
     IONIAN: {

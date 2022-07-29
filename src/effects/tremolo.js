@@ -5,7 +5,7 @@
  * @license MIT
  */
 import {BaseNode} from '../core.js'
-import '../tone.js'
+import '../../lib/tone.js'
 
 /**
  * Tremolo effect.

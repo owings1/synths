@@ -4,7 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import $ from './jquery.js'
+import $ from '../lib/jquery.js'
 
 /**
  * @param {String} id The mixer ID.
@@ -21,7 +21,6 @@ export function mixerWidget(id, title, infos) {
         ({name, param}) => [name, param]
     ))
     const params = Object.fromEntries(
-
         infos.map(({name, label, min, max, step}) => {
             if (label === undefined) {
                 label = name
@@ -66,7 +65,11 @@ export function nodeWidget(id, node, opts = {}) {
     }
     const $section = $('<section/>').attr({id}).addClass('node')
     if (title) {
-        $('<h2/>').text(title).appendTo($section)
+        $('<h2/>')
+            .addClass('heading')
+            .text(title)
+            .appendTo($section)
+            .on('click', function() { $table.toggle('fast')})
     }
     const $table = $('<table/>').appendTo($section)
     // Active checkbox

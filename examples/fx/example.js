@@ -5,11 +5,11 @@
  *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
  *  - https://github.com/mdn/webaudio-examples/
  */
-import $ from '../../src/jquery.js'
+import $ from '../../lib/jquery.js'
+import '../../lib/tone.js'
 import * as Effects from '../../src/effects.js'
 import ScaleSample from '../../src/scale.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
-import '../../src/tone.js'
 
 const styles = {
     mixer: 'fx1',
@@ -37,7 +37,7 @@ const fxsend = new GainNode(context)
 const fxout = new GainNode(context)
 
 const sample = new ScaleSample(context)
-const synth = new Tone.AMSynth()
+const amSynth = new Tone.AMSynth()
 
 const sampleDry = new GainNode(context)
 const sampleFx = new GainNode(context)
@@ -60,11 +60,11 @@ const effects = {
     highpass: new Effects.Highpass(context),
 }
 
-sample.connect(synth)
+sample.connect(amSynth)
 sample.connect(sampleDry).connect(main)
 sample.connect(sampleFx).connect(fxsend)
 
-synth.connect(synthGain)
+amSynth.connect(synthGain)
 synthGain.connect(synthDry).connect(main)
 synthGain.connect(synthFx).connect(fxsend)
 
@@ -114,9 +114,9 @@ const mixer = [
 mixer.forEach(({param}) => param.value = 0.5)
 
 $(() => {
-    mixerWidget('mixer', 'Mixer', mixer).appendTo('#mixer-wrapper')
+    mixerWidget('mixer', 'Mixer', mixer).appendTo('#effects')
     nodeWidget('scale', sample).appendTo('#effects')
-    nodeWidget('synth', createSynthNode(synth)).appendTo('#effects')
+    nodeWidget('synth', createAmSynthNode(amSynth)).appendTo('#effects')
 
     $.each(effects, (id, node) => {
         nodeWidget(id, node).appendTo('#effects')
@@ -125,7 +125,7 @@ $(() => {
     $('button').button()
 })
 
-function createSynthNode(synth) {
+function createAmSynthNode(synth) {
     const meta = {
         name: synth.name,
         params: {

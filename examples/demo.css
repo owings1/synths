@@ -103,6 +103,9 @@ input[type="checkbox"] {
     background-color: inherit;
 }
 
+.node .heading {
+    cursor: pointer;
+}
 
 /*  */
 

@@ -67,7 +67,7 @@ export default class Shuffler {
     getValue(arr, chances) {
         const p = Math.random()
         for (let i = 0; i < chances.length; i++) {
-            let [key, value] = chances[i]
+            const [key, value] = chances[i]
             if (value < p) {
                 continue
             }
@@ -110,8 +110,8 @@ export function shuffle(arr, opts = undefined) {
         end = arr.length - 1
     }
     for (let i = end, n = 0; i > start && n <= limit; i--, n++) {
-        let j = randomInt(start, i)
-        let temp = arr[i]
+        const j = randomInt(start, i)
+        const temp = arr[i]
         arr[i] = arr[j]
         arr[j] = temp
     }

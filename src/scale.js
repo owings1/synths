@@ -8,7 +8,7 @@ import {BaseNode, paramProp} from './core.js'
 import {flip, range} from './utils.js'
 import * as Music from './music.js'
 import {shuffle, Shuffler} from './shuffler.js'
-import './tone.js'
+import '../lib/tone.js'
 
 const symState = Symbol()
 const symSched = Symbol()
@@ -82,7 +82,7 @@ export default class ScaleSample extends BaseNode {
 
     disconnect(...args) {
         if (this.instruments.length && isInstrument(args[0])) {
-            let i = this.instruments.indexOf(args[0])
+            const i = this.instruments.indexOf(args[0])
             if (i < 0) {
                 throw new Error('Not connected to that instrument')
             }
@@ -167,7 +167,9 @@ ScaleSample.Meta = {
             default: 30,
             values: {
                 15: '1/16',
+                20: '1/12',
                 30: '1/8',
+                45: '1/6',
                 60: '1/4',
                 120: '1/2',
             }

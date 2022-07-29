@@ -27,14 +27,19 @@ export class BaseNode extends GainNode {
     /**
      * Merge user options from param definitions
      * 
-     * @param {object[]} defs Param definitions with `default`
+     * @param {object[]|Array} defs Param definitions with `default`, or literal value
      * @param {*} opts User options
      * @return {object} Modified `opts` or new object.
      */
     static mergeOpts(defs, opts) {
         opts = opts ? {...opts} : {}
         Object.entries(defs).forEach(([name, def]) => {
-            opts[name] = opts[name] || def.default
+            const defaultValue = typeof def === 'object'
+                ? def.default
+                : def
+            opts[name] = opts[name] === undefined
+                ? defaultValue
+                : opts[name]
         })
         return opts
     }
@@ -67,6 +72,7 @@ export class BaseNode extends GainNode {
      * Update parameter values
      * 
      * @param {object} opts
+     * @return {BaseNode} self
      */
     update(opts) {
         Object.keys(this.meta.params).forEach(key => {
@@ -75,6 +81,7 @@ export class BaseNode extends GainNode {
                 this[key].value = value
             }
         })
+        return this
     }
 
     /** @type {object} */
