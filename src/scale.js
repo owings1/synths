@@ -112,6 +112,7 @@ export default class ScaleSample extends BaseNode {
         const state = this[symState]
         state.playing = false
         state.nextTime = null
+        state.lastNote = null
         this.oscillator.frequency.cancelScheduledValues(null)
         this.oscillator.frequency.value = 0
         clearTimeout(state.stopId)
@@ -403,8 +404,8 @@ function schedule() {
     clearTimeout(state.scheduleId)
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
         state.shuffleIfNeeded()
-        state.sample.forEach(freq => {
-            play(this, freq, state.noteDur, state.nextTime)
+        state.sample.forEach(note => {
+            play(this, note, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
         })
         state.counter += 1
@@ -426,33 +427,33 @@ function schedule() {
  * Schedule a note to be played
  * 
  * @param {ScaleSample} node
- * @param {Number} freq
+ * @param {Music.ScaleNote|null|undefined} note
  * @param {Number} dur
  * @param {Number} time
  */
-function play(node, freq, dur, time) {
-    if (freq === undefined) {
+function play(node, note, dur, time) {
+    if (note === undefined) {
         return
     }
     const state = node[symState]
-    if (freq === null) {
-        freq = state.lastFreq
+    if (note === null) {
+        note = state.lastNote
     }
-    if (freq === null) {
+    if (note === null) {
         return
     }
-    state.lastFreq = freq
+    state.lastNote = note
     node.instruments.forEach(inst => {
-        inst.triggerAttackRelease(freq, dur, time)
+        inst.triggerAttackRelease(note.freq, dur, time)
     })
-    node.oscillator.frequency.setValueAtTime(freq, time)
+    node.oscillator.frequency.setValueAtTime(note.freq, time)
 }
 
 class State {
 
     constructor() {
         this.counter = 0
-        this.lastFreq = null
+        this.lastNote = null
     }
 
     get noteDur() {

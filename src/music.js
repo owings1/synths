@@ -50,6 +50,20 @@ const P4 = 5
 const OCTV = 12
 
 /**
+ * @param {Number} freq
+ * @param {object} opts
+ * @param {Boolean} opts.strict
+ * @return {Note}
+ */
+export function freqNote(freq, opts = undefined) {
+    opts = opts || {}
+    const data = getFreqData(freq, opts.strict)
+    if (data) {
+        return new Note(data)
+    }
+}
+
+/**
  * Adjust a frequency by a number of half-steps
  * 
  * @param {Number} freq The base frequency. Performs internal floor rounding
@@ -62,7 +76,7 @@ const OCTV = 12
 export function stepFreq(freq, degrees, strict = false) {
     let baseData = getFreqData(freq, strict)
     if (baseData) {
-        return FREQS[baseData.freqIndex + Number(degrees)]
+        return FREQS[baseData.index + Number(degrees)]
     }
 }
 
@@ -76,62 +90,61 @@ export function stepFreq(freq, degrees, strict = false) {
  * @param {Number} opts.direction Directionality indicator (1, 3, 7, 11)
  * @param {Number} opts.octaves Number of octaves
  * @param {Boolean} opts.arpeggio Use arpeggio intervals
- * @param {Boolean} opts.strict Fail for unknown tonic frequency
  * @param {Boolean} opts.clip Clip out of bounds frequencies
- * @return {Number[]} Array of note frequencies
+ * @return {ScaleNote[]} Array of scale notes
  */
 export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
+    degree = Number(degree)
+    const octave = opts.octave === undefined ? 4 : Number(opts.octave)
+    if (!Number.isInteger(octave) || octave < 0 || octave >= OCTAVE_COUNT) {
+        throw new ValueError(`Invalid octave ${octave}`)
+    }
+    if (!Number.isInteger(degree) || degree < 0 || degree >= OCTV) {
+        throw new ValueError(`Invalid degree ${degree}`)
+    }
     const direction = Number(opts.direction)
-    const tonic = freqAtDegree(degree, opts.octave)
-    let freqs
+    let notes
     if (Dir.isMulti(direction)) {
         opts.descend = direction === Dir.DESCEND_ASCEND
-        freqs = scaleFreqs(tonic, opts)
+        notes = scaleNotes(degree, octave, opts)
         opts.descend = !opts.descend
-        scaleFreqs(freqs.pop(), opts).forEach(freq => freqs.push(freq))
+        const leaf = notes.pop()
+        notes.push(...scaleNotes(leaf.degree, leaf.octave, opts))
     } else {
         opts.descend = direction === Dir.DESCEND
-        freqs = scaleFreqs(tonic, opts)
+        notes = scaleNotes(degree, octave, opts)
     }
-    return freqs
+    return notes
 }
 
 /**
- * Return a unidirectional scale starting from a frequency
+ * Return a unidirectional scale
  * 
- * @param {Number} tonic Start frequency
+ * @param {Number} degree
+ * @param {Number} octave
  * @param {object} opts The options
  * @param {Number} opts.tonality
  * @param {Boolean} opts.descend
  * @param {Number} opts.octaves
  * @param {Boolean} opts.arpeggio
- * @param {Boolean} opts.strict
  * @param {Boolean} opts.clip
- * @return {Number[]}
+ * @return {ScaleNote[]}
  */
-function scaleFreqs(tonic, opts) {
-    const tonicData = getFreqData(tonic, opts.strict)
-    if (!tonicData) {
-        throw new ValueError(`Invalid frequency: ${tonic}`)
-    }
-    let {freq} = tonicData
-    const descend = Boolean(opts.descend)
-    let octaves = opts.octaves === undefined
-        ? 1
-        : Number(opts.octaves)
+function scaleNotes(degree, octave, opts) {
     const tonality = opts.tonality === undefined
         ? Tonality.MAJOR
         : Number(opts.tonality)
     const base = opts.arpeggio
         ? ARPEGGIO_INTERVALS[tonality]
         : SCALE_INTERVALS[tonality]
-    const olimit = descend
-        ? tonicData.octave
-        : OCTAVE_COUNT - tonicData.octave - 1
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
     }
+    const tonic = new ScaleNote(octave * OCTV + degree, degree, tonality)
+    const descend = Boolean(opts.descend)
+    const olimit = descend ? tonic.octave : OCTAVE_COUNT - tonic.octave - 1
+    let octaves = opts.octaves === undefined ? 1 : Number(opts.octaves)
     if (octaves < 1) {
         throw new ValueError(`Invalid octaves: ${octaves}`)
     }
@@ -140,45 +153,24 @@ function scaleFreqs(tonic, opts) {
     }
     if (octaves > olimit) {
         if (!opts.clip) {
-            let msg = `${octaves} exceeds max ${olimit} octaves from tonic`
+            const msg = `${octaves} exceeds max ${olimit} octaves from tonic`
             throw new ValueError(msg)
         }
         octaves = olimit
     }
     const dir = descend ? -1 : 1
     const intervals = base[Number(descend)]
-    const freqs = [freq]
-    for (let o = 0; o < octaves; ++o) {
+    const notes = [tonic]
+    for (let note = tonic, o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; ++i) {
-            freq = stepFreq(freq, dir * intervals[i], true)
-            freqs.push(freq)
+            const idx = note.index + dir * intervals[i]
+            note = new ScaleNote(idx, tonic.degree, tonality)
+            notes.push(note)
         }
     }
-    // freqs.length === intervals.length * octaves + 1
-    return freqs
+    return notes
 }
 
-/**
- * Get frequency for scale degree (0-11) and octave (0-8)
- * 
- * @param {Number} degree The scale degree, 0-11
- * @param {Number} octave The octave, 0-8
- * @return {Number} The frequency
- */
-function freqAtDegree(degree, octave) {
-    if (octave === undefined) {
-        octave = 4
-    }
-    const o = OCTAVES[octave]
-    if (!o) {
-        throw new ValueError(`Invalid octave ${octave}`)
-    }
-    const freq = o[degree]
-    if (!freq) {
-        throw new ValueError(`Invalid degree ${degree}`)
-    }
-    return freq
-}
 
 /**
  * Find the closest known frequency.
@@ -301,6 +293,58 @@ for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
     })
 }
 
+const symNote = Symbol()
+
+export class Note {
+
+    constructor(index) {
+        if (!Number.isInteger(index) || index < 0 || index >= NOTES_DATA.length) {
+            throw new ValueError(`Invalid note index: ${index}`)
+        }
+        this[symNote] = NOTES_DATA[index]
+    }
+    get freq() {
+        return this[symNote].freq
+    }
+    get octave() {
+        return this[symNote].octave
+    }
+    get degree() {
+        return this[symNote].degree
+    }
+    get letter() {
+        return this[symNote].letter
+    }
+    get raised() {
+        return this[symNote].raised
+    }
+    get label() {
+        return this.shortLabel + this.octave
+    }
+    get shortLabel() {
+        return this.letter + (this.raised ? '#' : '')
+    }
+    get index() {
+        return this[symNote].index
+    }
+}
+
+export class ScaleNote extends Note {
+    /**
+     * @param {number} index Absolute note index
+     * @param {number} tonic The tonic degree (0-11)
+     * @param {number} tonality
+     */
+    constructor(index, tonic, tonality) {
+        super(index)
+        // Tonic may be up or down any number of octaves, so we should only
+        // care about its degree, from which we can find one we happen to be
+        // interested in.
+        this.tonic = tonic
+        this.tonality = tonality
+    }
+}
+
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],
     [32.70, 34.65, 36.71, 38.89, 41.20, 43.65, 46.25, 49.00, 51.91, 55.00, 58.27, 61.74],
@@ -324,21 +368,23 @@ export const FREQ_MIN = FREQS[0]
 /** Maximum known frequency. */
 export const FREQ_MAX = FREQS[FREQS.length - 1]
 
-/** Frequency data, keyed by frequency ID. */
+/** Note datas, keyed by frequency ID. */
 const FREQS_DATA = Object.create(null)
-
+/** Note datas array */
+const NOTES_DATA = []
 const DEG_LETTERS = 'CCDDEFFGGAAB'
 
 OCTAVES.forEach((freqs, octave) => {
     freqs.forEach((freq, degree) => {
-        const freqIndex = octave * OCTV + degree
+        const index = octave * OCTV + degree
         const freqId = getFreqId(freq)
         const letter = DEG_LETTERS[degree]
         const raised = DEG_LETTERS[degree - 1] === letter
-        FREQS_DATA[freqId] = {
-            freq, freqIndex, freqId, octave,
+        const data = FREQS_DATA[freqId] = Object.freeze({
+            freq, index, freqId, octave,
             letter, raised, degree,
-        }
+        })
+        NOTES_DATA.push(data)
     })
 })
 

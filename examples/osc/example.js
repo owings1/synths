@@ -78,35 +78,39 @@ $(() => {
   * @param {String} id
   * @param {OscillatorNode} node
   */
- function oscillatorWidget(id, node) {
-     $(`#${id}-intervals`)
-         .append(intervalButtons(`${id}-interval`))
-         .on('click', `[name="${id}-interval"]`, e => {
-             const $target = $(e.target)
-             const param = node.frequency
-             param.value = Music.stepFreq(param.value, $target.val())
-             $(`#${id}-frequency-meter`).text(param.value.toFixed(2))
-         })
-     $(`#${id}-type`)
-         .controlgroup()
-         .on('change', e => node.type = $(e.target).val())
-     $(`#${id}-frequency-meter`)
-         .addClass('meter')
-         .text(node.frequency.value.toFixed(2))
-     $(`#${id}-play`).on('click', function () {
-         if (oscPlaying) {
-             return
-         }
-         oscPlay()
-         $(this).button({disabled: true})
-         $(`#${id}-stop`).button({disabled: false})
-     })
-     $(`#${id}-stop`).on('click', function () {
-         if (!oscPlaying) {
-             return
-         }
-         oscStop()
-         $(this).button({disabled: true})
-         $(`#${id}-play`).button({disabled: false})
-     })
- }
+function oscillatorWidget(id, node) {
+    const {frequency} = node
+    const $noteLabel = $(`#${id}-note-label`)
+        .text(Music.freqNote(frequency.value).label)
+    $(`#${id}-intervals`)
+        .append(intervalButtons(`${id}-interval`))
+        .on('click', `[name="${id}-interval"]`, e => {
+            const $target = $(e.target)
+            const freq = Music.stepFreq(frequency.value, $target.val())
+            frequency.value = freq
+            $meter.text(freq.toFixed(2))
+            $noteLabel.text(Music.freqNote(freq).label)
+        })
+    $(`#${id}-type`)
+        .controlgroup()
+        .on('change', e => node.type = $(e.target).val())
+    const $meter = $(`#${id}-frequency-meter`)
+        .addClass('meter')
+        .text(node.frequency.value.toFixed(2))
+    const $play = $(`#${id}-play`).on('click', () => {
+        if (oscPlaying) {
+            return
+        }
+        oscPlay()
+        $play.button({disabled: true})
+        $stop.button({disabled: false})
+    })
+    const $stop = $(`#${id}-stop`).on('click', () => {
+        if (!oscPlaying) {
+            return
+        }
+        oscStop()
+        $stop.button({disabled: true})
+        $play.button({disabled: false})
+    })
+}
