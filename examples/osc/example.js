@@ -10,6 +10,7 @@ import * as Music from '../../src/music.js'
 import Delay from '../../src/effects/delay.js'
 import Lowpass from '../../src/effects/lowpass.js'
 import {mixerWidget, intervalButtons} from '../../src/widgets.js'
+import Vex from '../../lib/vexflow.js'
 
 const styles = {
     mixer: 'fx1',

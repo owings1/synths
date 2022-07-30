@@ -5,7 +5,7 @@
  * @license MIT
  */
 import {InstrumentWrapper as Base, paramProp} from '../core.js'
-import '../../lib/tone.js'
+import Tone from '../../lib/tone.js'
 
 /**
  * FMSynth wrapper

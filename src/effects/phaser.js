@@ -5,7 +5,7 @@
  * @license MIT
  */
 import {BaseNode, paramProp} from '../core.js'
-import '../../lib/tone.js'
+import Tone from '../../lib/tone.js'
 
 /**
  * Phaser effect.

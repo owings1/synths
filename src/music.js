@@ -141,7 +141,7 @@ function scaleNotes(degree, octave, opts) {
     if (!base) {
         throw new ValueError(`Invalid tonality: ${tonality}`)
     }
-    const tonic = new ScaleNote(octave * OCTV + degree, degree, tonality)
+    const tonic = new ScaleNote(octave * OCTV + degree, null, tonality)
     const descend = Boolean(opts.descend)
     const olimit = descend ? tonic.octave : OCTAVE_COUNT - tonic.octave - 1
     let octaves = opts.octaves === undefined ? 1 : Number(opts.octaves)
@@ -164,7 +164,7 @@ function scaleNotes(degree, octave, opts) {
     for (let note = tonic, o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; ++i) {
             const idx = note.index + dir * intervals[i]
-            note = new ScaleNote(idx, tonic.degree, tonality)
+            note = new ScaleNote(idx, tonic, tonality)
             notes.push(note)
         }
     }
@@ -332,7 +332,7 @@ export class Note {
 export class ScaleNote extends Note {
     /**
      * @param {number} index Absolute note index
-     * @param {number} tonic The tonic degree (0-11)
+     * @param {ScaleNote|null} tonic The tonic note
      * @param {number} tonality
      */
     constructor(index, tonic, tonality) {
@@ -340,7 +340,7 @@ export class ScaleNote extends Note {
         // Tonic may be up or down any number of octaves, so we should only
         // care about its degree, from which we can find one we happen to be
         // interested in.
-        this.tonic = tonic
+        this.tonic = tonic || this
         this.tonality = tonality
     }
 }
