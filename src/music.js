@@ -59,7 +59,7 @@ export function freqNote(freq, opts = undefined) {
     opts = opts || {}
     const data = getFreqData(freq, opts.strict)
     if (data) {
-        return new Note(data)
+        return new Note(data.index)
     }
 }
 
