@@ -16,30 +16,36 @@ scale.connect(volume)
 const mixer = [{name: 'volume', param: volume.gain}]
 
 $(() => {
+
     const score = new VexSampleScore(scale.getSample())
-    Widgets.mixerWidget('mixer', null, mixer).appendTo('#inputs')
     const {params, actions} = $.extend(true, {}, scale.meta)
-    Widgets.nodeWidget('scale', scale, {params, actions, title: 'Scale'})
+
+    Widgets.mixerWidget('mixer', null, mixer)
+        .addClass('fx1')
         .appendTo('#inputs')
-    $('#mixer').addClass('fx1')
-    $('#scale').addClass('fx2').on('change', () => {
-        if (!scale.playing) {
+    
+    Widgets.nodeWidget('scale', scale, {params, actions, title: 'Scale'})
+        .addClass('fx2')
+        .appendTo('#inputs')
+        .on('change', () => {
+            if (scale.playing) {
+                return
+            }
             scale.build().doShuffle()
-        }
-        const sample = scale.getSample()
-        // console.log(sample)
+            const sample = scale.getSample()
+            score.reload(sample)
+            renderScore()
+        })
+
+    scale.onschedule = (sample, time) => {
         score.reload(sample)
-        renderScore()
-    })
-    scale.onschedule = sample => {
-        score.reload(sample)
-        renderScore()
+        setTimeout(renderScore, (time - scale.context.currentTime) * 1000)
     }
+
     function renderScore() {
         $('#score').empty()
         score.render('#score')
     }
-
 })
 
 
@@ -79,8 +85,8 @@ class VexSampleScore {
         this.height = this.top + 260
         // total render width
         this.width = sample.length * this.noteWidth + this.left
-
     }
+
     /**
      * Main render method
      * @param target element, selector, or jQuery object
@@ -126,13 +132,14 @@ class VexSampleScore {
     createNotes() {
         this.staveNotes = []
         this.sample.forEach(note => {
-            if (!note) {
-                this.staveNotes.push(this.getRestNote(this.notesPer / this.noteDur))
-                return
+            if (note) {
+                const keys = [this.getKeyLabel(note)]
+                const opts = {keys: keys, duration: this.noteDur, clef: this.clef}
+                this.staveNotes.push(new Flow.StaveNote(opts))
+            } else {
+                const rest = this.getRestNote(this.notesPer / this.noteDur)
+                this.staveNotes.push(rest)
             }
-            const keys = [this.getKeyLabel(note)]
-            const opts = {keys: keys, duration: this.noteDur, clef: this.clef}
-            this.staveNotes.push(new Flow.StaveNote(opts))
         })
     }
 
@@ -208,7 +215,6 @@ class VexSampleScore {
         } else {
             duration = 'hr'
         }
-        console.log({beats, duration})
         const isDot = beats === 3
         const key = this.cleff === 'bass' ? 'c/3' : 'c/5'
         const note = new Flow.StaveNote({keys: [key], duration})

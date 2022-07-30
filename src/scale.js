@@ -450,13 +450,14 @@ function schedule() {
     /** @type {State} */
     const state = this[symState]
     clearTimeout(state.scheduleId)
-    let isScheduled = false
+    let firstScheduleTime = null
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
-        isScheduled = true
+        if (!firstScheduleTime) {
+            firstScheduleTime = state.nextTime
+        }
         if (state.isShuffleWanted) {
             this.doShuffle()
         }
-        // state.shuffleIfNeeded()
         state.sample.forEach(note => {
             play(this, note, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
@@ -466,8 +467,8 @@ function schedule() {
             break
         }
     }
-    if (isScheduled) {
-        setTimeout(() => this.onschedule(state.sample))
+    if (firstScheduleTime) {
+        this.onschedule(state.sample, firstScheduleTime)
     }
     if (state.loop) {
         state.scheduleId = setTimeout(this[symSched], Lookahead)
