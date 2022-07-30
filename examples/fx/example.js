@@ -9,6 +9,7 @@ import $ from '../../lib/jquery.js'
 import * as Effects from '../../src/effects.js'
 import {AMSynth, FMSynth} from '../../src/synths.js'
 import ScaleSample from '../../src/scale.js'
+import {VexSampleScore} from '../../src/score.js'
 import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 
 const styles = {
@@ -36,9 +37,9 @@ const main = new GainNode(context)
 const fxsend = new GainNode(context)
 const fxout = new GainNode(context)
 
-const sample = new ScaleSample(context)
-const sampleDry = new GainNode(context)
-const sampleFx = new GainNode(context)
+const scale = new ScaleSample(context)
+const scaleDry = new GainNode(context)
+const scaleFx = new GainNode(context)
 
 const amSynth = new AMSynth(context)
 const amSynthDry = new GainNode(context)
@@ -62,10 +63,10 @@ const effects = {
     highpass: new Effects.Highpass(context),
 }
 
-sample.connect(amSynth)
-sample.connect(fmSynth)
-sample.connect(sampleDry).connect(main)
-sample.connect(sampleFx).connect(fxsend)
+scale.connect(amSynth)
+scale.connect(fmSynth)
+scale.connect(scaleDry).connect(main)
+scale.connect(scaleFx).connect(fxsend)
 
 amSynth.connect(amSynthDry).connect(main)
 amSynth.connect(amSynthFx).connect(fxsend)
@@ -87,7 +88,7 @@ const mixer = [
     {
         name: 'sampleDry',
         label: 'Sample Dry',
-        param: sampleDry.gain,
+        param: scaleDry.gain,
         default: 0.5,
     },
     {
@@ -105,7 +106,7 @@ const mixer = [
     {
         name: 'sampleFx',
         label: 'Sample FX Send',
-        param: sampleFx.gain,
+        param: scaleFx.gain,
         default: 0.5,
     },
     {
@@ -132,13 +133,22 @@ mixer.forEach(slot => slot.param.value = slot.default)
 
 $(() => {
     const mixerId = 'mixer'
-    const nodes = {sample, amSynth, fmSynth, ...effects}
+    const nodes = {sample: scale, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
+    const score = new VexSampleScore(scale.getSample())
     mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
-    nodeWidget('sample', sample).appendTo('#main')
+    nodeWidget('sample', scale).appendTo('#main')
+    $('<div/>').attr({id: 'score'}).appendTo('#main')
     nodeWidget('amSynth', amSynth).appendTo('#main')
     nodeWidget('fmSynth', fmSynth).appendTo('#main')
     $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     presets.widget().appendTo('#presets')
+    scale.onschedule = (sample, time) => {
+        score.reload(sample, {noteDur: 240 / scale.beat.value})
+        setTimeout(renderScore, (time - context.currentTime) * 1000)
+    }
+    function renderScore() {
+        score.render($('#score').empty().get(0))
+    }
 })

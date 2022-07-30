@@ -120,6 +120,10 @@ export default class ScaleSample extends BaseNode {
         return this
     }
 
+    /**
+     * Get a copy of the sample, building if necessary
+     * @return {Music.ScaleNote[]}
+     */
     getSample() {
         const state = this[symState]
         if (!state.sample) {
@@ -131,17 +135,13 @@ export default class ScaleSample extends BaseNode {
         return sample
     }
 
-    getShuffler() {
-        return SHUFFLERS[this.shuffler.value]
-    }
-
     /**
      * Stop playing
      * @return {this}
      */
     stop() {
         if (!this.playing) {
-            return
+            return this
         }
         const state = this[symState]
         state.playing = false
@@ -171,6 +171,10 @@ export default class ScaleSample extends BaseNode {
         return this
     }
 
+    /**
+     * Call the configured shuffler on the current sample
+     * @return {this}
+     */
     doShuffle() {
         const state = this[symState]
         if (!state.sample) {
@@ -178,11 +182,16 @@ export default class ScaleSample extends BaseNode {
         }
         state.sample = state.scale.slice(0)
         state.sample.state = state
-        this.getShuffler()(state.sample)
+        SHUFFLERS[this.shuffler.value](state.sample)
         return this
     }
 
-    onschedule() {}
+    /**
+     * Overridable callback
+     * @param {Music.ScaleNote[]} sample
+     * @param {number} time
+     */
+    onschedule(sample, time) {}
 }
 
 ScaleSample.prototype.start = ScaleSample.prototype.play
@@ -275,14 +284,6 @@ ScaleSample.Meta = {
             method: 'stop',
         }
     }
-}
-
-export function getShuffler(id) {
-    const shuffler = SHUFFLERS[id]
-    if (!shuffler) {
-        throw new Error(`Invalid shuffler: ${id}`)
-    }
-    return shuffler
 }
 
 function halfShuffle(arr) {
