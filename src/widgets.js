@@ -81,6 +81,9 @@ export function nodeWidget(id, node, opts = {}) {
     }
     if (params) {
         Object.entries(params).forEach(([name, def]) => {
+            if (def.hidden && !opts.showHidden) {
+                return
+            }
             const paramId = [id, name].join('-')
             const param = node[name]
             $table.append(paramWidget(paramId, param, def))

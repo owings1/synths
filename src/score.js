@@ -31,8 +31,7 @@ export class VexSampleScore {
         if (![1, 2, 4, 8, 16].includes(this.noteDur)) {
             throw new Error(`Invalid note duration: ${opts.noteDur}`)
         }
-        // notes can be null in the sample
-        this.tonic = sample.find(Boolean).tonic
+        this.tonic = sample.tonic
         // the clef, 'treble' or 'bass'
         this.clef = this.getClef()
         // initial left margin
@@ -40,7 +39,7 @@ export class VexSampleScore {
         // initial top margin
         this.top = 40
         // render width of each note
-        this.noteWidth = 60
+        this.noteWidth = 70
         // total render height
         this.height = this.top + 260
     }
@@ -66,7 +65,10 @@ export class VexSampleScore {
         this.buildMeasures()
         let left = this.left
         this.measures.forEach((measure, i) => {
-            const width = this.noteWidth * measure.length
+            let width = this.noteWidth * measure.length
+            if (i === 0) {
+                width += 20
+            }
             const stave = new Stave(left, this.top, width)
             if (i === 0) {
                 stave.addClef(this.clef)
@@ -96,17 +98,20 @@ export class VexSampleScore {
      */
     createNotes() {
         this.staveNotes = []
-        this.sample.forEach(note => {
+        this.sample.forEach((note, i) => {
             if (note) {
                 const opts = {
                     keys: [note.label],
                     duration: this.noteDur,
                     clef: this.clef,
                 }
-                this.staveNotes.push(new StaveNote(opts))
+                const staveNote = new StaveNote(opts)
+                // patch with the scaleNote for reference
+                staveNote.scaleNote = note
+                this.staveNotes.push(staveNote)
             } else {
-                const rest = this.getRestNote(this.noteDur)
-                this.staveNotes.push(rest)
+                const staveNote = this.getRestNote(this.noteDur)
+                this.staveNotes.push(staveNote)
             }
         })
     }
@@ -128,7 +133,40 @@ export class VexSampleScore {
         for (let m = 0; m < this.measuresNeeded; ++m) {
             const start = m * this.notesPerMeasure
             const end = start + this.notesPerMeasure
-            const measure = this.staveNotes.slice(start, end)
+            const staveNotes = this.staveNotes.slice(start, end)
+            // Combine two consecutive identical notes into one note
+            // with double the beat value
+            const measure = []
+            const groups = []
+            let prev
+            staveNotes.forEach(staveNote => {
+                const prevGroup = groups.at(-1)
+                if (this.staveNotesEqual(prev, staveNote) && prevGroup.length === 1) {
+                    // add to last group
+                    prevGroup.push(staveNote)
+                } else {
+                    // new group
+                    groups.push([staveNote])
+                }
+                prev = staveNote
+            })
+            groups.forEach(group => {
+                if (group.length === 1) {
+                    measure.push(group[0])
+                    return
+                }
+                let dur = group.length / this.noteDur
+                let duration = 1 / dur
+                if (duration % 1 === 0) {
+                    const {noteType, keys, clef} = group[0]
+                    if (noteType === 'r') {
+                        duration += 'r'
+                    }
+                    measure.push(new StaveNote({keys, clef, duration}))
+                } else {
+                    measure.push(...group)
+                }
+            })
             this.measures.push(measure)
         }
     }
@@ -137,31 +175,54 @@ export class VexSampleScore {
      * Try for a reasonable time signature
      */
      computeTime() {
-        this.timeSig = {lower: 4} // fixed lower as quarter note
-        this.totalBeats = this.sample.length / this.noteDur * this.timeSig.lower
+        const getTotalBeats = () => this.sample.length / this.noteDur * lower
+        let invalid = false
+        let upper
+        let lower = 4
+        let totalBeats = getTotalBeats()
+        // this.totalBeats = this.sample.length / this.noteDur * this.timeSig.lower
         search:
-        for (const b of [4, 2, 3, 5, 7, 1, null]) {
+        for (const b of [4, 2, 3, 5, 7, 1]) {
             switch (b) {
                 case 4: // prefer 4/4
                 case 2: // go for 2/2 if even number of total beats
                 case 3: // use 3/4 
                 case 5: // try 5/4 for fun
                 case 7: // why not 7/4
-                    if (this.totalBeats % b === 0) {
-                        this.timeSig.upper = b
+                    if (totalBeats % b === 0) {
+                        upper = b
                         break search
                     }
                     break
-                case 1: // just make one big measure
-                    this.timeSig.upper = this.totalBeats
-                    break
-                default: // does not divide evenly by even one beat, why try
-                    this.timeSig.upper = 4
-                    this.timeSig.invalid = true
+                case 1:
+                    if (totalBeats % b === 0) { // just make one big measure
+                        upper = totalBeats
+                        break search
+                    }
+                default: // does not divide evenly by even one beat
+                    upper = 4
+                    invalid = true
             }
         }
-        this.timeSig.label = this.timeSig.upper + '/' + this.timeSig.lower
-        this.measuresNeeded = Math.ceil(this.totalBeats / this.timeSig.upper)
+        if (invalid) {
+            if (this.noteDur === 8 || this.noteDur === 16) {
+                lower = 8
+                totalBeats = getTotalBeats()
+                for (const b of [6, 3, 7]) {
+                    if (totalBeats % b === 0) {
+                        upper = b
+                        invalid = false
+                        break
+                    }
+                }
+            }
+        }
+        if (invalid) {
+            upper = lower = 4
+        }
+        this.totalBeats = totalBeats = getTotalBeats()
+        this.timeSig = {upper, lower, invalid, label: `${upper}/${lower}`}
+        this.measuresNeeded = Math.ceil(this.totalBeats / upper)
         this.notesPerMeasure = Math.ceil(this.sample.length / this.measuresNeeded)
     }
 
@@ -191,27 +252,23 @@ export class VexSampleScore {
      */
     getRestNote(dur = undefined) {
         dur = dur || this.noteDur
-        let duration
-        switch (dur) {
-            case 1:
-                duration = 'wr'
-                break
-            case 2:
-                duration = 'hr'
-                break
-            case 4:
-                duration = 'qr'
-                break
-            default:
-                duration = String(dur) + 'r'
-        }
+        let duration = String(dur) + 'r'
         const key = this.cleff === 'bass' ? 'c/3' : 'c/5'
-        const note = new StaveNote({keys: [key], duration})
+        const staveNote = new StaveNote({keys: [key], duration})
         // if (isDot) {
         //     Flow.Dot.buildAndAttach([note], {index: 0})
         // }
-        return note
+        return staveNote
     }
 
+    staveNotesEqual(a, b) {
+        if (!a || !b) {
+            return false
+        }
+        return (
+            a.scaleNote && a.scaleNote.equals(b.scaleNote) ||
+            a.noteType === 'r' && a.noteType === b.noteType
+        )
+    }
 }
 

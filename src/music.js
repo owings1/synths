@@ -87,7 +87,7 @@ export function stepFreq(freq, degrees, strict = false) {
  * @param {Number} opts.octaves Number of octaves
  * @param {Boolean} opts.arpeggio Use arpeggio intervals
  * @param {Boolean} opts.clip Clip out of bounds frequencies
- * @return {ScaleNote[]} Array of scale notes
+ * @return {ScaleSample} Array of scale notes
  */
 export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
@@ -117,7 +117,7 @@ export function scaleSample(degree, opts = undefined) {
         opts.descend = direction === Dir.DESCEND
         notes = scaleNotes(degree, octave, tonality, opts)
     }
-    return new ScaleSample(notes, notes[0], tonality)
+    return new ScaleSample().init(notes, notes[0], tonality)
 }
 
 /**
@@ -241,16 +241,7 @@ Object.defineProperties(Tonality, {
     isMinor: {
         enumerable: false,
         writable: false,
-        value: tonality => {
-            tonality = Number(tonality)
-            return (
-                tonality === Tonality.NATURAL_MINOR ||
-                tonality === Tonality.HARMONIC_MINOR ||
-                tonality === Tonality.MELODIC_MINOR ||
-                tonality === Tonality.MINOR_PENTATONIC ||
-                tonality === Tonality.BLUES
-            )
-        }
+        value: tonality => MAJOR_OFFSETS[tonality] === -9
     },
 })
 
@@ -304,7 +295,7 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     LOCRIAN:        [[m3, m3, M3, W], null], // ? this avoids a tritone, other options exist
     // Other minor
     HARMONIC_MINOR: [[m3, M3, M3, H], null], // ?
-    MELODIC_MINOR:  [[m3, M3, W, m3], [P4, M3, m3]], // ?
+    MELODIC_MINOR:  [[m3, M3, W, m3], [P4, M3, m3]],
     // Octatonic
     DIMINISHED: [[m3, m3, m3, m3], null],
     // Hexatonic
@@ -354,7 +345,7 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
     // Pentatonic
     MAJOR_PENTATONIC: 0,
     MINOR_PENTATONIC: -9,
-    JAPANESE: 0, // TODO
+    JAPANESE: -9,
 }).map(([key, value]) => [Tonality[key], value]))
 
 /**
@@ -362,7 +353,7 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
  */
 const MAJOR_FLAT_DEGREES = {
     // D-flat
-    // 1: true,
+    // 1: true, // either way works
     // E-flat
     3: true,
     // F
@@ -373,10 +364,9 @@ const MAJOR_FLAT_DEGREES = {
     10: true,
 }
 
-
 const symNote = Symbol()
 
-export class Note {
+class Note {
 
     constructor(index) {
         if (!Number.isInteger(index) || index < 0 || index >= NOTES_DATA.length) {
@@ -417,9 +407,12 @@ export class Note {
     get index() {
         return this[symNote].index
     }
+    equals(other) {
+        return (other instanceof Note) && other.index === this.index
+    }
 }
 
-export class ScaleNote extends Note {
+class ScaleNote extends Note {
     /**
      * @param {number} index Absolute note index
      * @param {ScaleNote|null} tonic The tonic note
@@ -449,7 +442,7 @@ export class ScaleNote extends Note {
             }
         })
     }
-
+    
     get shortLabel() {
         if (this.keySig.isSharp) {
             let {majorDegree} = this.keySig
@@ -467,7 +460,6 @@ export class ScaleNote extends Note {
             }
         }
         return super.shortLabel
-        return this.letter + (this.isBlackKey ? '#' : '')
     }
 
     get octave() {
@@ -478,18 +470,15 @@ export class ScaleNote extends Note {
     }
 }
 
-export class ScaleSample extends Array {
+class ScaleSample extends Array {
 
     /**
      * @param {Note[]} notes
      * @param {Note} tonic
      * @param {number} tonality
      */
-    constructor(notes, tonic, tonality) {
-        super()
-        if (notes) {
-            notes.forEach(note => this.push(note))
-        }
+    init(notes, tonic, tonality) {
+        this.push(...notes)
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
@@ -513,19 +502,15 @@ export class ScaleSample extends Array {
                 writable: false,
             }
         })
+        delete this.init
+        return this
     }
 
-    // TypeError: Found non-callable @@iterator
-    map(f) {
-        const res = []
-        this.forEach((note, i) => res.push(f(note, i)))
-        return res
-    }
     /**
      * @return {ScaleSample}
      */
     copy() {
-        return new ScaleSample(this, this.tonic, this.tonality)
+        return new ScaleSample().init(this, this.tonic, this.tonality)
     }
 }
 
@@ -622,7 +607,7 @@ function buildKeySigInfo(degree, tonality) {
 }
 
 // tonality => degree => data
-const KEYSIG_DATA = {}
+const KEYSIG_DATA = Object.create(null)
 Object.values(Tonality).forEach(tonality => {
     KEYSIG_DATA[tonality] = []
     for (let degree = 0; degree < OCTAVE; degree++) {

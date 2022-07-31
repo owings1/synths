@@ -144,11 +144,14 @@ $(() => {
     $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     presets.widget().appendTo('#presets')
+
+    let drawId
     scale.onschedule = (sample, time) => {
         score.reload(sample, {noteDur: 240 / scale.beat.value})
-        setTimeout(renderScore, (time - context.currentTime) * 1000)
+        drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
     function renderScore() {
         score.render($('#score').empty().get(0))
     }
+    $('#sample-stop').on('click', () => clearTimeout(drawId))
 })

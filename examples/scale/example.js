@@ -19,10 +19,13 @@ $(() => {
     mixerWidget('mixer', null, mixer).addClass('fx1').appendTo('#inputs')
     nodeWidget('scale', scale).addClass('fx2').appendTo('#inputs')
 
+    let drawId
     scale.onschedule = (sample, time) => {
         score.reload(sample, {noteDur: 240 / scale.beat.value})
-        setTimeout(renderScore, (time - context.currentTime) * 1000)
+        drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
+
+    $('#scale-stop').on('click', () => clearTimeout(drawId))
 
     function renderScore() {
         score.render($('#score').empty().get(0))

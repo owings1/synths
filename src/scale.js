@@ -114,7 +114,9 @@ export default class ScaleSample extends BaseNode {
         if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
             state.scale.pop()
         }
-        state.sample = state.scale
+        state.sample = state.scale.copy()
+        padSample(state.sample, this.minSize.value)
+        state.sample.state = state
         state.counter = 0
         updateState(this)
         return this
@@ -131,7 +133,7 @@ export default class ScaleSample extends BaseNode {
         }
         // copy
         const sample = state.sample.copy()
-        sample.scale = state.scale
+        padSample(sample, this.minSize.value)
         return sample
     }
 
@@ -181,6 +183,7 @@ export default class ScaleSample extends BaseNode {
             return
         }
         state.sample = state.scale.copy()
+        padSample(state.sample, this.minSize.value)
         state.sample.state = state
         SHUFFLERS[this.shuffler.value](state.sample)
         return this
@@ -234,9 +237,9 @@ ScaleSample.Meta = {
             default: 30,
             values: {
                 15: '1/16',
-                20: '1/12',
+                // 20: '1/12',
                 30: '1/8',
-                45: '1/6',
+                // 45: '1/6',
                 60: '1/4',
                 120: '1/2',
             }
@@ -248,6 +251,12 @@ ScaleSample.Meta = {
             max: 240,
             step: 1,
             ticks: range(30, 300, 30)
+        },
+        minSize: {
+            type: 'integer',
+            default: 0,
+            min: 0,
+            max: 48,
         },
         octave: {
             type: 'integer',
@@ -274,6 +283,10 @@ ScaleSample.Meta = {
             type: 'enum',
             default: Shufflers.NONE,
             values: flip(Shufflers),
+        },
+        rests: {
+            type: 'boolean',
+            default: false,
         }
     },
     actions: {
@@ -424,6 +437,11 @@ function afterSet(node, name, value) {
     }
 }
 
+function padSample(sample, minSize) {
+    while (sample.length < minSize) {
+        sample.push(...sample.slice(0, minSize - sample.length))
+    }
+}
 
 /**
  * Update state from node params
@@ -490,14 +508,15 @@ function schedule() {
  * @param {Number} time
  */
 function playNote(node, note, dur, time) {
-    if (note === undefined) {
-        return
-    }
+    const isRest = node.rests.value
     const state = node[symState]
-    if (note === null) {
+    if (note === null && !isRest) {
         note = state.lastNote
     }
-    if (note === null) {
+    if (!note) {
+        if (isRest) {
+            node.oscillator.frequency.setValueAtTime(0, time)
+        }
         return
     }
     state.lastNote = note
