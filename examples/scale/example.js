@@ -1,40 +1,31 @@
-/**
- * Single oscillator and FX chain demo.
- * 
- * References:
- *  - https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Simple_synth
- *  - https://github.com/mdn/webaudio-examples/
- */
 import $ from '../../lib/jquery.js'
-import * as Widgets from '../../src/widgets.js'
+import {mixerWidget, nodeWidget} from '../../src/widgets.js'
 import ScaleSample from '../../src/scale.js'
+import {VexSampleScore} from '../../src/score.js'
 
 const context = new AudioContext()
     
 const volume = new GainNode(context)
-volume.gain.value = 0.5
-volume.connect(context.destination)
-
 const scale = new ScaleSample(context)
+volume.connect(context.destination)
 scale.connect(volume)
+
+const mixer = [{name: 'volume', param: volume.gain}]
+volume.gain.value = 0.5
+
 $(() => {
-    $('#mixer-wrapper')
-        .append(Widgets.mixerWidget('mixer', null, [
-            {
-                name: 'volume',
-                label: 'Volume',
-                param: volume.gain,
-            },
-        ]))
 
-    Widgets.nodeWidget('scale', scale, {
-        params: scale.meta.params,
-        actions: scale.meta.actions,
-        title: 'Scale',
-    }).appendTo('#effects')
+    const score = new VexSampleScore(scale.getSample())
+    mixerWidget('mixer', null, mixer).addClass('fx1').appendTo('#inputs')
+    nodeWidget('scale', scale).addClass('fx2').appendTo('#inputs')
 
-    $('#mixer').addClass('fx1')
-    $('#scale').addClass('fx2')
+    scale.onschedule = (sample, time) => {
+        score.reload(sample, {noteDur: 240 / scale.beat.value})
+        setTimeout(renderScore, (time - context.currentTime) * 1000)
+    }
 
-
+    function renderScore() {
+        score.render($('#score').empty().get(0))
+    }
 })
+
