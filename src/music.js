@@ -353,7 +353,7 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
  */
 const MAJOR_FLAT_DEGREES = {
     // D-flat
-    // 1: true, // either way works
+    1: true, // either way works
     // E-flat
     3: true,
     // F
