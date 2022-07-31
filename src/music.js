@@ -27,7 +27,24 @@ export const Tonality = {
     MINOR_PENTATONIC: 17,
     JAPANESE: 18,
 }
-
+Object.defineProperties(Tonality, {
+    isValid: {
+        enumerable: false,
+        value: value => Number.isInteger(value) && 0 < value && value <= 18,
+    },
+    isMinor: {
+        enumerable: false,
+        value: tonality => {
+            tonality = Number(tonality)
+            return (
+                tonality === Tonality.NATURAL_MINOR ||
+                tonality === Tonality.HARMONIC_MINOR ||
+                tonality === Tonality.MELODIC_MINOR ||
+                tonality === Tonality.MINOR_PENTATONIC
+            )
+        }
+    }
+})
 /** Direction Enum */
 export const Dir = {
     ASCEND: 1,
@@ -47,8 +64,21 @@ const W = 2
 const m3 = 3
 const M3 = 4
 const P4 = 5
-const OCTV = 12
+const OCTAVE = 12
+const DEG_LETTERS = 'CCDDEFFGGAAB'
 
+/**
+ * @param {number} degree
+ * @param {number} octave
+ * @return {Note}
+ */
+export function getNote(degree, octave = 4) {
+    const index = Number(octave) * OCTAVE + Number(degree)
+    if (!Number.isInteger(index) || index < 0 || index >= NOTES_DATA.length) {
+        throw new ValueError(`No note at degree ${degree} octave ${octave}`)
+    }
+    return new Note(index)
+}
 /**
  * @param {Number} freq
  * @param {object} opts
@@ -95,27 +125,33 @@ export function stepFreq(freq, degrees, strict = false) {
  */
 export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
+    const tonality = opts.tonality === undefined
+        ? Tonality.MAJOR
+        : Number(opts.tonality)
+    if (!Tonality.isValid(tonality)) {
+        throw new ValueError(`Invalid tonality: ${tonality}`)
+    }
     degree = Number(degree)
     const octave = opts.octave === undefined ? 4 : Number(opts.octave)
     if (!Number.isInteger(octave) || octave < 0 || octave >= OCTAVE_COUNT) {
         throw new ValueError(`Invalid octave ${octave}`)
     }
-    if (!Number.isInteger(degree) || degree < 0 || degree >= OCTV) {
+    if (!Number.isInteger(degree) || degree < 0 || degree >= OCTAVE) {
         throw new ValueError(`Invalid degree ${degree}`)
     }
     const direction = Number(opts.direction)
     let notes
     if (Dir.isMulti(direction)) {
         opts.descend = direction === Dir.DESCEND_ASCEND
-        notes = scaleNotes(degree, octave, opts)
+        notes = scaleNotes(degree, octave, tonality, opts)
         opts.descend = !opts.descend
         const leaf = notes.pop()
-        notes.push(...scaleNotes(leaf.degree, leaf.octave, opts))
+        notes.push(...scaleNotes(leaf.degree, leaf.octave, tonality, opts))
     } else {
         opts.descend = direction === Dir.DESCEND
-        notes = scaleNotes(degree, octave, opts)
+        notes = scaleNotes(degree, octave, tonality, opts)
     }
-    return notes
+    return new ScaleSample(notes, notes[0], tonality)
 }
 
 /**
@@ -123,25 +159,20 @@ export function scaleSample(degree, opts = undefined) {
  * 
  * @param {Number} degree
  * @param {Number} octave
+ * @param {Number} tonality
  * @param {object} opts The options
- * @param {Number} opts.tonality
  * @param {Boolean} opts.descend
  * @param {Number} opts.octaves
  * @param {Boolean} opts.arpeggio
  * @param {Boolean} opts.clip
  * @return {ScaleNote[]}
  */
-function scaleNotes(degree, octave, opts) {
-    const tonality = opts.tonality === undefined
-        ? Tonality.MAJOR
-        : Number(opts.tonality)
+function scaleNotes(degree, octave, tonality, opts) {
+    opts = opts || {}
     const base = opts.arpeggio
         ? ARPEGGIO_INTERVALS[tonality]
         : SCALE_INTERVALS[tonality]
-    if (!base) {
-        throw new ValueError(`Invalid tonality: ${tonality}`)
-    }
-    const tonic = new ScaleNote(octave * OCTV + degree, null, tonality)
+    const tonic = new ScaleNote(octave * OCTAVE + degree, null, tonality)
     const descend = Boolean(opts.descend)
     const olimit = descend ? tonic.octave : OCTAVE_COUNT - tonic.octave - 1
     let octaves = opts.octaves === undefined ? 1 : Number(opts.octaves)
@@ -170,7 +201,6 @@ function scaleNotes(degree, octave, opts) {
     }
     return notes
 }
-
 
 /**
  * Find the closest known frequency.
@@ -315,14 +345,23 @@ export class Note {
     get letter() {
         return this[symNote].letter
     }
-    get raised() {
+    get isBlackKey() {
         return this[symNote].raised
     }
     get label() {
         return this.shortLabel + this.octave
     }
     get shortLabel() {
-        return this.letter + (this.raised ? '#' : '')
+        return this.letter + (this.isBlackKey ? '#' : '')
+    }
+    get flattedLabel() {
+        return this.flattedShortLabel + this.octave
+    }
+    get flattedShortLabel() {
+        if (this.isBlackKey) {
+            return DEG_LETTERS[this.degree + 1] + 'b'
+        }
+        return this.shortLabel
     }
     get index() {
         return this[symNote].index
@@ -342,6 +381,52 @@ export class ScaleNote extends Note {
         // interested in.
         this.tonic = tonic || this
         this.tonality = tonality
+    }
+}
+
+export class ScaleSample extends Array {
+
+    /**
+     * @param {Note[]} notes
+     * @param {Note} tonic
+     * @param {number} tonality
+     */
+    constructor(notes, tonic, tonality) {
+        super()
+        if (notes) {
+            notes.forEach(note => this.push(note))
+        }
+        if (!Tonality.isValid(tonality)) {
+            throw new ValueError(`Invalid tonality: ${tonality}`)
+        }
+        if (!(tonic instanceof Note)) {
+            throw new ValueError(`Tonic must be an instance of Note`)
+        }
+        Object.defineProperties(this, {
+            tonic: {
+                value: tonic,
+                enumerable: false,
+                writable: false,
+            },
+            tonality: {
+                value: tonality,
+                enumerable: false,
+                writable: false,
+            }
+        })
+    }
+
+    // TypeError: Found non-callable @@iterator
+    map(f) {
+        const res = []
+        this.forEach((note, i) => res.push(f(note, i)))
+        return res
+    }
+    /**
+     * @return {ScaleSample}
+     */
+    copy() {
+        return new ScaleSample(this, this.tonic, this.tonality)
     }
 }
 
@@ -372,11 +457,10 @@ export const FREQ_MAX = FREQS[FREQS.length - 1]
 const FREQS_DATA = Object.create(null)
 /** Note datas array */
 const NOTES_DATA = []
-const DEG_LETTERS = 'CCDDEFFGGAAB'
 
 OCTAVES.forEach((freqs, octave) => {
     freqs.forEach((freq, degree) => {
-        const index = octave * OCTV + degree
+        const index = octave * OCTAVE + degree
         const freqId = getFreqId(freq)
         const letter = DEG_LETTERS[degree]
         const raised = DEG_LETTERS[degree - 1] === letter

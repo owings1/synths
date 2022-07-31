@@ -4,15 +4,17 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
+import * as Music from './music.js'
 import Vex from '../../lib/vexflow.js'
 
+const {Tonality, getNote} = Music
 const {Flow} = Vex
 const {Accidental, Formatter, Renderer, Stave, StaveNote, Voice} = Flow
 
 export class VexSampleScore {
 
     /**
-     * @param {Music.ScaleNote[]} sample
+     * @param {Sample} sample
      * @param {object} opts
      */
     constructor(sample, opts = undefined) {
@@ -20,7 +22,7 @@ export class VexSampleScore {
     }
 
     /**
-     * @param {Music.ScaleNote[]} sample
+     * @param {Music.ScaleSample} sample
      * @param {object} opts
      * @param {number} opts.noteDur default 4 for quarter note
      */
@@ -62,6 +64,7 @@ export class VexSampleScore {
         this.target = target
         this.setupContext()
         this.computeTime()
+        this.computeKeySig()
         this.createNotes()
         this.applyAccidentals()
         this.buildMeasures()
@@ -72,7 +75,7 @@ export class VexSampleScore {
             if (i === 0) {
                 stave.addClef(this.clef)
                     .addTimeSignature(this.timeSig)
-                    .addKeySignature(this.keySig)
+                    .addKeySignature(this.keySig.label)
             }
             stave.setContext(this.context).draw()
             Formatter.FormatAndDraw(this.context, stave, measure)
@@ -113,7 +116,7 @@ export class VexSampleScore {
     applyAccidentals() {
         const voice = new Voice()
         voice.setMode(Voice.Mode.SOFT).addTickables(this.staveNotes)
-        Accidental.applyAccidentals([voice], this.keySig)
+        Accidental.applyAccidentals([voice], this.keySig.label)
     }
 
     /**
@@ -168,12 +171,6 @@ export class VexSampleScore {
         return this.tsUpper + '/' + this.tsLower
     }
 
-    // key signature, e.g. 'F#'
-    get keySig() {
-        // TODO: normalize for supported vex flow signatures, e.g. not D#
-        return this.tonic.shortLabel
-    }
-
     /**
      * Guess the clef based on the sample notes
      * @return {string}
@@ -199,7 +196,7 @@ export class VexSampleScore {
      * @return {string}
      */
     getKeyLabel(note) {
-        return [note.shortLabel, note.octave].join('/')
+        return [this.keySig.isFlat ? note.flattedShortLabel : note.shortLabel, note.octave].join('/')
     }
 
     /**
@@ -229,4 +226,83 @@ export class VexSampleScore {
         // }
         return note
     }
+
+
+    computeKeySig() {
+        // TODO: normalize for supported vex flow signatures, e.g. not D#
+        const info = getKeySigInfo(this.tonic.degree, this.sample.tonality)
+        this.keySig = info
+        // const majorScale = Music.scaleSample(info.majorDegree)
+        // console.log(majorScale)
+        // majorScale.forEach(console.log)
+        // const foo = majorScale.map(note => note.degree)
+
+        this.naturalDegrees = Music.scaleSample(info.majorDegree).map(note => note.degree)
+        console.log(info)
+        // console.log({naturalDegrees})
+    }
+
 }
+
+const MajorOffsets = Object.fromEntries(Object.entries({
+        // Normal modes
+        MAJOR: 0,
+        DORIAN: -2,
+        PHRYGIAN: -4,
+        LYDIAN: -5,
+        MIXOLYDIAN: -7,
+        NATURAL_MINOR: -9,
+        LOCRIAN: -11,
+        // Other minor
+        HARMONIC_MINOR: -9,
+        MELODIC_MINOR: -9,
+        // Octatonic
+        DIMINISHED: 0, // TODO
+        // Hexatonic
+        WHOLE_TONE: 0, // TODO
+        AUGMENTED: 0, // TODO
+        PROMETHEUS: 0, // TODO
+        BLUES: 0, // TODO
+        TRITONE: 0, // TODO
+        // Pentatonic
+        MAJOR_PENTATONIC: 0,
+        MINOR_PENTATONIC: -9,
+        JAPANESE: 0, // TODO
+}).map(([key, value]) => [Tonality[key], value]))
+
+
+const MajorFlatDegrees = [3, 10]
+
+function getKeySigInfo(degree, tonality) {
+    // normalize to major key
+    const majorOffset = MajorOffsets[tonality]
+    let majorDegree = degree + majorOffset
+    if (majorDegree < 0) {
+        majorDegree += 12
+    }
+    // Relative minor of the major key
+    let minorDegree = majorDegree - 3
+    if (minorDegree < 0) {
+        minorDegree += 12
+    }
+    const majorRoot = getNote(majorDegree)
+    const minorRoot = getNote(minorDegree)
+    const isMinor = Tonality.isMinor(tonality)
+    const isFlat = MajorFlatDegrees.includes(majorDegree)
+    const root = isMinor ? minorRoot : majorRoot
+    const labelKey = isFlat ? 'flattedShortLabel' : 'shortedLabel'
+    let label = root[labelKey]
+    if (isMinor) {
+        label += 'm'
+    }
+    return {
+        label,
+        isFlat,
+        isMinor,
+        majorDegree : majorRoot.degree,
+        // majorLabel: isFlat ? majorRoot.flattedShortLabel : majorRoot.shortLabel,
+        minorDegree : minorRoot.degree,
+        // minorLabel: isFlat ? minorRoot.flattedShortLabel : minorRoot.shortLabel,
+    }
+}
+

@@ -37,7 +37,7 @@ const REBUILD_OPTHASH = {
 const REBUILD_OPTKEYS = Object.keys(REBUILD_OPTHASH)
 
 /**
- * Scale oscillator.
+ * Scale oscillator and instrument player.
  */
 export default class ScaleSample extends BaseNode {
 
@@ -130,7 +130,7 @@ export default class ScaleSample extends BaseNode {
             this.build()
         }
         // copy
-        const sample = [...state.sample]
+        const sample = state.sample.copy()
         sample.scale = state.scale
         return sample
     }
@@ -180,7 +180,7 @@ export default class ScaleSample extends BaseNode {
         if (!state.sample) {
             return
         }
-        state.sample = state.scale.slice(0)
+        state.sample = state.scale.copy()
         state.sample.state = state
         SHUFFLERS[this.shuffler.value](state.sample)
         return this
@@ -460,7 +460,7 @@ function schedule() {
             this.doShuffle()
         }
         state.sample.forEach(note => {
-            play(this, note, state.noteDur, state.nextTime)
+            playNote(this, note, state.noteDur, state.nextTime)
             state.nextTime += state.noteDur
         })
         state.counter += 1
@@ -489,7 +489,7 @@ function schedule() {
  * @param {Number} dur
  * @param {Number} time
  */
-function play(node, note, dur, time) {
+function playNote(node, note, dur, time) {
     if (note === undefined) {
         return
     }
