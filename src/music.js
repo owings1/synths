@@ -27,24 +27,7 @@ export const Tonality = {
     MINOR_PENTATONIC: 17,
     JAPANESE: 18,
 }
-Object.defineProperties(Tonality, {
-    isValid: {
-        enumerable: false,
-        value: value => Number.isInteger(value) && 0 < value && value <= 18,
-    },
-    isMinor: {
-        enumerable: false,
-        value: tonality => {
-            tonality = Number(tonality)
-            return (
-                tonality === Tonality.NATURAL_MINOR ||
-                tonality === Tonality.HARMONIC_MINOR ||
-                tonality === Tonality.MELODIC_MINOR ||
-                tonality === Tonality.MINOR_PENTATONIC
-            )
-        }
-    }
-})
+
 /** Direction Enum */
 export const Dir = {
     ASCEND: 1,
@@ -52,12 +35,7 @@ export const Dir = {
     ASCEND_DESCEND: 7,
     DESCEND_ASCEND: 15,
 }
-Object.defineProperties(Dir, {
-    isMulti: {
-        value: dir => Boolean(dir & 4),
-        enumerable: false,
-    }
-})
+
 
 const H = 1
 const W = 2
@@ -67,18 +45,6 @@ const P4 = 5
 const OCTAVE = 12
 const DEG_LETTERS = 'CCDDEFFGGAAB'
 
-/**
- * @param {number} degree
- * @param {number} octave
- * @return {Note}
- */
-export function getNote(degree, octave = 4) {
-    const index = Number(octave) * OCTAVE + Number(degree)
-    if (!Number.isInteger(index) || index < 0 || index >= NOTES_DATA.length) {
-        throw new ValueError(`No note at degree ${degree} octave ${octave}`)
-    }
-    return new Note(index)
-}
 /**
  * @param {Number} freq
  * @param {object} opts
@@ -233,6 +199,16 @@ function getFreqId(value) {
     return String(Math.floor(Number(value)))
 }
 
+function degreeAt(index) {
+    if (index < 0) {
+        return degreeAt(index + OCTAVE)
+    }
+    if (index >= OCTAVE) {
+        return degreeAt(index - OCTAVE)
+    }
+    return index
+}
+
 // Lock Enum objects.
 for (const Enum of [Tonality, Dir]) {
     Object.entries(Enum).forEach(([name, value]) => {
@@ -244,8 +220,8 @@ for (const Enum of [Tonality, Dir]) {
     })
 }
 
-// Mode aliases.
 Object.defineProperties(Tonality, {
+    // Mode aliases.
     IONIAN: {
         value: Tonality.MAJOR,
         enumerable: false,
@@ -253,6 +229,34 @@ Object.defineProperties(Tonality, {
     },
     AEOLIAN: {
         value: Tonality.NATURAL_MINOR,
+        enumerable: false,
+        writable: false,
+    },
+    // reference functions
+    isValid: {
+        enumerable: false,
+        writable: false,
+        value: value => Number.isInteger(value) && 0 < value && value <= 18,
+    },
+    isMinor: {
+        enumerable: false,
+        writable: false,
+        value: tonality => {
+            tonality = Number(tonality)
+            return (
+                tonality === Tonality.NATURAL_MINOR ||
+                tonality === Tonality.HARMONIC_MINOR ||
+                tonality === Tonality.MELODIC_MINOR ||
+                tonality === Tonality.MINOR_PENTATONIC ||
+                tonality === Tonality.BLUES
+            )
+        }
+    },
+})
+
+Object.defineProperties(Dir, {
+    isMulti: {
+        value: dir => Boolean(dir & 4),
         enumerable: false,
         writable: false,
     }
@@ -300,7 +304,7 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     LOCRIAN:        [[m3, m3, M3, W], null], // ? this avoids a tritone, other options exist
     // Other minor
     HARMONIC_MINOR: [[m3, M3, M3, H], null], // ?
-    MELODIC_MINOR:  [[m3, M3, W, m3], null], // ?
+    MELODIC_MINOR:  [[m3, M3, W, m3], [P4, M3, m3]], // ?
     // Octatonic
     DIMINISHED: [[m3, m3, m3, m3], null],
     // Hexatonic
@@ -322,6 +326,53 @@ for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
         }
     })
 }
+
+/**
+ * For key signature, how to get to the major key from a degree
+ * for a given tonality.
+ */
+const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
+    // Normal modes
+    MAJOR: 0,
+    DORIAN: -2,
+    PHRYGIAN: -4,
+    LYDIAN: -5,
+    MIXOLYDIAN: -7,
+    NATURAL_MINOR: -9,
+    LOCRIAN: -11,
+    // Other minor
+    HARMONIC_MINOR: -9,
+    MELODIC_MINOR: -9,
+    // Octatonic
+    DIMINISHED: 0, // TODO
+    // Hexatonic
+    WHOLE_TONE: 0, // TODO
+    AUGMENTED: 0, // TODO
+    PROMETHEUS: 0, // TODO
+    BLUES: -9,
+    TRITONE: 0, // TODO
+    // Pentatonic
+    MAJOR_PENTATONIC: 0,
+    MINOR_PENTATONIC: -9,
+    JAPANESE: 0, // TODO
+}).map(([key, value]) => [Tonality[key], value]))
+
+/**
+ * Degrees that prefer flatted major key signatures.
+ */
+const MAJOR_FLAT_DEGREES = {
+    // D-flat
+    // 1: true,
+    // E-flat
+    3: true,
+    // F
+    5: true,
+    // A-flat
+    8: true,
+    // B-flat
+    10: true,
+}
+
 
 const symNote = Symbol()
 
@@ -349,13 +400,13 @@ export class Note {
         return this[symNote].raised
     }
     get label() {
-        return this.shortLabel + this.octave
+        return this.shortLabel + '/' + this.octave
     }
     get shortLabel() {
         return this.letter + (this.isBlackKey ? '#' : '')
     }
     get flattedLabel() {
-        return this.flattedShortLabel + this.octave
+        return this.flattedShortLabel + '/' + this.octave
     }
     get flattedShortLabel() {
         if (this.isBlackKey) {
@@ -376,11 +427,54 @@ export class ScaleNote extends Note {
      */
     constructor(index, tonic, tonality) {
         super(index)
-        // Tonic may be up or down any number of octaves, so we should only
-        // care about its degree, from which we can find one we happen to be
-        // interested in.
-        this.tonic = tonic || this
-        this.tonality = tonality
+        if (!Tonality.isValid(tonality)) {
+            throw new ValueError(`Invalid tonality: ${tonality}`)
+        }
+        tonic = tonic || this
+        if (!(tonic instanceof Note)) {
+            throw new ValueError(`Tonic must be an instance of Note`)
+        }
+        Object.defineProperties(this, {
+            tonic: {
+                value: tonic,
+                writable: false,
+            },
+            tonality: {
+                value: tonality,
+                writable: false,
+            },
+            keySig: {
+                value: KEYSIG_DATA[tonality][tonic.degree],
+                writable: false
+            }
+        })
+    }
+
+    get shortLabel() {
+        if (this.keySig.isSharp) {
+            let {majorDegree} = this.keySig
+            if (
+                // F becomes E-sharp for C-sharp and F-sharp
+                (this.degree === 5 && (majorDegree === 1 || majorDegree === 6)) ||
+                // C becomes B-sharp for C-sharp
+                (this.degree === 0 && majorDegree === 1)
+            ) {
+                return DEG_LETTERS[degreeAt(this.degree - 1)] + '#'
+            }
+        } else if (this.keySig.isFlat) {
+            if (this.isBlackKey) {
+                return DEG_LETTERS[this.degree + 1] + 'b'
+            }
+        }
+        return super.shortLabel
+        return this.letter + (this.isBlackKey ? '#' : '')
+    }
+
+    get octave() {
+        if (this.degree === 0 && this.keySig.majorDegree === 1 && this.keySig.isSharp) {
+            return super.octave - 1
+        }
+        return super.octave
     }
 }
 
@@ -410,6 +504,11 @@ export class ScaleSample extends Array {
             },
             tonality: {
                 value: tonality,
+                enumerable: false,
+                writable: false,
+            },
+            keySig: {
+                value: KEYSIG_DATA[tonality][tonic.degree],
                 enumerable: false,
                 writable: false,
             }
@@ -472,3 +571,63 @@ OCTAVES.forEach((freqs, octave) => {
     })
 })
 
+function buildKeySigInfo(degree, tonality) {
+    // Normalize to major key signature
+    const majorOffset = MAJOR_OFFSETS[tonality]
+    let majorDegree = degree + majorOffset
+    if (majorDegree < 0) {
+        majorDegree += OCTAVE
+    }
+    // Relative minor of the major key
+    let minorDegree = majorDegree - 3
+    if (minorDegree < 0) {
+        minorDegree += OCTAVE
+    }
+    const isMinor = Tonality.isMinor(tonality)
+    const root = new Note(isMinor ? minorDegree : majorDegree)
+    const isFlat = MAJOR_FLAT_DEGREES[majorDegree] === true
+    let labelKey, shortLabelKey
+    if (isFlat) {
+        labelKey = 'flattedLabel'
+        shortLabelKey = 'flattedShortLabel'
+    } else {
+        labelKey = 'label'
+        shortLabelKey = 'shortLabel'
+    }
+    let label = root[shortLabelKey]
+    if (isMinor) {
+        label += 'm'
+    }
+    return {
+        degree,
+        // The label, e.g. 'C#', 'Ebm'
+        label,
+        // Whether it is a flat-oriented signature
+        isFlat,
+        isSharp: !isFlat && degree !== 0,
+        // Whether the tonality is minor
+        isMinor,
+        isMajor: !isMinor,
+        // The key strings to get note labels, depending on whether it is a
+        // flat-oriented signature, i.e. 'label' or 'flattedLabel' etc.
+        labelKey,
+        shortLabelKey,
+        // The degree of the major key signature, same as degree for
+        // major tonalities
+        majorDegree,
+        // The relative minor of the major degree, same as degree for
+        // minor tonalities
+        minorDegree,
+    }
+}
+
+// tonality => degree => data
+const KEYSIG_DATA = {}
+Object.values(Tonality).forEach(tonality => {
+    KEYSIG_DATA[tonality] = []
+    for (let degree = 0; degree < OCTAVE; degree++) {
+        KEYSIG_DATA[tonality].push(
+            Object.freeze(buildKeySigInfo(degree, tonality))
+        )
+    }
+})

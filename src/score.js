@@ -4,17 +4,14 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import * as Music from './music.js'
 import Vex from '../../lib/vexflow.js'
 
-const {Tonality, getNote} = Music
-const {Flow} = Vex
-const {Accidental, Formatter, Renderer, Stave, StaveNote, Voice} = Flow
+const {Accidental, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
 
 export class VexSampleScore {
 
     /**
-     * @param {Sample} sample
+     * @param {ScaleSample} sample
      * @param {object} opts
      */
     constructor(sample, opts = undefined) {
@@ -22,7 +19,7 @@ export class VexSampleScore {
     }
 
     /**
-     * @param {Music.ScaleSample} sample
+     * @param {ScaleSample} sample
      * @param {object} opts
      * @param {number} opts.noteDur default 4 for quarter note
      */
@@ -43,7 +40,7 @@ export class VexSampleScore {
         // initial top margin
         this.top = 40
         // render width of each note
-        this.noteWidth = 100
+        this.noteWidth = 60
         // total render height
         this.height = this.top + 260
     }
@@ -64,7 +61,6 @@ export class VexSampleScore {
         this.target = target
         this.setupContext()
         this.computeTime()
-        this.computeKeySig()
         this.createNotes()
         this.applyAccidentals()
         this.buildMeasures()
@@ -74,8 +70,10 @@ export class VexSampleScore {
             const stave = new Stave(left, this.top, width)
             if (i === 0) {
                 stave.addClef(this.clef)
-                    .addTimeSignature(this.timeSig)
-                    .addKeySignature(this.keySig.label)
+                    .addKeySignature(this.sample.keySig.label)
+                if (!this.timeSig.invalid) {
+                    stave.addTimeSignature(this.timeSig.label)
+                }
             }
             stave.setContext(this.context).draw()
             Formatter.FormatAndDraw(this.context, stave, measure)
@@ -100,8 +98,11 @@ export class VexSampleScore {
         this.staveNotes = []
         this.sample.forEach(note => {
             if (note) {
-                const keys = [this.getKeyLabel(note)]
-                const opts = {keys: keys, duration: this.noteDur, clef: this.clef}
+                const opts = {
+                    keys: [note.label],
+                    duration: this.noteDur,
+                    clef: this.clef,
+                }
                 this.staveNotes.push(new StaveNote(opts))
             } else {
                 const rest = this.getRestNote(this.noteDur)
@@ -116,7 +117,7 @@ export class VexSampleScore {
     applyAccidentals() {
         const voice = new Voice()
         voice.setMode(Voice.Mode.SOFT).addTickables(this.staveNotes)
-        Accidental.applyAccidentals([voice], this.keySig.label)
+        Accidental.applyAccidentals([voice], this.sample.keySig.label)
     }
 
     /**
@@ -136,7 +137,8 @@ export class VexSampleScore {
      * Try for a reasonable time signature
      */
      computeTime() {
-        this.totalBeats = this.sample.length / this.noteDur * this.tsLower
+        this.timeSig = {lower: 4} // fixed lower as quarter note
+        this.totalBeats = this.sample.length / this.noteDur * this.timeSig.lower
         search:
         for (const b of [4, 2, 3, 5, 7, 1, null]) {
             switch (b) {
@@ -146,29 +148,21 @@ export class VexSampleScore {
                 case 5: // try 5/4 for fun
                 case 7: // why not 7/4
                     if (this.totalBeats % b === 0) {
-                        this.tsUpper = b
+                        this.timeSig.upper = b
                         break search
                     }
                     break
                 case 1: // just make one big measure
-                    this.tsUpper = this.totalBeats
+                    this.timeSig.upper = this.totalBeats
                     break
                 default: // does not divide evenly by even one beat, why try
-                    this.tsUpper = 4
+                    this.timeSig.upper = 4
+                    this.timeSig.invalid = true
             }
         }
-        this.measuresNeeded = Math.ceil(this.totalBeats / this.tsUpper)
+        this.timeSig.label = this.timeSig.upper + '/' + this.timeSig.lower
+        this.measuresNeeded = Math.ceil(this.totalBeats / this.timeSig.upper)
         this.notesPerMeasure = Math.ceil(this.sample.length / this.measuresNeeded)
-    }
-
-    // quarter note gets one beat
-    get tsLower() {
-        return 4
-    }
-
-    // time signature string, '4/4'
-    get timeSig() {
-        return this.tsUpper + '/' + this.tsLower
     }
 
     /**
@@ -189,14 +183,6 @@ export class VexSampleScore {
             }
         }
         return 'treble'
-    }
-
-    /**
-     * Get the note label, e.g. 'C#/5'
-     * @return {string}
-     */
-    getKeyLabel(note) {
-        return [this.keySig.isFlat ? note.flattedShortLabel : note.shortLabel, note.octave].join('/')
     }
 
     /**
@@ -227,82 +213,5 @@ export class VexSampleScore {
         return note
     }
 
-
-    computeKeySig() {
-        // TODO: normalize for supported vex flow signatures, e.g. not D#
-        const info = getKeySigInfo(this.tonic.degree, this.sample.tonality)
-        this.keySig = info
-        // const majorScale = Music.scaleSample(info.majorDegree)
-        // console.log(majorScale)
-        // majorScale.forEach(console.log)
-        // const foo = majorScale.map(note => note.degree)
-
-        this.naturalDegrees = Music.scaleSample(info.majorDegree).map(note => note.degree)
-        console.log(info)
-        // console.log({naturalDegrees})
-    }
-
-}
-
-const MajorOffsets = Object.fromEntries(Object.entries({
-        // Normal modes
-        MAJOR: 0,
-        DORIAN: -2,
-        PHRYGIAN: -4,
-        LYDIAN: -5,
-        MIXOLYDIAN: -7,
-        NATURAL_MINOR: -9,
-        LOCRIAN: -11,
-        // Other minor
-        HARMONIC_MINOR: -9,
-        MELODIC_MINOR: -9,
-        // Octatonic
-        DIMINISHED: 0, // TODO
-        // Hexatonic
-        WHOLE_TONE: 0, // TODO
-        AUGMENTED: 0, // TODO
-        PROMETHEUS: 0, // TODO
-        BLUES: 0, // TODO
-        TRITONE: 0, // TODO
-        // Pentatonic
-        MAJOR_PENTATONIC: 0,
-        MINOR_PENTATONIC: -9,
-        JAPANESE: 0, // TODO
-}).map(([key, value]) => [Tonality[key], value]))
-
-
-const MajorFlatDegrees = [3, 10]
-
-function getKeySigInfo(degree, tonality) {
-    // normalize to major key
-    const majorOffset = MajorOffsets[tonality]
-    let majorDegree = degree + majorOffset
-    if (majorDegree < 0) {
-        majorDegree += 12
-    }
-    // Relative minor of the major key
-    let minorDegree = majorDegree - 3
-    if (minorDegree < 0) {
-        minorDegree += 12
-    }
-    const majorRoot = getNote(majorDegree)
-    const minorRoot = getNote(minorDegree)
-    const isMinor = Tonality.isMinor(tonality)
-    const isFlat = MajorFlatDegrees.includes(majorDegree)
-    const root = isMinor ? minorRoot : majorRoot
-    const labelKey = isFlat ? 'flattedShortLabel' : 'shortLabel'
-    let label = root[labelKey]
-    if (isMinor) {
-        label += 'm'
-    }
-    return {
-        label,
-        isFlat,
-        isMinor,
-        majorDegree : majorRoot.degree,
-        // majorLabel: isFlat ? majorRoot.flattedShortLabel : majorRoot.shortLabel,
-        minorDegree : minorRoot.degree,
-        // minorLabel: isFlat ? minorRoot.flattedShortLabel : minorRoot.shortLabel,
-    }
 }
 
