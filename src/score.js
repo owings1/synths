@@ -290,7 +290,7 @@ function getKeySigInfo(degree, tonality) {
     const isMinor = Tonality.isMinor(tonality)
     const isFlat = MajorFlatDegrees.includes(majorDegree)
     const root = isMinor ? minorRoot : majorRoot
-    const labelKey = isFlat ? 'flattedShortLabel' : 'shortedLabel'
+    const labelKey = isFlat ? 'flattedShortLabel' : 'shortLabel'
     let label = root[labelKey]
     if (isMinor) {
         label += 'm'
