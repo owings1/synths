@@ -7,7 +7,7 @@
 import {BaseNode, paramProp} from './core.js'
 import {flip, range} from './utils.js'
 import * as Music from './music.js'
-import {shuffle, Shuffler} from './shuffler.js'
+import * as Shufflers from './shufflers.js'
 import '../lib/tone.js'
 
 const symState = Symbol()
@@ -15,7 +15,7 @@ const symSched = Symbol()
 
 const Lookahead = 25.0
 const StopDelay = Lookahead * 10
-export const Shufflers = Object.freeze({
+const ShufflerIds = {
     NONE: 0,
     RANDY: 1,
     TONAK: 2,
@@ -23,8 +23,12 @@ export const Shufflers = Object.freeze({
     BIMOM: 4,
     JARD: 5,
     CHUNE: 6,
-})
-
+}
+const SHUFFLERS = Object.fromEntries(
+    Object.entries(ShufflerIds).map(
+        ([name, id]) =>  [id, Shufflers[name]]
+    )
+)
 const REBUILD_OPTHASH = {
     degree: true,
     octave: true,
@@ -265,8 +269,8 @@ Sampler.Meta = {
         },
         shuffler: {
             type: 'enum',
-            default: Shufflers.NONE,
-            values: flip(Shufflers),
+            default: ShufflerIds.NONE,
+            values: flip(ShufflerIds),
         },
         rests: {
             type: 'boolean',
@@ -282,132 +286,6 @@ Sampler.Meta = {
         }
     }
 }
-
-function halfShuffle(arr) {
-    shuffle(arr, {limit: Math.floor(arr.length / 2)})
-}
-
-const SHUFFLERS = Object.fromEntries(Object.entries({
-    // No shuffle.
-    NONE: () => {},
-    // Completely random.
-    RANDY: shuffle,
-    // Heavy on the first note.
-    TONAK: new Shuffler({
-        fill: {
-            chance: 0.3,
-            chances: {
-                0: 0.5,
-                random: 0.6,
-                null: 1,
-            }
-        },
-        start: {
-            chances: {
-                0: 0.55,
-            }
-        }
-    }),
-    // Try to be mid-range sing-songy
-    SOFA: new Shuffler({
-        // shuffle: halfShuffle,
-        fill: {
-            chance: 0.35,
-            chances: {
-                random: 0.05,
-                null : 0.15,
-                '//3' : 0.40,
-                '/c3' : 0.45,
-                '//2' : 0.50,
-                '/c2' : 0.55,
-            }
-        },
-        start: {
-            chances: {
-                0: 0.5,
-            }
-        }
-    }),
-    // Very few fills.
-    BIMOM: new Shuffler({
-        shuffle: halfShuffle,
-        fill: {
-            chance: 0.05,
-            chances: {
-                0: 0.1,
-                '/c2' : 0.2,
-                null: 1
-            }
-        },
-        start: {
-            chances: {
-                0: 0.25,
-            }
-        },
-        end: {
-            chances: {
-                1: 0.1,
-                '-1': 0.25,
-            }
-        }
-    }),
-    // Lightly shuffle - keep a lot of runs.
-    JARD: new Shuffler({
-        shuffle: arr => {
-            // Shuffle the 2nd-5th notes
-            shuffle(arr, {start: 1, end: 4})
-            // Shuffle 25% of the upper half of the notes
-            const start = Math.floor(arr.length / 2)
-            const limit = Math.max(3, Math.floor(arr.length / 4))
-            shuffle(arr, {limit, start})
-        },
-        fill: {
-            chance: 0.15,
-            chances: {
-                random: 0.15,
-                '//2' : 0.30,
-                '/c2' : 0.31,
-                null: 1,
-            }
-        }
-    }),
-    // Alternate select other shufflers deterministically.
-    CHUNE: arr => {
-        // Don't fail if state is missing
-        if (!arr.state) {
-            SHUFFLERS[Shufflers.SOFA](arr)
-            return
-        }
-        const {counter, prev} = arr.state
-        let id = Shufflers.SOFA
-        let isRephrase = false
-        if (counter > 0) {
-            if (counter % 13 === 0) {
-                id = Shufflers.BIMOM
-            } else if (counter % 8 === 0) {
-                id = Shufflers.JARD
-            } else if (counter % 5 === 0) {
-                id = Shufflers.TONAK
-            } else if (counter % 3 === 0) {
-                isRephrase = (
-                    prev && prev.length > 6 &&
-                    prev.at(-2) !== prev.at(-1)
-                )
-            }
-        }
-        if (isRephrase) {
-            console.debug('running chune re-phrase')
-            for (let i = 0; i < arr.length && i < prev.length; i++) {
-                arr[i] = prev[i]
-            }
-            shuffle(arr, {start: 0, end: 2})
-            shuffle(arr, {start: arr.length - 3})
-        } else {
-            SHUFFLERS[id](arr)
-        }
-    }
-}).map(([key, value]) => [Shufflers[key], value]))
-
 
 /**
  * @param {Sampler} node
