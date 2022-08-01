@@ -31,7 +31,7 @@ export class VexSampleScore {
      * @param {object} opts
      */
     constructor(sample = null, opts = undefined) {
-        this.opts = {}
+        this.opts = {...Defaults}
         this.reload(sample, opts)
     }
 
@@ -52,7 +52,7 @@ export class VexSampleScore {
      * @return {this}
      */
     update(opts) {
-        this.opts = {...Defaults, ...this.opts, ...opts}
+        this.opts = {...this.opts, ...opts}
         return this
     }
 
@@ -64,10 +64,10 @@ export class VexSampleScore {
     render(target) {
         this.target = target
         this.computeTime()
+        this.computeClef()
         this.createNotes()
         this.applyAccidentals()
         this.createMeasures()
-        this.computeClef()
         this.computeSize()
         this.createStaves()
         this.setupContext()
@@ -164,7 +164,7 @@ export class VexSampleScore {
         // width of the key signature
         this.keySigWidth = this.sample.keySig.accidents * this.accidentalWidth
         // total render height
-        this.height = this.marginTop + 260
+        this.height = this.marginTop + 320
         // total render width
         this.width = this.sample.length * this.noteWidth
         this.width += this.marginLeft
@@ -172,6 +172,7 @@ export class VexSampleScore {
         this.width += this.keySigWidth
         this.width += this.timeSigWidth
         this.width += this.marginLeft
+        // console.log(getOctaveSpan(this.sample))
     }
 
     /**
@@ -357,3 +358,9 @@ function guessClefForNotes(notes) {
     return Clef.TREBLE
 }
 
+function getOctaveSpan(notes) {
+    const indexes =  notes.map(note => note && note.index || null).filter(it => it !== null)
+    const min = Math.min.apply(null, indexes)
+    const max = Math.max.apply(null, indexes)
+    return (max - min) / 12
+}

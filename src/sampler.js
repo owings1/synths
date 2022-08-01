@@ -323,22 +323,23 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             }
         }
     }),
-    // A lot of ties.
+    // Try to be mid-range sing-songy
     SOFA: new Shuffler({
-        shuffle: halfShuffle,
+        // shuffle: halfShuffle,
         fill: {
-            chance: 0.45,
+            chance: 0.35,
             chances: {
-                random: 0.15,
-                '//c' : 0.30,
-                '/c2' : 0.41,
-                '//3' : 0.6,
-                null: 1,
+                random: 0.05,
+                null : 0.15,
+                '//3' : 0.40,
+                '/c3' : 0.45,
+                '//2' : 0.50,
+                '/c2' : 0.55,
             }
         },
         start: {
             chances: {
-                0: 0.2,
+                0: 0.5,
             }
         }
     }),
@@ -379,7 +380,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             chance: 0.15,
             chances: {
                 random: 0.15,
-                '//c' : 0.30,
+                '//2' : 0.30,
                 '/c2' : 0.31,
                 null: 1,
             }

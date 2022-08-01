@@ -16,8 +16,10 @@ volume.gain.value = 0.2
 $(() => {
 
     const score = new VexSampleScore
-    mixerWidget('mixer', null, mixer).addClass('fx1').appendTo('#inputs')
-    nodeWidget('sample', sampler).addClass('fx2').appendTo('#inputs')
+    $('#inputs').append(
+        mixerWidget('mixer', null, mixer).addClass('fx1'),
+        nodeWidget('sample', sampler).addClass('fx2'),
+    )
 
     let drawId
     sampler.onschedule = (sample, time) => {

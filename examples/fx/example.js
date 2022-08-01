@@ -136,11 +136,15 @@ $(() => {
     const mixerId = 'mixer'
     const nodes = {sample: sampler, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
-    mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
-    nodeWidget('sample', sampler).appendTo('#main')
-    $('<div/>').attr({id: 'score'}).appendTo('#main')
-    nodeWidget('amSynth', amSynth).appendTo('#main')
-    nodeWidget('fmSynth', fmSynth).appendTo('#main')
+    const $score = $('<div/>').attr({id: 'score'})
+    $('#main').append(
+        mixerWidget(mixerId, 'Mixer', mixer),
+        nodeWidget('sample', sampler),
+        $score,
+        nodeWidget('amSynth', amSynth),
+        nodeWidget('fmSynth', fmSynth),
+    )
+
     $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     presets.widget().appendTo('#presets')
@@ -151,7 +155,7 @@ $(() => {
         drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
     function renderScore() {
-        score.render($('#score').empty().get(0))
+        score.render($score.empty().get(0))
     }
     $('#sample-stop').on('click', () => clearTimeout(drawId))
 })

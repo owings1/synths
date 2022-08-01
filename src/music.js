@@ -400,34 +400,26 @@ class ScaleNote extends Note {
 
     /**
      * @param {number} index Absolute note index
-     * @param {Note|null} tonic The tonic note
-     * @param {number} tonality
+     * @param {Note|null} tonic The tonic note, if null self is tonic
+     * @param {number} tonality The tonality
      */
     constructor(index, tonic, tonality) {
         super(index)
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
+        this.tonality = Number(tonality)
         tonic = tonic || this
         if (!(tonic instanceof Note)) {
             throw new ValueError(`Tonic must be an instance of Note`)
         }
-        Object.defineProperties(this, {
-            tonic: {
-                value: tonic,
-                writable: false,
-            },
-            tonality: {
-                value: tonality,
-                writable: false,
-            },
-            keySig: {
-                value: KEYSIG_DATA[tonality][tonic.degree],
-                writable: false
-            }
-        })
+        this.tonic = tonic
     }
-    
+
+    get keySig() {
+        return KEYSIG_DATA[this.tonality][this.tonic.degree]
+    }
+
     get shortLabel() {
         if (this.keySig.isSharp) {
             const {majorDegree} = this.keySig
@@ -472,28 +464,18 @@ class ScaleSample extends Array {
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
+        this.tonality = Number(tonality)
         if (!(tonic instanceof Note)) {
             throw new ValueError(`Tonic must be an instance of Note`)
         }
-        Object.defineProperties(this, {
-            tonic: {
-                value: tonic,
-                enumerable: false,
-                writable: false,
-            },
-            tonality: {
-                value: tonality,
-                enumerable: false,
-                writable: false,
-            },
-            keySig: {
-                value: KEYSIG_DATA[tonality][tonic.degree],
-                enumerable: false,
-                writable: false,
-            }
-        })
+        this.tonic = tonic
         delete this.init
         return this
+    }
+
+    /** @type {object} */
+    get keySig() {
+        return KEYSIG_DATA[this.tonality][this.tonic.degree]
     }
 
     /**
@@ -547,7 +529,6 @@ OCTAVES.forEach((freqs, octave) => {
         NOTES_DATA.push(data)
     })
 })
-
 
 /**
  * For key signature, how to get to the major key from a degree for a tonality.
@@ -637,15 +618,16 @@ function buildKeySigInfo(degree, tonality) {
         // Whether it is a flat-oriented signature
         isFlat,
         // If you're not flat, you're sharp, unless you're C major
-        isSharp: !isFlat && degree !== 0,
-        // Whether the tonality is minor
+        isSharp: !isFlat && majorDegree !== 0,
+        // Whether the key signature is minor
         isMinor,
+        // If you're not minor, you're major, unless you're not
         isMajor: !isMinor && majorOffset !== null,
         // How many accidentals
         accidents: MAJOR_ACCIDENTS[majorDegree],
         // The degree of the major key signature
         majorDegree,
-        // The relative minor of the major degree
+        // The degree of the relative minor of the major degree
         minorDegree,
     }
 }
@@ -656,7 +638,9 @@ Object.values(Tonality).forEach(tonality => {
     KEYSIG_DATA[tonality] = []
     for (let degree = 0; degree < OCTAVE; degree++) {
         KEYSIG_DATA[tonality].push(
-            Object.freeze(buildKeySigInfo(degree, tonality))
+            Object.freeze(
+                buildKeySigInfo(degree, tonality)
+            )
         )
     }
 })
