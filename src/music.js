@@ -44,6 +44,8 @@ const M3 = 4
 const P4 = 5
 const OCTAVE = 12
 const DEG_LETTERS = 'CCDDEFFGGAAB'
+const SHARP_LABEL = '#'
+const FLAT_LABEL = 'b'
 
 /**
  * @param {Number} freq
@@ -415,7 +417,7 @@ class Note {
 class ScaleNote extends Note {
     /**
      * @param {number} index Absolute note index
-     * @param {ScaleNote|null} tonic The tonic note
+     * @param {Note|null} tonic The tonic note
      * @param {number} tonality
      */
     constructor(index, tonic, tonality) {
@@ -452,11 +454,11 @@ class ScaleNote extends Note {
                 // C becomes B-sharp for C-sharp
                 (this.degree === 0 && majorDegree === 1)
             ) {
-                return DEG_LETTERS[degreeAt(this.degree - 1)] + '#'
+                return DEG_LETTERS[degreeAt(this.degree - 1)] + SHARP_LABEL
             }
         } else if (this.keySig.isFlat) {
             if (this.isBlackKey) {
-                return DEG_LETTERS[this.degree + 1] + 'b'
+                return DEG_LETTERS[this.degree + 1] + FLAT_LABEL
             }
         }
         return super.shortLabel
