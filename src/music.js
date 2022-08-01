@@ -36,7 +36,6 @@ export const Dir = {
     DESCEND_ASCEND: 15,
 }
 
-
 const H = 1
 const W = 2
 const m3 = 3
@@ -46,16 +45,16 @@ const OCTAVE = 12
 const DEG_LETTERS = 'CCDDEFFGGAAB'
 const SHARP_LABEL = '#'
 const FLAT_LABEL = 'b'
+const MINOR_LABEL = 'm'
+const OCTAVE_SEPARATOR = '/'
 
 /**
- * @param {Number} freq
- * @param {object} opts
- * @param {Boolean} opts.strict
+ * @param {number} freq
+ * @param {boolean} strict
  * @return {Note}
  */
-export function freqNote(freq, opts = undefined) {
-    opts = opts || {}
-    const data = getFreqData(freq, opts.strict)
+export function freqNote(freq, strict = false) {
+    const data = getFreqData(freq, strict)
     if (data) {
         return new Note(data.index)
     }
@@ -64,12 +63,12 @@ export function freqNote(freq, opts = undefined) {
 /**
  * Adjust a frequency by a number of half-steps
  * 
- * @param {Number} freq The base frequency. Performs internal floor rounding
+ * @param {number} freq The base frequency. Performs internal floor rounding
  *   to get a valid value. If a valid value is not found, and `strict` is not
  *   specified, the closest frequency is used.
- * @param {Number} degrees The number of half-steps (+/-)
- * @param {Boolean} strict Do not adjust base to closest known frequency
- * @return {Number|undefined} The frequency, or undefined if out of range
+ * @param {number} degrees The number of half-steps (+/-)
+ * @param {boolean} strict Do not adjust base to closest known frequency
+ * @return {number|undefined} The frequency, or undefined if out of range
  */
 export function stepFreq(freq, degrees, strict = false) {
     let baseData = getFreqData(freq, strict)
@@ -81,14 +80,14 @@ export function stepFreq(freq, degrees, strict = false) {
 /**
  * Build a scale array from high-level options
  * 
- * @param {Number} degree The tonic degree (0-11)
+ * @param {number} degree The tonic degree (0-11)
  * @param {object} opts The options
- * @param {Number} opts.octave The octave (0-8)
- * @param {Number} opts.tonality Tonality indicator (1-18)
- * @param {Number} opts.direction Directionality indicator (1, 3, 7, 11)
- * @param {Number} opts.octaves Number of octaves
- * @param {Boolean} opts.arpeggio Use arpeggio intervals
- * @param {Boolean} opts.clip Clip out of bounds frequencies
+ * @param {number} opts.octave The octave (0-8)
+ * @param {number} opts.tonality Tonality indicator (1-18)
+ * @param {number} opts.direction Directionality indicator (1, 3, 7, 11)
+ * @param {number} opts.octaves Number of octaves
+ * @param {boolean} opts.arpeggio Use arpeggio intervals
+ * @param {boolean} opts.clip Clip out of bounds frequencies
  * @return {ScaleSample} Array of scale notes
  */
 export function scaleSample(degree, opts = undefined) {
@@ -124,15 +123,14 @@ export function scaleSample(degree, opts = undefined) {
 
 /**
  * Return a unidirectional scale
- * 
- * @param {Number} degree
- * @param {Number} octave
- * @param {Number} tonality
- * @param {object} opts The options
- * @param {Boolean} opts.descend
- * @param {Number} opts.octaves
- * @param {Boolean} opts.arpeggio
- * @param {Boolean} opts.clip
+ * @param {number} degree
+ * @param {number} octave
+ * @param {number} tonality
+ * @param {object} opts
+ * @param {boolean} opts.descend
+ * @param {number} opts.octaves
+ * @param {boolean} opts.arpeggio
+ * @param {boolean} opts.clip
  * @return {ScaleNote[]}
  */
 function scaleNotes(degree, octave, tonality, opts) {
@@ -171,18 +169,18 @@ function scaleNotes(degree, octave, tonality, opts) {
 }
 
 /**
- * Find the closest known frequency.
- * 
- * @param {Number} target The search value.
- * @return {Number} The closest known frequency.
+ * Find the closest known frequency
+ * @param {number} target The search value
+ * @return {number} The closest known frequency
  */
 function closestFreq(target) {
     return closest(target, FREQS)
 }
 
 /**
- * @param {Number} freq
- * @param {Boolean} strict
+ * Get the internal note data for a frequency
+ * @param {number} freq The frequency
+ * @param {boolean} strict Default is to find the closest valid value
  * @return {object|undefined}
  */
 function getFreqData(freq, strict = false) {
@@ -194,13 +192,19 @@ function getFreqData(freq, strict = false) {
 }
 
 /**
- * @param {String|Number} value
- * @return {String}
+ * Get the internal ID of a frequency
+ * @param {string|number} value
+ * @return {string}
  */
 function getFreqId(value) {
     return String(Math.floor(Number(value)))
 }
 
+/**
+ * Normalize negative values and values > 11
+ * @param {number} index
+ * @return {number}
+ */
 function degreeAt(index) {
     if (index < 0) {
         return degreeAt(index + OCTAVE)
@@ -236,14 +240,14 @@ Object.defineProperties(Tonality, {
     },
     // reference functions
     isValid: {
+        value: value => Number.isInteger(value) && 0 < value && value <= 18,
         enumerable: false,
         writable: false,
-        value: value => Number.isInteger(value) && 0 < value && value <= 18,
     },
     isMinor: {
+        value: tonality => MAJOR_OFFSETS[tonality] === -9,
         enumerable: false,
         writable: false,
-        value: tonality => MAJOR_OFFSETS[tonality] === -9
     },
 })
 
@@ -320,57 +324,80 @@ for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
     })
 }
 
-
-
 const symNote = Symbol()
 
+/**
+ * Note data container
+ */
 class Note {
 
+    /**
+     * @param {number} index The absolute index
+     */
     constructor(index) {
         if (!Number.isInteger(index) || index < 0 || index >= NOTES_DATA.length) {
             throw new ValueError(`Invalid note index: ${index}`)
         }
         this[symNote] = NOTES_DATA[index]
     }
-    get freq() {
-        return this[symNote].freq
-    }
-    get octave() {
-        return this[symNote].octave
-    }
-    get degree() {
-        return this[symNote].degree
-    }
-    get letter() {
-        return this[symNote].letter
-    }
-    get isBlackKey() {
-        return this[symNote].raised
-    }
-    get label() {
-        return this.shortLabel + '/' + this.octave
-    }
-    get shortLabel() {
-        return this.letter + (this.isBlackKey ? '#' : '')
-    }
-    get flattedLabel() {
-        return this.flattedShortLabel + '/' + this.octave
-    }
-    get flattedShortLabel() {
-        if (this.isBlackKey) {
-            return DEG_LETTERS[this.degree + 1] + 'b'
-        }
-        return this.shortLabel
-    }
+    /** @type {number} */
     get index() {
         return this[symNote].index
     }
+    /** @type {number} */
+    get freq() {
+        return this[symNote].freq
+    }
+    /** @type {number} */
+    get octave() {
+        return this[symNote].octave
+    }
+    /** @type {number} */
+    get degree() {
+        return this[symNote].degree
+    }
+    /** @type {string} */
+    get letter() {
+        return this[symNote].letter
+    }
+    /** @type {boolean} */
+    get isBlackKey() {
+        return this[symNote].raised
+    }
+    /** @type {string} */
+    get label() {
+        return this.shortLabel + OCTAVE_SEPARATOR + this.octave
+    }
+    /** @type {string} */
+    get shortLabel() {
+        return this.letter + (this.isBlackKey ? SHARP_LABEL : '')
+    }
+    /** @type {string} */
+    get flattedLabel() {
+        return this.flattedShortLabel + OCTAVE_SEPARATOR + this.octave
+    }
+    /** @type {string} */
+    get flattedShortLabel() {
+        if (this.isBlackKey) {
+            return DEG_LETTERS[this.degree + 1] + FLAT_LABEL
+        }
+        return this.shortLabel
+    }
+    /**
+     * Whether this note is equal in absolute value to another
+     * @param {any} other
+     * @return {boolean}
+     */
     equals(other) {
         return (other instanceof Note) && other.index === this.index
     }
 }
 
+/**
+ * A scale-conscious note, with a tonic and tonality
+ */
 class ScaleNote extends Note {
+
     /**
      * @param {number} index Absolute note index
      * @param {Note|null} tonic The tonic note
@@ -403,18 +430,18 @@ class ScaleNote extends Note {
     
     get shortLabel() {
         if (this.keySig.isSharp) {
-            let {majorDegree} = this.keySig
+            const {majorDegree} = this.keySig
             if (
-                // F becomes E-sharp for C-sharp and F-sharp
+                // F becomes E-sharp in C-sharp and F-sharp
                 (this.degree === 5 && (majorDegree === 1 || majorDegree === 6)) ||
-                // C becomes B-sharp for C-sharp
+                // C becomes B-sharp in C-sharp
                 (this.degree === 0 && majorDegree === 1)
             ) {
                 return DEG_LETTERS[degreeAt(this.degree - 1)] + SHARP_LABEL
             }
         } else if (this.keySig.isFlat) {
             if (this.isBlackKey) {
-                return DEG_LETTERS[this.degree + 1] + FLAT_LABEL
+                return super.flattedShortLabel
             }
         }
         return super.shortLabel
@@ -422,15 +449,20 @@ class ScaleNote extends Note {
 
     get octave() {
         if (this.degree === 0 && this.keySig.majorDegree === 1 && this.keySig.isSharp) {
+            // When C becomes B-sharp we must drop its octave
             return super.octave - 1
         }
         return super.octave
     }
 }
 
+/**
+ * An array of notes with a tonic and tonality
+ */
 class ScaleSample extends Array {
 
     /**
+     * Self-deleting init constructor to support extending Array
      * @param {Note[]} notes
      * @param {Note} tonic
      * @param {number} tonality
@@ -472,6 +504,7 @@ class ScaleSample extends Array {
     }
 }
 
+/** Frequencies by octave */
 const OCTAVES = [
     [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87],
     [32.70, 34.65, 36.71, 38.89, 41.20, 43.65, 46.25, 49.00, 51.91, 55.00, 58.27, 61.74],
@@ -500,6 +533,7 @@ const FREQS_DATA = Object.create(null)
 /** Note datas array */
 const NOTES_DATA = []
 
+// Populate FREQS_DATA and NOTES_DATA
 OCTAVES.forEach((freqs, octave) => {
     freqs.forEach((freq, degree) => {
         const index = octave * OCTAVE + degree
@@ -516,8 +550,8 @@ OCTAVES.forEach((freqs, octave) => {
 
 
 /**
- * For key signature, how to get to the major key from a degree
- * for a given tonality.
+ * For key signature, how to get to the major key from a degree for a tonality.
+ * A value of `null` represents no key signature, i.e. C-major.
  */
 const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
     // Normal modes
@@ -546,11 +580,11 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
 }).map(([key, value]) => [Tonality[key], value]))
 
 /**
- * Degrees that prefer flatted major key signatures.
+ * Degrees that prefer flatted major key signatures
  */
 const MAJOR_FLAT_DEGREES = {
     // D-flat
-    1: true, // either way works
+    1: true, // either way works, but flat is better for relative B-flat minor
     // E-flat
     3: true,
     // F
@@ -561,6 +595,9 @@ const MAJOR_FLAT_DEGREES = {
     10: true,
 }
 
+/**
+ * Number of accidentals in the major key signatures
+ */
 const MAJOR_ACCIDENTS = [
     0, // C
     MAJOR_FLAT_DEGREES[1] ? 5 : 7, // D-flat/C-sharp
@@ -576,6 +613,11 @@ const MAJOR_ACCIDENTS = [
     5, // B
 ]
 
+/**
+ * @param {number} degree
+ * @param {number} tonality
+ * @return {object}
+ */
 function buildKeySigInfo(degree, tonality) {
     // Normalize to major key signature
     const majorOffset = MAJOR_OFFSETS[tonality]
@@ -587,10 +629,9 @@ function buildKeySigInfo(degree, tonality) {
     const root = new Note(isMinor ? minorDegree : majorDegree)
     let label = isFlat ? root.flattedShortLabel : root.shortLabel
     if (isMinor) {
-        label += 'm'
+        label += MINOR_LABEL
     }
     return {
-        // degree,
         // The label, e.g. 'C#', 'Ebm'
         label,
         // Whether it is a flat-oriented signature
@@ -602,11 +643,9 @@ function buildKeySigInfo(degree, tonality) {
         isMajor: !isMinor && majorOffset !== null,
         // How many accidentals
         accidents: MAJOR_ACCIDENTS[majorDegree],
-        // The degree of the major key signature, same as degree for
-        // major tonalities
+        // The degree of the major key signature
         majorDegree,
-        // The relative minor of the major degree, same as degree for
-        // minor tonalities
+        // The relative minor of the major degree
         minorDegree,
     }
 }
