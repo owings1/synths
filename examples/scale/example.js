@@ -15,7 +15,7 @@ volume.gain.value = 0.5
 
 $(() => {
 
-    const score = new VexSampleScore(scale.getSample())
+    const score = new VexSampleScore(scale.getSample(), {mergeRests: true})
     mixerWidget('mixer', null, mixer).addClass('fx1').appendTo('#inputs')
     nodeWidget('scale', scale).addClass('fx2').appendTo('#inputs')
 

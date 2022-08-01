@@ -335,13 +335,13 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
     HARMONIC_MINOR: -9,
     MELODIC_MINOR: -9,
     // Octatonic
-    DIMINISHED: 0, // TODO
+    DIMINISHED: null,
     // Hexatonic
-    WHOLE_TONE: 0, // TODO
-    AUGMENTED: 0, // TODO
-    PROMETHEUS: 0, // TODO
+    WHOLE_TONE: null,
+    AUGMENTED: null,
+    PROMETHEUS: null,
     BLUES: -9,
-    TRITONE: 0, // TODO
+    TRITONE: null,
     // Pentatonic
     MAJOR_PENTATONIC: 0,
     MINOR_PENTATONIC: -9,
@@ -559,15 +559,9 @@ OCTAVES.forEach((freqs, octave) => {
 function buildKeySigInfo(degree, tonality) {
     // Normalize to major key signature
     const majorOffset = MAJOR_OFFSETS[tonality]
-    let majorDegree = degree + majorOffset
-    if (majorDegree < 0) {
-        majorDegree += OCTAVE
-    }
+    const majorDegree = degreeAt(majorOffset === null ? 0 : degree + majorOffset)
     // Relative minor of the major key
-    let minorDegree = majorDegree - 3
-    if (minorDegree < 0) {
-        minorDegree += OCTAVE
-    }
+    const minorDegree = degreeAt(majorDegree - 3)
     const isMinor = Tonality.isMinor(tonality)
     const root = new Note(isMinor ? minorDegree : majorDegree)
     const isFlat = MAJOR_FLAT_DEGREES[majorDegree] === true
@@ -592,7 +586,7 @@ function buildKeySigInfo(degree, tonality) {
         isSharp: !isFlat && degree !== 0,
         // Whether the tonality is minor
         isMinor,
-        isMajor: !isMinor,
+        isMajor: !isMinor && majorOffset !== null,
         // The key strings to get note labels, depending on whether it is a
         // flat-oriented signature, i.e. 'label' or 'flattedLabel' etc.
         labelKey,

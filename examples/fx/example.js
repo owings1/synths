@@ -135,7 +135,7 @@ $(() => {
     const mixerId = 'mixer'
     const nodes = {sample: scale, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
-    const score = new VexSampleScore(scale.getSample())
+    const score = new VexSampleScore(scale.getSample(), {mergeRests: false})
     mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
     nodeWidget('sample', scale).appendTo('#main')
     $('<div/>').attr({id: 'score'}).appendTo('#main')
