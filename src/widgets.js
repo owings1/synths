@@ -252,6 +252,7 @@ export function paramWidget(id, param, def) {
  */
 function presetsWidget(presets, n = 24, per = 12) {
     const $section = $('<section/>').addClass('presets')
+    presetsJsonWidget(presets, $section)
     for (let i = 0; i < Math.ceil(n / per); i++) {
         const $table = $('<table/>').appendTo($section)
         const $headTr = $('<tr/>').appendTo($table)
@@ -299,7 +300,40 @@ function presetsWidget(presets, n = 24, per = 12) {
     }
     return $section
 }
+/**
+ * @param {LocalPresets} presets
+ * @param {object} $section jQuery object
+ * @return {object} jQuery object
+ */
+function presetsJsonWidget(presets, $section) {
+    const $dialog = $('<div/>')
+        .appendTo($section)
+        .dialog({
+            autoOpen: false,
+            minWidth: 600,
+            minHeight: 400,
+        })
+    const $area = $('<textarea/>')
+        .attr({spellcheck: false})
+        .css({
+            fontFamily: 'courier',
+            whiteSpace: 'pre',
+            width: '100%',
+            height: '100%',
+            minWidth: 560,
+            minHeight: 360,
+        })
+        .appendTo($dialog)
 
+    $('<button/>')
+        .text('{ }')
+        .appendTo($section)
+        .on('click', () => {
+            $area.text(JSON.stringify(presets.data, null, 2))
+            $dialog.dialog('open')
+        })
+    return $dialog
+}
 /**
  * Save and load presets from localStorage
  */
