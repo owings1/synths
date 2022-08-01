@@ -1,5 +1,5 @@
 import $ from '../../lib/jquery.js'
-import {mixerWidget, nodeWidget} from '../../src/widgets.js'
+import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 import Sampler from '../../src/sampler.js'
 import {VexSampleScore} from '../../src/score.js'
 
@@ -14,12 +14,18 @@ const mixer = [{name: 'volume', param: volume.gain}]
 volume.gain.value = 0.2
 
 $(() => {
+    const presets = new LocalPresets('scale-example', {sample: sampler}, mixer)
 
     const score = new VexSampleScore
+
     $('#inputs').append(
         mixerWidget('mixer', null, mixer).addClass('fx1'),
         nodeWidget('sample', sampler).addClass('fx2'),
-    )
+    ).on('change', () => presets.save('default'))
+
+    if (presets.has('default')) {
+        presets.load('default')
+    }
 
     let drawId
     sampler.onschedule = (sample, time) => {
