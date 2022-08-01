@@ -359,7 +359,9 @@ function guessClefForNotes(notes) {
 }
 
 function getOctaveSpan(notes) {
-    const indexes =  notes.map(note => note && note.index || null).filter(it => it !== null)
+    const indexes = notes
+        .map(note => note && note.index || null)
+        .filter(it => it !== null)
     const min = Math.min.apply(null, indexes)
     const max = Math.max.apply(null, indexes)
     return (max - min) / 12

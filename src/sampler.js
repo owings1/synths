@@ -12,7 +12,6 @@ import '../lib/tone.js'
 
 const symState = Symbol()
 const symSched = Symbol()
-const symChune = Symbol()
 
 const Lookahead = 25.0
 const StopDelay = Lookahead * 10
@@ -123,21 +122,6 @@ export default class Sampler extends BaseNode {
     }
 
     /**
-     * Get a copy of the sample, building if necessary
-     * @return {Music.ScaleNote[]}
-     */
-    getSample() {
-        const state = this[symState]
-        if (!state.sample) {
-            this.build()
-        }
-        // copy
-        const sample = state.sample.copy()
-        padSample(sample, this.minSize.value)
-        return sample
-    }
-
-    /**
      * Stop playing
      * @return {this}
      */
@@ -186,6 +170,7 @@ export default class Sampler extends BaseNode {
         padSample(state.sample, this.minSize.value)
         state.sample.state = state
         SHUFFLERS[this.shuffler.value](state.sample)
+        state.prev = state.sample.copy()
         return this
     }
 
@@ -388,15 +373,14 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
     }),
     // Alternate select other shufflers deterministically.
     CHUNE: arr => {
-        let counter
         // Don't fail if state is missing
-        if (arr.state && typeof arr.state.counter === 'number') {
-            counter = arr.state.counter
-        } else {
-            counter = arr[symChune] = arr[symChune] || 0
-            arr[symChune] += 1
+        if (!arr.state) {
+            SHUFFLERS[Shufflers.SOFA](arr)
+            return
         }
+        const {counter, prev} = arr.state
         let id = Shufflers.SOFA
+        let isRephrase = false
         if (counter > 0) {
             if (counter % 13 === 0) {
                 id = Shufflers.BIMOM
@@ -404,9 +388,23 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
                 id = Shufflers.JARD
             } else if (counter % 5 === 0) {
                 id = Shufflers.TONAK
+            } else if (counter % 3 === 0) {
+                isRephrase = (
+                    prev && prev.length > 6 &&
+                    prev.at(-2) !== prev.at(-1)
+                )
             }
         }
-        SHUFFLERS[id](arr)
+        if (isRephrase) {
+            console.debug('running chune re-phrase')
+            for (let i = 0; i < arr.length && i < prev.length; i++) {
+                arr[i] = prev[i]
+            }
+            shuffle(arr, {start: 0, end: 2})
+            shuffle(arr, {start: arr.length - 3})
+        } else {
+            SHUFFLERS[id](arr)
+        }
     }
 }).map(([key, value]) => [Shufflers[key], value]))
 
