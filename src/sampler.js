@@ -39,7 +39,7 @@ const REBUILD_OPTKEYS = Object.keys(REBUILD_OPTHASH)
 /**
  * Scale oscillator and instrument player.
  */
-export default class ScaleSample extends BaseNode {
+export default class Sampler extends BaseNode {
 
     /**
      * @param {AudioContext} context
@@ -197,13 +197,12 @@ export default class ScaleSample extends BaseNode {
     onschedule(sample, time) {}
 }
 
-ScaleSample.prototype.start = ScaleSample.prototype.play
+Sampler.prototype.start = Sampler.prototype.play
 
-export {ScaleSample}
+export {Sampler}
 
-ScaleSample.Meta = {
-    name: 'ScaleSample',
-    title: 'Scale Sample',
+Sampler.Meta = {
+    name: 'Sampler',
     params: {
         tonality: {
             type: 'enum',
@@ -412,7 +411,7 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
 
 
 /**
- * @param {ScaleSample} node
+ * @param {Sampler} node
  * @param {String} name
  * @param {Number|Boolean} value
  */
@@ -447,7 +446,7 @@ function padSample(sample, minSize) {
 /**
  * Update state from node params
  * 
- * @param {ScaleSample} node
+ * @param {Sampler} node
  */
 function updateState(node) {
     const state = node[symState]
@@ -503,7 +502,7 @@ function schedule() {
 /**
  * Schedule a note to be played
  * 
- * @param {ScaleSample} node
+ * @param {Sampler} node
  * @param {Music.Note|null|undefined} note
  * @param {Number} dur
  * @param {Number} time

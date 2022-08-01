@@ -14,8 +14,8 @@ export const NullMode = {
     REST: 1,
 }
 export const Clef = {
-    bass: 'bass',
-    treble: 'treble',
+    BASS: 'bass',
+    TREBLE: 'treble',
 }
 const Defaults = {
     mergeRests: false,
@@ -146,49 +146,13 @@ export class VexSampleScore {
         }
     }
 
-    // Combine two consecutive identical notes into one note
-    // with double the beat value
+    /**
+     * Perform any merges
+     */
     performMerges() {
-        if (!this.opts.mergeRests) {
-            return
+        if (this.opts.mergeRests) {
+            this.measures = mergedRestMeasures(this.measures, this.noteDur)
         }
-        const merged = []
-        this.measures.forEach(staveNotes => {
-            const measure = []
-            const groups = []
-            let prev
-            staveNotes.forEach(staveNote => {
-                const prevGroup = groups.at(-1)
-                if (isRestStaveNote(staveNote) && staveNotesEqual(prev, staveNote) && prevGroup.length === 1) {
-                    // add to last group
-                    prevGroup.push(staveNote)
-                } else {
-                    // new group
-                    groups.push([staveNote])
-                }
-                prev = staveNote
-            })
-            groups.forEach(group => {
-                if (group.length === 1) {
-                    measure.push(group[0])
-                    return
-                }
-                let dur = group.length / this.noteDur
-                let duration = 1 / dur
-                if (duration % 1 === 0) {
-                    const staveNote = group[0]
-                    if (isRestStaveNote(staveNote)) {
-                        duration += REST_NOTETYPE
-                    }
-                    const {keys, clef} = staveNote
-                    measure.push(new StaveNote({keys, clef, duration}))
-                } else {
-                    measure.push(...group)
-                }
-            })
-            merged.push(measure)
-        })
-        this.measures = merged
     }
 
     /**
@@ -220,7 +184,7 @@ export class VexSampleScore {
                 switch (this.opts.nullMode) {
                     case NullMode.REST:
                     default:
-                        const staveNote = this.getRestNote(this.noteDur, this.clef)
+                        const staveNote = getRestNote(this.noteDur, this.clef)
                         this.staveNotes.push(staveNote)
                 }
             }
@@ -259,21 +223,7 @@ export class VexSampleScore {
     computeClef() {
         this.clef = this.opts.clef || guessClefForNotes(this.sample)
     }
-
-    /**
-     * @param {number} dur
-     * @param {string} clef
-     * @return {StaveNote}
-     */
-    getRestNote(dur, clef) {
-        let duration = String(dur) + REST_NOTETYPE
-        const key = clef === 'bass' ? 'c/3' : 'c/5'
-        const staveNote = new StaveNote({keys: [key], duration})
-        return staveNote
-    }
 }
-
-
 
 /**
  * Try to guess a reasonable time signature
@@ -314,6 +264,7 @@ function guessTimeSig(numNotes, noteDur) {
     }
     if (invalid) {
         if (noteDur === 8 || noteDur === 16) {
+            // Try over 8
             lower = 8
             totalBeats = getTotalBeats()
             for (const b of [6, 3, 7]) {
@@ -336,6 +287,65 @@ function guessTimeSig(numNotes, noteDur) {
         label: `${upper}/${lower}`
     }
 }
+
+/**
+ * Combine two consecutive identical rests into one stave note
+ * @param {StaveNote[][]} measures
+ * @param {number} noteDur
+ * @return {StaveNote[][]} The merged measures
+ */
+function mergedRestMeasures(measures, noteDur) {
+    const merged = []
+    measures.forEach(staveNotes => {
+        const measure = []
+        const groups = []
+        let prev
+        staveNotes.forEach(staveNote => {
+            const prevGroup = groups.at(-1)
+            if (isRestStaveNote(staveNote) && staveNotesEqual(prev, staveNote) && prevGroup.length === 1) {
+                // add to last group
+                prevGroup.push(staveNote)
+            } else {
+                // new group
+                groups.push([staveNote])
+            }
+            prev = staveNote
+        })
+        groups.forEach(group => {
+            if (group.length === 1) {
+                measure.push(group[0])
+                return
+            }
+            let dur = group.length / noteDur
+            let duration = 1 / dur
+            if (duration % 1 === 0) {
+                const staveNote = group[0]
+                if (isRestStaveNote(staveNote)) {
+                    duration += REST_NOTETYPE
+                }
+                const {keys, clef} = staveNote
+                measure.push(new StaveNote({keys, clef, duration}))
+            } else {
+                measure.push(...group)
+            }
+        })
+        merged.push(measure)
+    })
+    return merged
+}
+/**
+ * @param {number} dur
+ * @param {string} clef
+ * @return {StaveNote}
+ */
+function getRestNote(dur, clef) {
+    let duration = String(dur) + REST_NOTETYPE
+    const key = 'c/5'
+    // const key = clef === Clef.BASS ? 'c/3' : 'c/5'
+    const staveNote = new StaveNote({keys: [key], duration})
+    return staveNote
+}
+
 /**
  * @param {StaveNote} staveNote
  * @return {boolean}
@@ -371,13 +381,13 @@ function guessClefForNotes(notes) {
             continue
         }
         if (note.octave < 4) {
-            return 'bass'
+            return Clef.BASS
         }
         if (note.octave > 4) {
-            return 'treble'
+            return Clef.TREBLE
         }
     }
-    return 'treble'
+    return Clef.TREBLE
 }
 
 function dotNote(staveNote) {

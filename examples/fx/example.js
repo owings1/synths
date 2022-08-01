@@ -8,7 +8,7 @@
 import $ from '../../lib/jquery.js'
 import * as Effects from '../../src/effects.js'
 import {AMSynth, FMSynth} from '../../src/synths.js'
-import ScaleSample from '../../src/scale.js'
+import Sampler from '../../src/sampler.js'
 import {VexSampleScore} from '../../src/score.js'
 import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 
@@ -37,9 +37,9 @@ const main = new GainNode(context)
 const fxsend = new GainNode(context)
 const fxout = new GainNode(context)
 
-const scale = new ScaleSample(context)
-const scaleDry = new GainNode(context)
-const scaleFx = new GainNode(context)
+const sampler = new Sampler(context)
+const samplerDry = new GainNode(context)
+const samplerFx = new GainNode(context)
 
 const amSynth = new AMSynth(context)
 const amSynthDry = new GainNode(context)
@@ -63,10 +63,10 @@ const effects = {
     highpass: new Effects.Highpass(context),
 }
 
-scale.connect(amSynth)
-scale.connect(fmSynth)
-scale.connect(scaleDry).connect(main)
-scale.connect(scaleFx).connect(fxsend)
+sampler.connect(amSynth)
+sampler.connect(fmSynth)
+sampler.connect(samplerDry).connect(main)
+sampler.connect(samplerFx).connect(fxsend)
 
 amSynth.connect(amSynthDry).connect(main)
 amSynth.connect(amSynthFx).connect(fxsend)
@@ -88,7 +88,7 @@ const mixer = [
     {
         name: 'sampleDry',
         label: 'Sample Dry',
-        param: scaleDry.gain,
+        param: samplerDry.gain,
         default: 0.5,
     },
     {
@@ -106,7 +106,7 @@ const mixer = [
     {
         name: 'sampleFx',
         label: 'Sample FX Send',
-        param: scaleFx.gain,
+        param: samplerFx.gain,
         default: 0.5,
     },
     {
@@ -133,11 +133,11 @@ mixer.forEach(slot => slot.param.value = slot.default)
 
 $(() => {
     const mixerId = 'mixer'
-    const nodes = {sample: scale, amSynth, fmSynth, ...effects}
+    const nodes = {sample: sampler, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
-    const score = new VexSampleScore(scale.getSample(), {mergeRests: false})
+    const score = new VexSampleScore(sampler.getSample(), {mergeRests: false})
     mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
-    nodeWidget('sample', scale).appendTo('#main')
+    nodeWidget('sample', sampler).appendTo('#main')
     $('<div/>').attr({id: 'score'}).appendTo('#main')
     nodeWidget('amSynth', amSynth).appendTo('#main')
     nodeWidget('fmSynth', fmSynth).appendTo('#main')
@@ -146,8 +146,8 @@ $(() => {
     presets.widget().appendTo('#presets')
 
     let drawId
-    scale.onschedule = (sample, time) => {
-        score.reload(sample, {noteDur: 240 / scale.beat.value})
+    sampler.onschedule = (sample, time) => {
+        score.reload(sample, {noteDur: 240 / sampler.beat.value})
         drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
     function renderScore() {

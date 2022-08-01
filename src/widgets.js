@@ -322,8 +322,8 @@ export class LocalPresets {
     }
 
     /**
-     * @param {Number} n
-     * @param {Number} per
+     * @param {number} n
+     * @param {number} per
      * @return {object} jQuery object
      */
     widget(n = 24, per = 12) {
@@ -332,16 +332,19 @@ export class LocalPresets {
 
     /**
      * Read and save presets, and write
-     * @param {String} key
+     * @param {string} key
+     * @return {this}
      */
     save(key) {
         this.data[key] = this.read()
         this.write()
+        return this
     }
 
     /**
      * Clear presets and write
-     * @param {String} key
+     * @param {string} key
+     * @return {this}
      */
     clear(key) {
         delete this.data[key]
@@ -349,7 +352,7 @@ export class LocalPresets {
     }
 
     /**
-     * @param {String} key
+     * @param {string} key
      * @return {Boolean}
      */
     has(key) {
@@ -375,11 +378,12 @@ export class LocalPresets {
     /**
      * Load presets to the page
      * @param {String} key
+     * @return {this}
      */
     load(key) {
         const settings = this.data[key]
         if (!settings) {
-            return
+            return this
         }
         $.each(settings.mixer || {}, (name, value) => {
             $(`#${this.mixerId}-${name}`).val(value).trigger('change')
@@ -398,6 +402,7 @@ export class LocalPresets {
                 $param.trigger('change')
             })
         })
+        return this
     }
 
     /**
