@@ -132,10 +132,10 @@ const mixer = [
 mixer.forEach(slot => slot.param.value = slot.default)
 
 $(() => {
+    const score = new VexSampleScore
     const mixerId = 'mixer'
     const nodes = {sample: sampler, amSynth, fmSynth, ...effects}
     const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
-    const score = new VexSampleScore(sampler.getSample(), {mergeRests: false})
     mixerWidget(mixerId, 'Mixer', mixer).appendTo('#main')
     nodeWidget('sample', sampler).appendTo('#main')
     $('<div/>').attr({id: 'score'}).appendTo('#main')

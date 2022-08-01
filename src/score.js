@@ -18,7 +18,6 @@ export const Clef = {
     TREBLE: 'treble',
 }
 const Defaults = {
-    mergeRests: false,
     nullMode: NullMode.REST,
     noteDur: 4,
     timeSig: null, // null is to guess
@@ -31,7 +30,7 @@ export class VexSampleScore {
      * @param {ScaleSample} sample
      * @param {object} opts
      */
-    constructor(sample, opts = undefined) {
+    constructor(sample = null, opts = undefined) {
         this.opts = {}
         this.reload(sample, opts)
     }
@@ -42,13 +41,13 @@ export class VexSampleScore {
      * @return {this}
      */
     reload(sample, opts = undefined) {
-        opts = opts || {}
         this.sample = sample
-        this.update(opts)
+        this.update(opts || {})
         return this
     }
 
     /**
+     * Just update the options
      * @param {object} opts
      * @return {this}
      */
@@ -64,44 +63,69 @@ export class VexSampleScore {
      */
     render(target) {
         this.target = target
-        this.computeClef()
         this.computeTime()
         this.createNotes()
         this.applyAccidentals()
-        this.buildMeasures()
-        this.performMerges()
+        this.createMeasures()
+        this.computeClef()
         this.computeSize()
+        this.createStaves()
         this.setupContext()
-        this.drawMeasures()
+        this.drawStaves()
         return this
     }
 
     /**
-     * Draw this.measures
+     * Draw this.staves with this.measures
      */
-    drawMeasures() {
-        let left = this.marginLeft
-        this.measures.forEach((measure, i) => {
-            let width = this.noteWidth * measure.length
-            if (i === 0) {
-                width += 20
-            }
-            const stave = new Stave(left, this.marginTop, width)
-            if (i === 0) {
-                stave.addClef(this.clef)
-                    .addKeySignature(this.sample.keySig.label)
-                if (!this.timeSig.invalid) {
-                    stave.addTimeSignature(this.timeSig.label)
-                }
-            }
+    drawStaves() {
+        this.staves.forEach((stave, i) => {
+            const measure = this.measures[i]
             stave.setContext(this.context).draw()
             Formatter.FormatAndDraw(this.context, stave, measure)
+        })
+    }
+
+    /**
+     * Populate:
+     *   - this.staves
+     */
+    createStaves() {
+        let left = this.marginLeft
+        this.staves = []
+        this.measures.forEach((measure, i) => {
+            let width = this.noteWidth * measure.length
+            const isDrawClef = i === 0
+            const isDrawKeySig = i === 0
+            const isDrawTimeSig = i === 0 && !this.timeSig.invalid
+            if (isDrawKeySig) {
+                width += this.keySigWidth
+            }
+            if (isDrawClef) {
+                width += this.clefWidth
+            }
+            if (isDrawTimeSig) {
+                width += this.timeSigWidth
+            }
+            const stave = new Stave(left, this.marginTop, width)
+            if (isDrawClef) {
+                stave.addClef(this.clef)
+            }
+            if (isDrawKeySig) {
+                stave.addKeySignature(this.sample.keySig.label)
+            }
+            if (isDrawTimeSig) {
+                stave.addTimeSignature(this.timeSig.label)
+            }
+            this.staves.push(stave)
             left += width
         })
     }
 
     /**
-     * Initialize canvass, populate this.renderer and this.context
+     * Populate:
+     *   - this.renderer
+     *   - this.context
      */
     setupContext() {
         if (this.context) {
@@ -117,6 +141,9 @@ export class VexSampleScore {
      * Populate:
      *   - this.marginLeft
      *   - this.marginTop
+     *   - this.clefWidth
+     *   - this.timeSigWidth
+     *   - this.accidentalWidth
      *   - this.noteWidth
      *   - this.height
      *   - this.width
@@ -126,32 +153,37 @@ export class VexSampleScore {
         this.marginLeft = 10
         // initial top margin
         this.marginTop = 40
+        // width of a clef
+        this.clefWidth = 60
+        // width of the time signature
+        this.timeSigWidth = 60
+        // width of an accidental
+        this.accidentalWidth = 15
         // render width of each note
         this.noteWidth = 70
+        // width of the key signature
+        this.keySigWidth = this.sample.keySig.accidents * this.accidentalWidth
         // total render height
         this.height = this.marginTop + 260
         // total render width
-        this.width = this.sample.length * this.noteWidth + this.marginLeft
+        this.width = this.sample.length * this.noteWidth
+        this.width += this.marginLeft
+        this.width += this.clefWidth
+        this.width += this.keySigWidth
+        this.width += this.timeSigWidth
+        this.width += this.marginLeft
     }
 
     /**
-     * Group the StaveNotes into this.measures
+     * Populate:
+     *   - this.measures
      */
-    buildMeasures() {
+    createMeasures() {
         this.measures = []
         for (let m = 0; m < this.measuresNeeded; ++m) {
             const start = m * this.notesPerMeasure
             const end = start + this.notesPerMeasure
             this.measures.push(this.staveNotes.slice(start, end))
-        }
-    }
-
-    /**
-     * Perform any merges
-     */
-    performMerges() {
-        if (this.opts.mergeRests) {
-            this.measures = mergedRestMeasures(this.measures, this.noteDur)
         }
     }
 
@@ -165,11 +197,12 @@ export class VexSampleScore {
     }
 
     /**
-     * Create StaveNote objects in this.notes
+     * Populate:
+     *   - this.staveNotes
      */
     createNotes() {
         this.staveNotes = []
-        this.sample.forEach((note, i) => {
+        this.sample.forEach(note => {
             if (note) {
                 const opts = {
                     keys: [note.label],
@@ -192,7 +225,7 @@ export class VexSampleScore {
     }
 
     /**
-     * Compute:
+     * Populate:
      *   - this.noteDur
      *   - this.timeSig
      *   - this.totalBeats
@@ -218,7 +251,8 @@ export class VexSampleScore {
     }
 
     /**
-     * Populate this.clef
+     * Populate:
+     *   - this.clef
      */
     computeClef() {
         this.clef = this.opts.clef || guessClefForNotes(this.sample)
@@ -289,51 +323,6 @@ function guessTimeSig(numNotes, noteDur) {
 }
 
 /**
- * Combine two consecutive identical rests into one stave note
- * @param {StaveNote[][]} measures
- * @param {number} noteDur
- * @return {StaveNote[][]} The merged measures
- */
-function mergedRestMeasures(measures, noteDur) {
-    const merged = []
-    measures.forEach(staveNotes => {
-        const measure = []
-        const groups = []
-        let prev
-        staveNotes.forEach(staveNote => {
-            const prevGroup = groups.at(-1)
-            if (isRestStaveNote(staveNote) && staveNotesEqual(prev, staveNote) && prevGroup.length === 1) {
-                // add to last group
-                prevGroup.push(staveNote)
-            } else {
-                // new group
-                groups.push([staveNote])
-            }
-            prev = staveNote
-        })
-        groups.forEach(group => {
-            if (group.length === 1) {
-                measure.push(group[0])
-                return
-            }
-            let dur = group.length / noteDur
-            let duration = 1 / dur
-            if (duration % 1 === 0) {
-                const staveNote = group[0]
-                if (isRestStaveNote(staveNote)) {
-                    duration += REST_NOTETYPE
-                }
-                const {keys, clef} = staveNote
-                measure.push(new StaveNote({keys, clef, duration}))
-            } else {
-                measure.push(...group)
-            }
-        })
-        merged.push(measure)
-    })
-    return merged
-}
-/**
  * @param {number} dur
  * @param {string} clef
  * @return {StaveNote}
@@ -346,28 +335,6 @@ function getRestNote(dur, clef) {
     return staveNote
 }
 
-/**
- * @param {StaveNote} staveNote
- * @return {boolean}
- */
-function isRestStaveNote(staveNote) {
-    return Boolean(staveNote && staveNote.noteType === REST_NOTETYPE)
-}
-
-/**
- * @param {StaveNote|null|undefined} a
- * @param {StaveNote|null|undefined} b
- * @return {boolean}
- */
-function staveNotesEqual(a, b) {
-    if (!a || !b) {
-        return false
-    }
-    return (
-        a.scaleNote && a.scaleNote.equals(b.scaleNote) ||
-        isRestStaveNote(a) && isRestStaveNote(b) && a.duration === b.duration
-    )
-}
 
 /**
  * Guess the clef based on the notes
@@ -390,6 +357,3 @@ function guessClefForNotes(notes) {
     return Clef.TREBLE
 }
 
-function dotNote(staveNote) {
-    Flow.Dot.buildAndAttach([staveNote], {index: 0})
-}

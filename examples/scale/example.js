@@ -1,21 +1,21 @@
 import $ from '../../lib/jquery.js'
 import {mixerWidget, nodeWidget} from '../../src/widgets.js'
-import Sample from '../../src/sampler.js'
+import Sampler from '../../src/sampler.js'
 import {VexSampleScore} from '../../src/score.js'
 
 const context = new AudioContext()
     
 const volume = new GainNode(context)
-const sampler = new Sample(context)
+const sampler = new Sampler(context)
 volume.connect(context.destination)
 sampler.connect(volume)
 
 const mixer = [{name: 'volume', param: volume.gain}]
-volume.gain.value = 0.5
+volume.gain.value = 0.2
 
 $(() => {
 
-    const score = new VexSampleScore(sampler.getSample(), {mergeRests: true})
+    const score = new VexSampleScore
     mixerWidget('mixer', null, mixer).addClass('fx1').appendTo('#inputs')
     nodeWidget('sample', sampler).addClass('fx2').appendTo('#inputs')
 
