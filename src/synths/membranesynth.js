@@ -4,12 +4,12 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
- import {InstrumentWrapper as Base, paramProp} from '../core.js'
- import Tone from '../../lib/tone.js'
-  
- /**
-  * MembraneSynth wrapper
-  */
+import {InstrumentWrapper as Base, paramProp} from '../core.js'
+import Tone from '../../lib/tone.js'
+
+/**
+ * MembraneSynth wrapper
+ */
 export default class MembraneSynth extends Base {
 
     /**

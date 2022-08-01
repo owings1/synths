@@ -408,12 +408,12 @@ class ScaleNote extends Note {
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
-        this.tonality = Number(tonality)
         tonic = tonic || this
         if (!(tonic instanceof Note)) {
             throw new ValueError(`Tonic must be an instance of Note`)
         }
         this.tonic = tonic
+        this.tonality = Number(tonality)
     }
 
     get keySig() {
@@ -464,11 +464,11 @@ class ScaleSample extends Array {
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
-        this.tonality = Number(tonality)
         if (!(tonic instanceof Note)) {
             throw new ValueError(`Tonic must be an instance of Note`)
         }
         this.tonic = tonic
+        this.tonality = Number(tonality)
         delete this.init
         return this
     }
@@ -619,10 +619,6 @@ function buildKeySigInfo(degree, tonality) {
         isFlat,
         // If you're not flat, you're sharp, unless you're C major
         isSharp: !isFlat && majorDegree !== 0,
-        // Whether the key signature is minor
-        isMinor,
-        // If you're not minor, you're major, unless you're not
-        isMajor: !isMinor && majorOffset !== null,
         // How many accidentals
         accidents: MAJOR_ACCIDENTS[majorDegree],
         // The degree of the major key signature
