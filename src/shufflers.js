@@ -1,3 +1,9 @@
+/**
+ * WebAudio effects.
+ * 
+ * @author Doug Owings <doug@dougowings.net>
+ * @license MIT
+ */
 import {shuffle, Shuffler} from './shuffler.js'
 
 export const NONE = () => {}
