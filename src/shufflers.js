@@ -47,9 +47,13 @@ export const SOFA = new Shuffler({
 })
 
 export const BIMOM = new Shuffler({
-    shuffle: halfShuffle,
+    shuffle: arr => {
+        shuffle(arr, {start: 0, end: 3})
+        midShuffle(arr)
+        shuffle(arr, {start: arr.length - 4})
+    },
     fill: {
-        chance: 0.05,
+        chance: 0.15,
         chances: {
             0: 0.1,
             '/c2' : 0.2,
@@ -100,7 +104,7 @@ export const CHUNE = arr => {
     let delegate = SOFA
     let isRephrase = false
     if (counter > 0) {
-        if (counter % 13 === 0) {
+        if (counter % 21 === 0) {
             delegate = BIMOM
         } else if (counter % 8 === 0) {
             delegate = JARD
@@ -115,11 +119,7 @@ export const CHUNE = arr => {
     }
     if (isRephrase) {
         console.debug('running chune re-phrase')
-        for (let i = 0; i < arr.length && i < prev.length; i++) {
-            arr[i] = prev[i]
-        }
-        shuffle(arr, {start: 0, end: 2})
-        shuffle(arr, {start: arr.length - 3})
+        rephrase(arr, prev, 2)
     } else {
         delegate(arr)
     }
@@ -128,4 +128,18 @@ export const CHUNE = arr => {
 
 function halfShuffle(arr) {
     shuffle(arr, {limit: Math.floor(arr.length / 2)})
+}
+
+function midShuffle(arr) {
+    const mid = Math.floor(arr.length / 2)
+    const quarter = Math.floor(mid / 2)
+    shuffle(arr, {start: mid - quarter, end: mid + quarter})
+}
+
+function rephrase(arr, orig, amount = 2) {
+    for (let i = 0; i < arr.length && i < orig.length; i++) {
+        arr[i] = orig[i]
+    }
+    shuffle(arr, {start: 0, end: amount})
+    shuffle(arr, {start: arr.length - amount - 1})
 }
