@@ -215,7 +215,7 @@ ScaleSample.Meta = {
             default: 0,
             values: Object.fromEntries(
                 Object.entries(
-                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+                    ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B']
                 )
             ),
         },
@@ -332,7 +332,8 @@ const SHUFFLERS = Object.fromEntries(Object.entries({
             chances: {
                 random: 0.15,
                 '//c' : 0.30,
-                '/c2' : 0.31,
+                '/c2' : 0.41,
+                '//3' : 0.6,
                 null: 1,
             }
         },

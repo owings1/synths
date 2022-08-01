@@ -320,51 +320,7 @@ for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
     })
 }
 
-/**
- * For key signature, how to get to the major key from a degree
- * for a given tonality.
- */
-const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
-    // Normal modes
-    MAJOR: 0,
-    DORIAN: -2,
-    PHRYGIAN: -4,
-    LYDIAN: -5,
-    MIXOLYDIAN: -7,
-    NATURAL_MINOR: -9,
-    LOCRIAN: -11,
-    // Other minor
-    HARMONIC_MINOR: -9,
-    MELODIC_MINOR: -9,
-    // Octatonic
-    DIMINISHED: null,
-    // Hexatonic
-    WHOLE_TONE: null,
-    AUGMENTED: null,
-    PROMETHEUS: null,
-    BLUES: -9,
-    TRITONE: null,
-    // Pentatonic
-    MAJOR_PENTATONIC: 0,
-    MINOR_PENTATONIC: -9,
-    JAPANESE: -9,
-}).map(([key, value]) => [Tonality[key], value]))
 
-/**
- * Degrees that prefer flatted major key signatures.
- */
-const MAJOR_FLAT_DEGREES = {
-    // D-flat
-    1: true, // either way works
-    // E-flat
-    3: true,
-    // F
-    5: true,
-    // A-flat
-    8: true,
-    // B-flat
-    10: true,
-}
 
 const symNote = Symbol()
 
@@ -558,6 +514,68 @@ OCTAVES.forEach((freqs, octave) => {
     })
 })
 
+
+/**
+ * For key signature, how to get to the major key from a degree
+ * for a given tonality.
+ */
+const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
+    // Normal modes
+    MAJOR: 0,
+    DORIAN: -2,
+    PHRYGIAN: -4,
+    LYDIAN: -5,
+    MIXOLYDIAN: -7,
+    NATURAL_MINOR: -9,
+    LOCRIAN: -11,
+    // Other minor
+    HARMONIC_MINOR: -9,
+    MELODIC_MINOR: -9,
+    // Octatonic
+    DIMINISHED: null,
+    // Hexatonic
+    WHOLE_TONE: null,
+    AUGMENTED: null,
+    PROMETHEUS: null,
+    BLUES: -9,
+    TRITONE: null,
+    // Pentatonic
+    MAJOR_PENTATONIC: 0,
+    MINOR_PENTATONIC: -9,
+    JAPANESE: -9,
+}).map(([key, value]) => [Tonality[key], value]))
+
+/**
+ * Degrees that prefer flatted major key signatures.
+ */
+const MAJOR_FLAT_DEGREES = {
+    // D-flat
+    1: true, // either way works
+    // E-flat
+    3: true,
+    // F
+    5: true,
+    // A-flat
+    8: true,
+    // B-flat
+    10: true,
+}
+
+const MAJOR_ACCIDENTS = [
+    0, // C
+    MAJOR_FLAT_DEGREES[1] ? 5 : 7, // D-flat/C-sharp
+    2, // D
+    3, // E-flat
+    4, // E
+    1, // F
+    6, // F-sharp
+    1, // G
+    4, // A-flat
+    3, // A
+    2, // B-flat
+    5, // B
+]
+
 function buildKeySigInfo(degree, tonality) {
     // Normalize to major key signature
     const majorOffset = MAJOR_OFFSETS[tonality]
@@ -565,34 +583,25 @@ function buildKeySigInfo(degree, tonality) {
     // Relative minor of the major key
     const minorDegree = degreeAt(majorDegree - 3)
     const isMinor = Tonality.isMinor(tonality)
-    const root = new Note(isMinor ? minorDegree : majorDegree)
     const isFlat = MAJOR_FLAT_DEGREES[majorDegree] === true
-    let labelKey, shortLabelKey
-    if (isFlat) {
-        labelKey = 'flattedLabel'
-        shortLabelKey = 'flattedShortLabel'
-    } else {
-        labelKey = 'label'
-        shortLabelKey = 'shortLabel'
-    }
-    let label = root[shortLabelKey]
+    const root = new Note(isMinor ? minorDegree : majorDegree)
+    let label = isFlat ? root.flattedShortLabel : root.shortLabel
     if (isMinor) {
         label += 'm'
     }
     return {
-        degree,
+        // degree,
         // The label, e.g. 'C#', 'Ebm'
         label,
         // Whether it is a flat-oriented signature
         isFlat,
+        // If you're not flat, you're sharp, unless you're C major
         isSharp: !isFlat && degree !== 0,
         // Whether the tonality is minor
         isMinor,
         isMajor: !isMinor && majorOffset !== null,
-        // The key strings to get note labels, depending on whether it is a
-        // flat-oriented signature, i.e. 'label' or 'flattedLabel' etc.
-        labelKey,
-        shortLabelKey,
+        // How many accidentals
+        accidents: MAJOR_ACCIDENTS[majorDegree],
         // The degree of the major key signature, same as degree for
         // major tonalities
         majorDegree,
