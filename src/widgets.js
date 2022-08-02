@@ -383,6 +383,7 @@ export class LocalPresets {
     clear(key) {
         delete this.data[key]
         this.write()
+        return this
     }
 
     /**

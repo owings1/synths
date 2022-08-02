@@ -2,12 +2,18 @@ import $ from '../../lib/jquery.js'
 import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
 import Sampler from '../../src/sampler.js'
 import {VexSampleScore} from '../../src/score.js'
+// import {MembraneSynth} from '../../src/synths.js'
 
 const context = new AudioContext()
     
 const volume = new GainNode(context)
 const sampler = new Sampler(context)
+
 volume.connect(context.destination)
+
+// const drum = new MembraneSynth(context)
+// sampler.connect(drum).connect(volume)
+// drum.connect(volume)
 sampler.connect(volume)
 
 const mixer = [{name: 'volume', param: volume.gain}]
@@ -36,7 +42,7 @@ $(() => {
     $('#sample-stop').on('click', () => clearTimeout(drawId))
 
     function renderScore() {
-        score.render($('#score').empty().get(0))
+        score.render($('#score').empty())
     }
 })
 

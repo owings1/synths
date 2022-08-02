@@ -4,7 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {closest, ValueError} from './utils.js'
+import {closest, ValueError} from './utils/utils.js'
 
 /** Tonality Enum */
 export const Tonality = {
@@ -49,6 +49,7 @@ const MINOR_LABEL = 'm'
 const OCTAVE_SEPARATOR = '/'
 
 /**
+ * Get a note at a frequency
  * @param {number} freq
  * @param {boolean} strict
  * @return {Note}
@@ -169,15 +170,6 @@ function scaleNotes(degree, octave, tonality, opts) {
 }
 
 /**
- * Find the closest known frequency
- * @param {number} target The search value
- * @return {number} The closest known frequency
- */
-function closestFreq(target) {
-    return closest(target, FREQS)
-}
-
-/**
  * Get the internal note data for a frequency
  * @param {number} freq The frequency
  * @param {boolean} strict Default is to find the closest valid value
@@ -186,7 +178,7 @@ function closestFreq(target) {
 function getFreqData(freq, strict = false) {
     let data = FREQS_DATA[getFreqId(freq)]
     if (!data && !strict) {
-        data = FREQS_DATA[getFreqId(closestFreq(freq))]
+        data = FREQS_DATA[getFreqId(closest(freq, FREQS))]
     }
     return data
 }
@@ -370,7 +362,10 @@ class Note {
     }
     /** @type {string} */
     get shortLabel() {
-        return this.letter + (this.isBlackKey ? SHARP_LABEL : '')
+        if (this.isBlackKey) {
+            return this.letter + SHARP_LABEL
+        }
+        return this.letter
     }
     /** @type {string} */
     get flattedLabel() {
@@ -379,7 +374,7 @@ class Note {
     /** @type {string} */
     get flattedShortLabel() {
         if (this.isBlackKey) {
-            return DEG_LETTERS[this.degree + 1] + FLAT_LABEL
+            return DEG_LETTERS[degreeAt(this.degree + 1)] + FLAT_LABEL
         }
         return this.shortLabel
     }
@@ -508,7 +503,7 @@ export const FREQ_COUNT = FREQS.length
 /** Minimum known frequency. */
 export const FREQ_MIN = FREQS[0]
 /** Maximum known frequency. */
-export const FREQ_MAX = FREQS[FREQS.length - 1]
+export const FREQ_MAX = FREQS.at(-1)
 
 /** Note datas, keyed by frequency ID. */
 const FREQS_DATA = Object.create(null)

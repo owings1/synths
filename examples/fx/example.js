@@ -156,7 +156,7 @@ $(() => {
         drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
     function renderScore() {
-        score.render($score.empty().get(0))
+        score.render($score.empty())
     }
     $('#sample-stop').on('click', () => clearTimeout(drawId))
 })

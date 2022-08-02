@@ -5,9 +5,11 @@
  * @license MIT
  */
 import Vex from '../../lib/vexflow.js'
+import $ from '../../lib/jquery.js'
+import {guessTimeSig} from './utils/timesig.js'
 
 const {Accidental, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
-
+const {FormatAndDraw} = Formatter
 const REST_NOTETYPE = 'r'
 
 export const NullMode = {
@@ -23,6 +25,9 @@ const Defaults = {
     timeSig: null, // null is to guess
     clef: null, // null is to guess
 }
+
+const VALID_NOTEDURS = [1, 2, 4, 8, 16]
+const REST_KEYS = ['c/5']
 
 export class VexSampleScore {
 
@@ -42,7 +47,9 @@ export class VexSampleScore {
      */
     reload(sample, opts = undefined) {
         this.sample = sample
-        this.update(opts || {})
+        if (opts) {
+            this.update(opts)
+        }
         return this
     }
 
@@ -69,8 +76,8 @@ export class VexSampleScore {
         this.applyAccidentals()
         this.createMeasures()
         this.computeSize()
-        this.createStaves()
         this.setupContext()
+        this.createStaves()
         this.drawStaves()
         return this
     }
@@ -79,11 +86,17 @@ export class VexSampleScore {
      * Draw this.staves with this.measures
      */
     drawStaves() {
-        this.staves.forEach((stave, i) => {
-            const measure = this.measures[i]
-            stave.setContext(this.context).draw()
-            Formatter.FormatAndDraw(this.context, stave, measure)
-        })
+        for (let i = 0; i < this.staves.length; ++i) {
+            FormatAndDraw(
+                this.context,
+                this.staves[i].draw(),
+                this.measures[i],
+            )
+        }
+        // this.staves.forEach((stave, i) => {
+        //     // stave.draw()
+        //     Formatter.FormatAndDraw(this.context, stave.draw(), this.measures[i])
+        // })
     }
 
     /**
@@ -108,6 +121,7 @@ export class VexSampleScore {
                 width += this.timeSigWidth
             }
             const stave = new Stave(left, this.marginTop, width)
+                .setContext(this.context)
             if (isDrawClef) {
                 stave.addClef(this.clef)
             }
@@ -131,7 +145,7 @@ export class VexSampleScore {
         if (this.context) {
             this.context.clear()
         }
-        this.renderer = new Renderer(this.target, Renderer.Backends.SVG)
+        this.renderer = new Renderer($(this.target).get(0), Renderer.Backends.SVG)
         this.renderer.resize(this.width, this.height)
         this.context = this.renderer.getContext()
         this.context.clear()
@@ -166,12 +180,13 @@ export class VexSampleScore {
         // total render height
         this.height = this.marginTop + 320
         // total render width
-        this.width = this.sample.length * this.noteWidth
-        this.width += this.marginLeft
-        this.width += this.clefWidth
-        this.width += this.keySigWidth
-        this.width += this.timeSigWidth
-        this.width += this.marginLeft
+        this.width = this.sample.length * this.noteWidth + (
+            this.marginLeft +
+            this.clefWidth +
+            this.keySigWidth +
+            this.timeSigWidth +
+            this.marginLeft
+        )
         // console.log(getOctaveSpan(this.sample))
     }
 
@@ -192,9 +207,14 @@ export class VexSampleScore {
      * Add accidentals based on key signature to this.staveNotes
      */
     applyAccidentals() {
-        const voice = new Voice()
-        voice.setMode(Voice.Mode.SOFT).addTickables(this.staveNotes)
-        Accidental.applyAccidentals([voice], this.sample.keySig.label)
+        Accidental.applyAccidentals(
+            [
+                new Voice()
+                    .setMode(Voice.Mode.SOFT)
+                    .addTickables(this.staveNotes)
+            ],
+            this.sample.keySig.label,
+        )
     }
 
     /**
@@ -205,12 +225,11 @@ export class VexSampleScore {
         this.staveNotes = []
         this.sample.forEach(note => {
             if (note) {
-                const opts = {
+                const staveNote = new StaveNote({
                     keys: [note.label],
                     duration: this.noteDur,
                     clef: this.clef,
-                }
-                const staveNote = new StaveNote(opts)
+                })
                 // patch with the scaleNote for reference
                 staveNote.scaleNote = note
                 this.staveNotes.push(staveNote)
@@ -218,8 +237,9 @@ export class VexSampleScore {
                 switch (this.opts.nullMode) {
                     case NullMode.REST:
                     default:
-                        const staveNote = getRestNote(this.noteDur, this.clef)
-                        this.staveNotes.push(staveNote)
+                        this.staveNotes.push(
+                            getRestNote(this.noteDur, this.clef)
+                        )
                 }
             }
         })
@@ -236,7 +256,7 @@ export class VexSampleScore {
     computeTime() {
         // duration of each note, e.g. 4 for quarter note
         this.noteDur = this.opts.noteDur
-        if (![1, 2, 4, 8, 16].includes(this.noteDur)) {
+        if (!VALID_NOTEDURS.includes(this.noteDur)) {
             throw new Error(`Invalid note duration: ${this.opts.noteDur}`)
         }
         if (this.opts.timeSig) {
@@ -261,81 +281,14 @@ export class VexSampleScore {
 }
 
 /**
- * Try to guess a reasonable time signature
- * @param {number} numNotes total number of equal valued notes
- * @param {number} noteDur duration each note, 1, 2, 4, 8, etc.
- * @return {object}
- */
-function guessTimeSig(numNotes, noteDur) {
-    let lower
-    let upper
-    let totalBeats
-    let invalid = false
-    const getTotalBeats = () => numNotes / noteDur * lower
-    lower = 4
-    totalBeats = getTotalBeats()
-    search:
-    for (const b of [4, 2, 3, 5, 7, 1]) {
-        switch (b) {
-            case 4: // prefer 4/4
-            case 2: // go for 2/2 if even number of total beats
-            case 3: // use 3/4 
-            case 5: // try 5/4 for fun
-            case 7: // why not 7/4
-                if (totalBeats % b === 0) {
-                    upper = b
-                    break search
-                }
-                break
-            case 1:
-                if (totalBeats % b === 0) { // just make one big measure
-                    upper = totalBeats
-                    break search
-                }
-            default: // does not divide evenly by even one beat
-                upper = 4
-                invalid = true
-        }
-    }
-    if (invalid) {
-        if (noteDur === 8 || noteDur === 16) {
-            // Try over 8
-            lower = 8
-            totalBeats = getTotalBeats()
-            for (const b of [6, 3, 7]) {
-                if (totalBeats % b === 0) {
-                    upper = b
-                    invalid = false
-                    break
-                }
-            }
-        }
-    }
-    if (invalid) {
-        upper = lower = 4
-    }
-    return {
-        upper,
-        lower,
-        totalBeats,
-        invalid,
-        label: `${upper}/${lower}`
-    }
-}
-
-/**
  * @param {number} dur
  * @param {string} clef
  * @return {StaveNote}
  */
 function getRestNote(dur, clef) {
-    let duration = String(dur) + REST_NOTETYPE
-    const key = 'c/5'
     // const key = clef === Clef.BASS ? 'c/3' : 'c/5'
-    const staveNote = new StaveNote({keys: [key], duration})
-    return staveNote
+    return new StaveNote({keys: REST_KEYS, duration: String(dur) + REST_NOTETYPE})
 }
-
 
 /**
  * Guess the clef based on the notes

@@ -4,7 +4,7 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {shuffle, Shuffler} from './shuffler.js'
+import {shuffle, Shuffler} from './utils/shuffler.js'
 
 export const NONE = () => {}
 export const RANDY = shuffle
@@ -118,7 +118,7 @@ export const CHUNE = arr => {
         }
     }
     if (isRephrase) {
-        console.debug('running chune re-phrase')
+        // console.debug('running chune re-phrase')
         rephrase(arr, prev, 2)
     } else {
         delegate(arr)

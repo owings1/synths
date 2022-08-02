@@ -5,7 +5,7 @@
  * @license MIT
  */
 import {BaseNode, paramProp} from './core.js'
-import {flip, range} from './utils.js'
+import {flip, range} from './utils/utils.js'
 import * as Music from './music.js'
 import * as Shufflers from './shufflers.js'
 import '../lib/tone.js'
@@ -346,6 +346,7 @@ function schedule() {
     /** @type {State} */
     const state = this[symState]
     clearTimeout(state.scheduleId)
+    clearTimeout(state.stopId)
     let firstScheduleTime = null
     while (this.context.currentTime + state.sampleDur > state.nextTime) {
         if (!firstScheduleTime) {
