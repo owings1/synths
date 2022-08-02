@@ -1,3 +1,9 @@
 {
-    "type": "module"
+    "type": "module",
+    "dependencies": {
+        "vexflow": "^4.0.3"
+    },
+    "devDependecies": {
+        "@types/vexflow": "^1.2.38"
+    }
 }
