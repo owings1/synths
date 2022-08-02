@@ -387,7 +387,13 @@ class Note {
      * @return {boolean}
      */
     equals(other) {
-        return (other instanceof Note) && other.index === this.index
+        return other === this || (
+            (other instanceof Note) && other.index === this.index
+        )
+    }
+
+    copy() {
+        return new this.constructor(this.index)
     }
 }
 
@@ -444,6 +450,10 @@ class TonalNote extends Note {
         }
         return super.octave
     }
+
+    copy() {
+        return new this.constructor(this.index, this.tonic, this.tonality)
+    }
 }
 
 /**
@@ -479,8 +489,9 @@ class TonalSample extends Array {
     /**
      * @return {TonalSample}
      */
-    copy() {
-        return new TonalSample().init(this, this.tonic, this.tonality)
+    copy(deep = false) {
+        const notes = deep ? this.map(note => note ? note.copy() : note) : this
+        return new TonalSample().init(notes, this.tonic, this.tonality)
     }
 }
 

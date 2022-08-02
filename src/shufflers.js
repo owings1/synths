@@ -112,19 +112,27 @@ export const CHUNE = arr => {
             delegate = TONAK
         } else if (counter % 3 === 0) {
             isRephrase = (
-                prev && prev.length > 6 &&
-                prev.at(-2) !== prev.at(-1)
+                prev && prev.length > 7 &&
+                !notesEqual(prev[prev.length - 2], prev[prev.length - 1])
             )
         }
     }
     if (isRephrase) {
-        // console.debug('running chune re-phrase')
-        rephrase(arr, prev, 2)
+        rephrase(arr, prev, 2, 3)
     } else {
         delegate(arr)
     }
 }
 
+/**
+ * Return true for both null, else call note.equals
+ * @param {Note|null} a
+ * @param {Note|null} b
+ * @return {boolean}
+ */
+function notesEqual(a, b) {
+    return a === b || a && a.equals(b)
+}
 
 function halfShuffle(arr) {
     shuffle(arr, {limit: Math.floor(arr.length / 2)})
@@ -136,10 +144,13 @@ function midShuffle(arr) {
     shuffle(arr, {start: mid - quarter, end: mid + quarter})
 }
 
-function rephrase(arr, orig, amount = 2) {
+function rephrase(arr, orig, head = 2, tail = undefined) {
+    if (tail === undefined) {
+        tail = head
+    }
     for (let i = 0; i < arr.length && i < orig.length; i++) {
         arr[i] = orig[i]
     }
-    shuffle(arr, {start: 0, end: amount})
-    shuffle(arr, {start: arr.length - amount - 1})
+    shuffle(arr, {start: 0, end: head})
+    shuffle(arr, {start: arr.length - tail - 1})
 }

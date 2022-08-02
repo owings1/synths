@@ -6,6 +6,7 @@
  */
 import {BaseNode, paramProp} from './core.js'
 import {flip, range} from './utils/utils.js'
+import {guessTimeSig, Marker} from './utils/notation.js'
 import * as Music from './music.js'
 import * as Shufflers from './shufflers.js'
 import '../lib/tone.js'
@@ -65,7 +66,7 @@ export default class Sampler extends BaseNode {
                 value = cast(value)
                 if (value !== prox[name]) {
                     prox[name] = value
-                    afterSet(this, name, value)
+                    afterSet.call(this, name, value)
                 }
             }
             return [name, paramProp(getter, setter)]
@@ -117,11 +118,12 @@ export default class Sampler extends BaseNode {
         if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
             state.scale.pop()
         }
-        state.sample = state.scale.copy()
-        padSample(state.sample, this.minSize.value)
+        state.sample = state.scale.copy(true)
         state.sample.state = state
         state.counter = 0
         updateState(this)
+        padSample.call(this)
+        normalizeSample.call(this)
         return this
     }
 
@@ -161,23 +163,9 @@ export default class Sampler extends BaseNode {
         return this
     }
 
-    /**
-     * Call the configured shuffler on the current sample
-     * @return {this}
-     */
-    doShuffle() {
-        const state = this[symState]
-        if (!state.sample) {
-            return
-        }
-        state.sample = state.scale.copy()
-        padSample(state.sample, this.minSize.value)
-        state.sample.state = state
-        SHUFFLERS[this.shuffler.value](state.sample)
-        state.prev = state.sample.copy()
-        return this
+    get noteDurDenominator() {
+        return 240 / this.beat.value
     }
-
     /**
      * Overridable callback
      * @param {Music.ScaleNote[]} sample
@@ -272,10 +260,10 @@ Sampler.Meta = {
             default: ShufflerIds.NONE,
             values: flip(ShufflerIds),
         },
-        rests: {
+        dot: {
             type: 'boolean',
             default: false,
-        }
+        },
     },
     actions: {
         play : {
@@ -288,35 +276,75 @@ Sampler.Meta = {
 }
 
 /**
- * @param {Sampler} node
  * @param {String} name
- * @param {Number|Boolean} value
+ * @param {number|boolean} value
  */
-function afterSet(node, name, value) {
-    if (!node.playing) {
+function afterSet(name, value) {
+    if (!this.playing) {
         return
     }
+    const state = this[symState]
     if (REBUILD_OPTHASH[name] === true) {
-        node.build()
+        this.build()
     } else {
-        updateState(node)
+        updateState(this)
     }
-    clearTimeout(node[symState].stopId)
+    clearTimeout(state.stopId)
     switch (name) {
         case 'shuffler':
-            node[symState].counter = 0
+            state.counter = 0
             break
         case 'loop':
             if (value) {
-                node[symSched]()
+                this[symSched]()
             }
             break
     }
 }
 
-function padSample(sample, minSize) {
+function padSample() {
+    const {sample} = this[symState]
+    const minSize = this.minSize.value
     while (sample.length < minSize) {
         sample.push(...sample.slice(0, minSize - sample.length))
+    }
+}
+
+function normalizeSample() {
+    const state = this[symState]
+    const {sample} = state
+    for (let i = 0; i < sample.length; ++i) {
+        const note = sample[i]
+        if (note) {
+            sample[i] = note.copy()
+        } else {
+            // Treat empty values as rests
+            sample[i] = new Marker.Rest
+        }
+    }
+    state.refreshTimeSig()
+}
+
+/**
+ * Call the configured shuffler on the current sample
+ */
+function shuffle() {
+    const state = this[symState]
+    if (!state.sample) {
+        return
+    }
+
+    state.sample = state.scale.copy(true)
+    state.sample.state = state
+
+    padSample.call(this)
+    SHUFFLERS[this.shuffler.value](state.sample)
+    normalizeSample.call(this)
+    
+    state.prev = state.sample.copy()
+
+    if (this.dot.value) {
+        dottify.call(this)
     }
 }
 
@@ -327,6 +355,7 @@ function padSample(sample, minSize) {
  */
 function updateState(node) {
     const state = node[symState]
+    state.minSize = node.minSize.value
     state.beat = node.beat.value
     state.bpm = node.bpm.value
     state.loop = node.loop.value
@@ -348,16 +377,16 @@ function schedule() {
     clearTimeout(state.scheduleId)
     clearTimeout(state.stopId)
     let firstScheduleTime = null
-    while (this.context.currentTime + state.sampleDur > state.nextTime) {
+    while (this.context.currentTime + state.sampleDurInSeconds > state.nextTime) {
         if (!firstScheduleTime) {
             firstScheduleTime = state.nextTime
         }
         if (state.isShuffleWanted) {
-            this.doShuffle()
+            shuffle.call(this)
         }
         state.sample.forEach(note => {
-            playNote(this, note, state.noteDur, state.nextTime)
-            state.nextTime += state.noteDur
+            playNote.call(this, note, state.noteDurInSeconds, state.nextTime)
+            state.nextTime += state.noteDurInSeconds
         })
         state.counter += 1
         if (!state.loop) {
@@ -380,28 +409,27 @@ function schedule() {
 /**
  * Schedule a note to be played
  * 
- * @param {Sampler} node
  * @param {Music.Note|null|undefined} note
- * @param {Number} dur
- * @param {Number} time
+ * @param {number} durationSeconds duration in seconds
+ * @param {number} time
  */
-function playNote(node, note, dur, time) {
-    const isRest = node.rests.value
-    const state = node[symState]
-    if (note === null && !isRest) {
-        note = state.lastNote
-    }
-    if (!note) {
-        if (isRest) {
-            node.oscillator.frequency.setValueAtTime(0, time)
-        }
+function playNote(note, durationSeconds, time) {
+    const state = this[symState]
+    if (note instanceof Marker.Rest) {
+        this.oscillator.frequency.setValueAtTime(0, time)
         return
     }
+    if (note.dot) {
+        durationSeconds *= 1.5
+    } else if (note.dedot) {
+        durationSeconds /= 2
+        time += durationSeconds
+    }
     state.lastNote = note
-    node.instruments.forEach(inst => {
-        inst.triggerAttackRelease(note.freq, dur, time)
+    this.instruments.forEach(inst => {
+        inst.triggerAttackRelease(note.freq, durationSeconds, time)
     })
-    node.oscillator.frequency.setValueAtTime(note.freq, time)
+    this.oscillator.frequency.setValueAtTime(note.freq, time)
 }
 
 class State {
@@ -412,16 +440,58 @@ class State {
         this.isOscillatorStarted = false
     }
 
-    get noteDur() {
+    get noteDurDenominator() {
+        return 240 / this.beat
+    }
+    get noteDurInSeconds() {
         return this.beat / this.bpm
     }
 
-    get sampleDur() {
-        return this.noteDur * this.sample.length
+    get totalBeats() {
+        if (!this.sample || !this.timeSig) {
+            return 0
+        }
+        return this.sample.length / this.noteDurDenominator * this.timeSig.lower
+    }
+
+    get notesPerMeasure() {
+        if (!this.sample) {
+            return Infinity
+        }
+        return Math.ceil(this.sample.length / this.measuresNeeded)
+    }
+
+    get measuresNeeded() {
+        if (!this.timeSig) {
+            return 0
+        }
+        return Math.ceil(this.totalBeats / this.timeSig.upper)
+    }
+
+    get sampleDurInSeconds() {
+        return this.noteDurInSeconds * this.sample.length
     }
 
     get isShuffleWanted() {
         return this.shuffle && this.counter % this.shuffle === 0
+    }
+
+    refreshTimeSig() {
+        if (this.sample) {
+            const shouldUpdate = (
+                this._lastTimeSigLen !== this.sample.length ||
+                this._lastTimeSigDenom !== this.noteDurDenominator
+            )
+            if (shouldUpdate) {
+                this.timeSig = guessTimeSig(this.sample.length, this.noteDurDenominator)
+                this._lastTimeSigLen = this.sample.length
+                this._lastTimeSigDenom = this.noteDurDenominator
+                console.log(this.timeSig)
+            }
+        } else {
+            this._lastTimeSigLen = null
+            this._lastTimeSigDenom = null
+        }
     }
 }
 
@@ -432,3 +502,24 @@ class State {
 function isInstrument(obj) {
     return obj && typeof obj.triggerAttackRelease === 'function'
 }
+
+
+function dottify() {
+    const state = this[symState]
+    const {sample, notesPerMeasure, timeSig} = state
+    if (notesPerMeasure < 2) {
+        return
+    }
+    for (let i = 0; i < sample.length; i += notesPerMeasure) {
+        const a = sample[i]
+        const b = sample[i + 1]
+        // const c = sample[i + 2]
+        // if (!a || !b || !c) {
+        if (!a || !b || (a instanceof Marker) || (b instanceof Marker)) {
+            continue
+        }
+        a.dot = true
+        b.dedot = true
+    }
+}
+

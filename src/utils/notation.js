@@ -116,3 +116,9 @@ export function guessTimeSig(numNotes, noteDur) {
         label: `${upper}/${lower}`
     }
 }
+
+export class Marker {
+    copy() { return new this.constructor() }
+    equals(other) { return other instanceof this.constructor }
+}
+Marker.Rest = class extends Marker {}
