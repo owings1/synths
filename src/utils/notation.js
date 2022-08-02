@@ -5,6 +5,56 @@
  * @license MIT
  */
 
+export const Clef = {
+    SUBBASS: 'subbass',
+    BASS: 'bass',
+    ALTO: 'alto',
+    TREBLE: 'treble',
+}
+
+const CLEF_CENTERS = Object.fromEntries(Object.entries({
+    // F/3
+    SUBBASS: 35,
+    // D/3
+    BASS: 38,
+    // C/4
+    ALTO: 48,
+    // Bb/4
+    TREBLE: 59,
+}).map(([name, value]) => [Clef[name], value]))
+
+const AUTO_CLEFS = [Clef.TREBLE, Clef.BASS, Clef.ALTO, Clef.SUBBASS]
+const DEFAULT_CLEF = Clef.TREBLE
+
+/**
+ * Guess the clef based on the notes
+ * @param {Note[]|number[]} notes Note objects or absolute indexes
+ * @param {string} defaultClef
+ * @param {string[]} autoClefs
+ * @return {string}
+ */
+export function guessClef(notes, defaultClef = undefined, autoClefs = undefined) {
+    autoClefs = autoClefs || AUTO_CLEFS
+    notes = notes.filter(note => note != null) // allow 0
+    const maxes = Object.create(null)
+    for (const clef of autoClefs) {
+        maxes[clef] = -Infinity
+        notes.forEach(note => {
+            const diff = Math.abs(CLEF_CENTERS[clef] - (note.index || note))
+            if (diff > maxes[clef]) {
+                maxes[clef] = diff
+            }
+        })
+    }
+    let best = defaultClef || DEFAULT_CLEF
+    for (const clef in maxes) {
+        if (maxes[clef] < maxes[best]) {
+            best = clef
+        }
+    }
+    return best
+}
+
 const TIMESIG_GUESS_4 = [4, 2, 3, 5, 7, 1]
 const TIMESIG_GUESS_8 = [6, 3, 7]
 

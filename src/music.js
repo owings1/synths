@@ -48,6 +48,9 @@ const FLAT_LABEL = 'b'
 const MINOR_LABEL = 'm'
 const OCTAVE_SEPARATOR = '/'
 
+export function getNote(degree, octave) {
+    return new Note(octave * OCTAVE + degree)
+}
 /**
  * Get a note at a frequency
  * @param {number} freq
@@ -89,7 +92,7 @@ export function stepFreq(freq, degrees, strict = false) {
  * @param {number} opts.octaves Number of octaves
  * @param {boolean} opts.arpeggio Use arpeggio intervals
  * @param {boolean} opts.clip Clip out of bounds frequencies
- * @return {ScaleSample} Array of scale notes
+ * @return {TonalSample} Array of scale notes
  */
 export function scaleSample(degree, opts = undefined) {
     opts = opts ? {...opts} : {}
@@ -119,7 +122,7 @@ export function scaleSample(degree, opts = undefined) {
         opts.descend = direction === Dir.DESCEND
         notes = scaleNotes(degree, octave, tonality, opts)
     }
-    return new ScaleSample().init(notes, notes[0], tonality)
+    return new TonalSample().init(notes, notes[0], tonality)
 }
 
 /**
@@ -132,14 +135,14 @@ export function scaleSample(degree, opts = undefined) {
  * @param {number} opts.octaves
  * @param {boolean} opts.arpeggio
  * @param {boolean} opts.clip
- * @return {ScaleNote[]}
+ * @return {TonalNote[]}
  */
 function scaleNotes(degree, octave, tonality, opts) {
     opts = opts || {}
     const base = opts.arpeggio
         ? ARPEGGIO_INTERVALS[tonality]
         : SCALE_INTERVALS[tonality]
-    const tonic = new ScaleNote(octave * OCTAVE + degree, null, tonality)
+    const tonic = new TonalNote(octave * OCTAVE + degree, null, tonality)
     const descend = Boolean(opts.descend)
     const olimit = descend ? tonic.octave : OCTAVE_COUNT - tonic.octave - 1
     let octaves = opts.octaves === undefined ? 1 : Number(opts.octaves)
@@ -162,7 +165,7 @@ function scaleNotes(degree, octave, tonality, opts) {
     for (let note = tonic, o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; ++i) {
             const idx = note.index + dir * intervals[i]
-            note = new ScaleNote(idx, tonic, tonality)
+            note = new TonalNote(idx, tonic, tonality)
             notes.push(note)
         }
     }
@@ -391,7 +394,7 @@ class Note {
 /**
  * A scale-conscious note, with a tonic and tonality
  */
-class ScaleNote extends Note {
+class TonalNote extends Note {
 
     /**
      * @param {number} index Absolute note index
@@ -446,7 +449,7 @@ class ScaleNote extends Note {
 /**
  * An array of notes with a tonic and tonality
  */
-class ScaleSample extends Array {
+class TonalSample extends Array {
 
     /**
      * Self-deleting init constructor to support extending Array
@@ -474,10 +477,10 @@ class ScaleSample extends Array {
     }
 
     /**
-     * @return {ScaleSample}
+     * @return {TonalSample}
      */
     copy() {
-        return new ScaleSample().init(this, this.tonic, this.tonality)
+        return new TonalSample().init(this, this.tonic, this.tonality)
     }
 }
 
@@ -503,7 +506,7 @@ export const FREQ_COUNT = FREQS.length
 /** Minimum known frequency. */
 export const FREQ_MIN = FREQS[0]
 /** Maximum known frequency. */
-export const FREQ_MAX = FREQS.at(-1)
+export const FREQ_MAX = FREQS[FREQS.length - 1]
 
 /** Note datas, keyed by frequency ID. */
 const FREQS_DATA = Object.create(null)
