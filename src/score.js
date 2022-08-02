@@ -8,7 +8,7 @@ import Vex from '../../lib/vexflow.js'
 import $ from '../../lib/jquery.js'
 import {guessTimeSig, guessClef, Clef} from './utils/notation.js'
 
-const {Accidental, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
+const {Accidental, Beam, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
 const {FormatAndDraw} = Formatter
 const REST_NOTETYPE = 'r'
 
@@ -61,6 +61,17 @@ export class VexSampleScore {
     }
 
     /**
+     * Clear the SVG context, if any
+     * @return {this}
+     */
+    clear() {
+        if (this.context) {
+            this.context.clear()
+        }
+        return this
+    }
+
+    /**
      * Main render method
      * @param {string|object} target element, or id
      * @return {this}
@@ -72,11 +83,22 @@ export class VexSampleScore {
         this.createNotes()
         this.applyAccidentals()
         this.createMeasures()
+        this.createBeams()
         this.computeSize()
-        this.setupContext()
         this.createStaves()
+        this.setupContext()
         this.drawStaves()
+        this.drawBeams()
         return this
+    }
+
+    /**
+     * Draw this.beams
+     */
+    drawBeams() {
+        this.beams.flat().forEach(beam => {
+            beam.setContext(this.context).draw()
+        })
     }
 
     /**
@@ -86,7 +108,7 @@ export class VexSampleScore {
         for (let i = 0; i < this.staves.length; ++i) {
             FormatAndDraw(
                 this.context,
-                this.staves[i].draw(),
+                this.staves[i].setContext(this.context).draw(),
                 this.measures[i],
             )
         }
@@ -108,8 +130,7 @@ export class VexSampleScore {
                 this.clefWidth * isAddClef +
                 this.timeSigWidth * isAddTimeSig
             )
-            const stave = new Stave(left, this.marginTop, width)
-                .setContext(this.context)
+            const stave = new Stave(left, this.marginTop, width) 
             if (isAddClef) {
                 stave.addClef(this.clef)
             }
@@ -130,9 +151,7 @@ export class VexSampleScore {
      *   - this.context
      */
     setupContext() {
-        if (this.context) {
-            this.context.clear()
-        }
+        this.clear()
         this.renderer = new Renderer($(this.target).get(0), Renderer.Backends.SVG)
         this.context = this.renderer.getContext()
         this.context.clear()
@@ -175,6 +194,14 @@ export class VexSampleScore {
             this.timeSigWidth +
             this.marginLeft
         )
+    }
+
+    /**
+     * Populate:
+     *   - this.beams {Beam[][]}
+     */
+    createBeams() {
+        this.beams = this.measures.map(measure => Beam.generateBeams(measure))
     }
 
     /**

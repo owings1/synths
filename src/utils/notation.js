@@ -28,7 +28,7 @@ const DEFAULT_CLEF = Clef.TREBLE
 
 /**
  * Guess the clef based on the notes
- * @param {Note[]|number[]} notes Note objects or absolute indexes
+ * @param {Array<object|number>} notes Note objects or absolute indexes
  * @param {string} defaultClef
  * @param {string[]} autoClefs
  * @return {string}
@@ -112,7 +112,6 @@ export function guessTimeSig(numNotes, noteDur) {
     return {
         upper,
         lower,
-        totalBeats,
         invalid,
         label: `${upper}/${lower}`
     }
