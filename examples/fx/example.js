@@ -152,7 +152,7 @@ $(() => {
 
     let drawId
     sampler.onschedule = (sample, time) => {
-        score.reload(sample, {noteDur: 240 / sampler.beat.value})
+        score.reload(sample)
         drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
     function renderScore() {

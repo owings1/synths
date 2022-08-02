@@ -6,20 +6,22 @@
  */
 import Vex from '../../lib/vexflow.js'
 import $ from '../../lib/jquery.js'
-import {guessTimeSig, guessClef, Clef, Marker} from './utils/notation.js'
+import * as Music from './music.js'
+import {guessTimeSig, guessClef, Clef, RestMarker} from './utils/notation.js'
 import {ValueError} from './utils/utils.js'
 
 const {Accidental, Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
 const REST_NOTETYPE = 'r'
 
 const Defaults = {
-    noteDur: 4,
+    noteDur: null, // default 4
     timeSig: null, // null is to guess
     clef: null, // null is to guess
 }
 
 const VALID_NOTEDURS = [1, 2, 4, 8, 16]
 const REST_KEYS = ['c/5']
+const DEFAULT_DUR = 4
 
 export class VexSampleScore {
 
@@ -233,24 +235,26 @@ export class VexSampleScore {
     createNotes() {
         this.staveNotes = this.sample.map(note => {
             let duration, clef, keys
-            if (note instanceof Marker) {
-                if (note instanceof Marker.Rest) {
+            switch (note.type) {
+                case RestMarker:
                     duration = String(this.noteDur) + REST_NOTETYPE
                     clef = Clef.TREBLE
                     keys = REST_KEYS
-                } else {
-                    throw new ValueError(`Unknown marker ${note}`)
-                }
-            } else {
-                duration = this.noteDur
-                if (note.dedot) {
-                    duration *= 2
-                }
-                clef = this.clef
-                keys = [note.label]
+                    break
+                case Music.Note:
+                    duration = this.noteDur
+                    if (note.dedot) {
+                        duration *= 2
+                    }
+                    clef = this.clef
+                    keys = [note.label]
+                    break
+                default:
+                    throw new ValueError(`Unknown note type: ${note}`)
+
             }
             const staveNote = new StaveNote({keys, duration, clef})
-            if (note && note.dot) {
+            if (note.dot) {
                 Dot.buildAndAttach([staveNote], {index: 0})
             }
             return staveNote
@@ -267,19 +271,21 @@ export class VexSampleScore {
      */
     computeTime() {
         // duration of each note, e.g. 4 for quarter note
-        this.noteDur = Number(this.opts.noteDur)
-        if (!VALID_NOTEDURS.includes(this.noteDur)) {
-            throw new ValueError(`Invalid note duration: ${this.noteDur}`)
+        const duropt = Number(this.opts.noteDur || this.sample.noteDur) || DEFAULT_DUR
+        const tsopt = this.opts.timeSig || this.sample.timeSig
+        if (!VALID_NOTEDURS.includes(duropt)) {
+            throw new ValueError(`Invalid note duration: ${duropt}`)
         }
-        if (this.opts.timeSig) {
-            switch (typeof this.opts.timeSig) {
+        this.noteDur = duropt
+        if (tsopt) {
+            switch (typeof tsopt) {
                 case 'object':
-                    this.timeSig = this.opts.timeSig
+                    this.timeSig = tsopt
                     break
                 case 'string':
                 default:
-                    let [upper, lower] = this.opts.timeSig.split('/').map(Number)
-                    this.timeSig = {upper, lower, label: this.opts.timeSig}
+                    let [upper, lower] = tsopt.split('/').map(Number)
+                    this.timeSig = {upper, lower, label: tsopt}
             }
         } else {
             this.timeSig = guessTimeSig(this.sample.length, this.noteDur)

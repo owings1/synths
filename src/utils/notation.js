@@ -62,9 +62,12 @@ const TIMESIG_GUESS_8 = [6, 3, 7]
  * Try to guess a reasonable time signature
  * @param {number} numNotes total number of equal valued notes
  * @param {number} noteDur duration each note, 1, 2, 4, 8, etc.
+ * @param {object} opts
+ * @param {boolean} opts.prefer8
  * @return {object}
  */
-export function guessTimeSig(numNotes, noteDur) {
+export function guessTimeSig(numNotes, noteDur, opts = undefined) {
+    opts = opts || {}
     let invalid = false
     let lower = 4
     let totalBeats = numNotes / noteDur * lower
@@ -73,7 +76,7 @@ export function guessTimeSig(numNotes, noteDur) {
     for (const b of TIMESIG_GUESS_4) {
         switch (b) {
             case 4: // prefer 4/4
-            case 2: // go for 2/2 if even number of total beats
+            case 2: // go for 2/2
             case 3: // use 3/4 
             case 5: // try 5/4 for fun
             case 7: // why not 7/4
@@ -92,17 +95,21 @@ export function guessTimeSig(numNotes, noteDur) {
                 invalid = true
         }
     }
-    if (invalid) {
-        if (noteDur % 8 === 0) {
-            // Try over 8
-            lower = 8
-            totalBeats = numNotes / noteDur * lower
-            for (const b of TIMESIG_GUESS_8) {
-                if (totalBeats % b === 0) {
-                    upper = b
-                    invalid = false
-                    break
-                }
+    const try8 = noteDur % 8 === 0 && (
+        invalid ||
+        opts.prefer8 && upper !== 4
+    )
+    if (try8) {
+        // Try over 8
+        lower = 8
+        totalBeats = numNotes / noteDur * lower
+        console.debug('trying 8', totalBeats % 6)
+        for (const b of TIMESIG_GUESS_8) {
+            if (totalBeats % b === 0) {
+                upper = b
+                invalid = false
+                console.debug({upper})
+                break
             }
         }
     }
@@ -119,6 +126,8 @@ export function guessTimeSig(numNotes, noteDur) {
 
 export class Marker {
     copy() { return new this.constructor() }
-    equals(other) { return other instanceof this.constructor }
+    get type() { return this.constructor }
+    equals(other) { return this === other || other instanceof this.constructor}
 }
-Marker.Rest = class extends Marker {}
+export class RestMarker extends Marker {}
+Marker.Rest = RestMarker

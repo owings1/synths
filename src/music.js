@@ -324,7 +324,7 @@ const symNote = Symbol()
 /**
  * Note data container
  */
-class Note {
+export class Note {
 
     /**
      * @param {number} index The absolute index
@@ -395,12 +395,16 @@ class Note {
     copy() {
         return new this.constructor(this.index)
     }
+
+    get type() {
+        return Note
+    }
 }
 
 /**
  * A scale-conscious note, with a tonic and tonality
  */
-class TonalNote extends Note {
+export class TonalNote extends Note {
 
     /**
      * @param {number} index Absolute note index

@@ -35,7 +35,7 @@ $(() => {
 
     let drawId
     sampler.onschedule = (sample, time) => {
-        score.reload(sample, {noteDur: sampler.noteDurDenominator})
+        score.reload(sample)
         drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
     }
 
