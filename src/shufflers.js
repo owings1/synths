@@ -11,6 +11,7 @@ import {RestMarker} from './utils/notation.js'
 export const NONE = () => {}
 export const RANDY = shuffle
 const OCTAVE = 12
+const M6 = 9
 const m7 = 10
 const M7 = 11
 
@@ -19,14 +20,19 @@ const {abs, ceil, floor, random} = Math
 const Conf = {
     SOFA: {
         fill: {
-            chance: 0.35,
+            chance: 0.40,
             chances: [
-                [0.05, randomElement],
-                [0.15, rest],
-                [0.40, arr => arr[floor(arr.length / 3)]],
-                [0.45, arr => arr[ceil(arr.length / 3)]],
-                [0.50, arr => arr[floor(arr.length / 2)]],
-                [0.55, arr => arr[ceil(arr.length / 2)]],
+                // [0.05, randomElement],
+                [0.30, arr => arr[4]],
+                [0.40, rest],
+                // [0.45, arr => arr[ceil(arr.length / 3)]],
+                // [0.50, arr => arr[5]],
+                [0.60, (arr, i) => arr[i - 1]],
+                // [0.55, arr => arr[ceil(arr.length / 2)]],
+                // [0.40, arr => arr[floor(arr.length / 3)]],
+                // [0.45, arr => arr[ceil(arr.length / 3)]],
+                // [0.50, arr => arr[floor(arr.length / 2)]],
+                // [0.55, arr => arr[ceil(arr.length / 2)]],
             ],
         },
         start: {
@@ -110,8 +116,12 @@ export function SOFA(arr, state) {
     const conf = Conf.SOFA
     const starter = chanceFill(arr, 0, conf.start.chances)
     shuffle(arr)
+    smooth(arr)
+    smooth(arr)
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
     arr[0] = starter
+    smooth(arr)
+    replaceLargeIntervals(arr, M6, (arr, i) => random() > 0.5 ? arr[i - 1] : rest())
 }
 
 
@@ -146,10 +156,10 @@ export function TONAK(arr, state) {
     smooth(arr)
     avoidOctavesWithSwapAhead(arr)
     smooth(arr)
-    replaceConsecutiveLargeIntervalsWithRest(arr)
-    smooth(arr)
-    replaceLargeIntervalsWithRest(arr)
+    replaceConsecutiveLargeIntervals(arr)
     arr[0] = starter
+    smooth(arr)
+    replaceLargeIntervals(arr)
 }
 
 
@@ -225,7 +235,7 @@ function midShuffle(arr) {
  */
 function shuffleByOctave(arr) {
     for (let i = 0, lo = 0, value; i < arr.length; ++i) {
-        if (arr[i].type !== Note) {
+        if (!isNote(arr[i])) {
             continue
         }
         if (value === undefined) {
@@ -284,7 +294,7 @@ function chanceFills(arr, chances, p = 1) {
 function chanceFill(arr, i, chances) {
     for (const [p, f] of chances) {
         if (p > random()) {
-            arr[i] = f(arr) || arr[i]
+            arr[i] = f(arr, i) || arr[i]
             break
         }
     }
@@ -327,7 +337,7 @@ function avoidOctavesWithSwapAhead(arr) {
         if (isNote(a, b)) {
             if (a.degree === b.degree && a.octave !== b.octave) {
                 const c = arr[i + 2]
-                if (c && c.type === Note) {
+                if (isNote(c)) {
                     arr[i + 1] = c
                     arr[i + 2] = b
                 }
@@ -336,19 +346,20 @@ function avoidOctavesWithSwapAhead(arr) {
     }
 }
 
-function replaceLargeIntervalsWithRest(arr, limit = M7) {
-    for (let i = 1; i < arr.length - 1; ++i) {
+function replaceLargeIntervals(arr, limit = M7, f = rest) {
+    for (let i = 0; i < arr.length - 1; ++i) {
         const a = arr[i]
         const b = arr[i + 1]
         if (isNote(a, b)) {
             if (abs(a.index - b.index) > limit) {
-                arr[i + 1] = rest()
+                arr[i + 1] = f(arr, i + 1) || b
+                console.debug('replaced at', i+1, arr[i+1])
             }
         }
     }
 }
 
-function replaceConsecutiveLargeIntervalsWithRest(arr, limit = m7) {
+function replaceConsecutiveLargeIntervals(arr, limit = m7, f = rest) {
     if (arr.length < 3) {
         return
     }
@@ -362,7 +373,7 @@ function replaceConsecutiveLargeIntervalsWithRest(arr, limit = m7) {
                 abs(prev.index - curr.index) > limit &&
                 abs(curr.index - next.index) > limit
             ) {
-                arr[i] = rest()
+                arr[i] = f(arr, i) || arr[i]
             }
         }
     }

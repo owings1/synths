@@ -14,7 +14,7 @@ import '../lib/tone.js'
 
 const symState = Symbol()
 const symSched = Symbol()
-
+const PREFER8 = false
 const Lookahead = 25.0
 const StopDelay = Lookahead * 10
 const ShufflerIds = {
@@ -504,7 +504,7 @@ class State {
                 this.timeSig = guessTimeSig(
                     this.sample.length,
                     this.noteDurDenominator,
-                    {prefer8: true},
+                    {prefer8: PREFER8},
                 )
                 this._lastTimeSigLen = this.sample.length
                 this._lastTimeSigDenom = this.noteDurDenominator
