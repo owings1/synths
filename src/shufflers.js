@@ -4,146 +4,217 @@
  * @author Doug Owings <doug@dougowings.net>
  * @license MIT
  */
-import {shuffle, Shuffler} from './utils/shuffler.js'
 
+import {shuffle} from './utils/shuffler.js'
+import {Note} from './music.js'
+import {RestMarker} from './utils/notation.js'
 export const NONE = () => {}
 export const RANDY = shuffle
 
+const {ceil, floor, random} = Math
 
-export const TONAK = new Shuffler({
-    fill: {
-        chance: 0.3,
-        chances: {
-            0: 0.5,
-            random: 0.6,
-            null: 1,
-        }
+const Conf = {
+    SOFA: {
+        fill: {
+            chance: 0.35,
+            chances: [
+                [0.05, randomElement],
+                [0.15, rest],
+                [0.40, arr => arr[floor(arr.length / 3)]],
+                [0.45, arr => arr[ceil(arr.length / 3)]],
+                [0.50, arr => arr[floor(arr.length / 2)]],
+                [0.55, arr => arr[ceil(arr.length / 2)]],
+            ],
+        },
+        start: {
+            chances: [
+                [0.5, first],
+            ],
+        },
     },
-    start: {
-        chances: {
-            0: 0.55,
+    BIMOM: {
+        fill: {
+            chance: 0.15,
+            chances: [
+                [0.10, first],
+                [0.20, arr => arr[ceil(arr.length / 2)]],
+                [1.00, rest],
+            ],
+        },
+        start: {
+            chances: [
+                [0.25, first],
+            ],
+        },
+        end: {
+            chances: [
+                [0.10, arr => arr[1]],
+                [0.25, last],
+            ]
+        },
+    },
+    TONAK: {
+        fill: {
+            chance: 0.20,
+            chances: [
+                [0.04, randomElement],
+                [0.05, rest],
+                [0.10, first],
+                [0.45, arr => arr[3]],
+                [0.50, arr => arr[4]],
+            ],
+        },
+        start: {
+            chances: [
+                [0.55, first],
+            ],
+        },
+        smooth: 3,
+    },
+    JARD: {
+        fill: {
+            chance: 0.15,
+            chances: [
+                [0.15, randomElement],
+                [0.30, arr => arr[floor(arr.length / 2)]],
+                [0.31, arr => arr[ceil(arr.length / 2)]],
+                [1.00, rest],
+            ],
+        },
+    },
+    CHUNE: {
+        delegate: {
+            default: SOFA,
+            moduli: [
+                [21, BIMOM],
+                [8, JARD],
+                [5, TONAK],
+            ],
+        },
+        rephrase: {
+            modulo: 3,
+            head: 2,
+            tail: 3,
+            minPrevLength: 8,
         }
     }
-})
+}
 
-export const SOFA = new Shuffler({
-    // shuffle: halfShuffle,
-    fill: {
-        chance: 0.35,
-        chances: {
-            random: 0.05,
-            null : 0.15,
-            '//3' : 0.40,
-            '/c3' : 0.45,
-            '//2' : 0.50,
-            '/c2' : 0.55,
-        }
-    },
-    start: {
-        chances: {
-            0: 0.5,
-        }
+/**
+ * @param {TonalSample} arr
+ * @param {object} state
+ */
+export function SOFA(arr, state) {
+    const conf = Conf.SOFA
+    shuffle(arr)
+    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    chanceFill(arr, 0, conf.start.chances)
+}
+
+
+/**
+ * @param {TonalSample} arr
+ * @param {object} state
+ */
+export function BIMOM(arr, state) {
+    const conf = Conf.BIMOM
+    shuffle(arr, {start: 0, end: 3})
+    midShuffle(arr)
+    shuffle(arr, {start: arr.length - 4})
+    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    chanceFill(arr, 0, conf.start.chances)
+    chanceFill(arr, arr.length - 1, conf.end.chances)
+}
+
+
+/**
+ * @param {TonalSample} arr
+ * @param {object} state
+ */
+export function TONAK(arr, state) {
+    const conf = Conf.TONAK
+    shuffle(arr)
+    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    for (let i = 0; i < conf.smooth; ++i) {
+        smooth(arr)
     }
-})
-
-export const BIMOM = new Shuffler({
-    shuffle: arr => {
-        shuffle(arr, {start: 0, end: 3})
-        midShuffle(arr)
-        shuffle(arr, {start: arr.length - 4})
-    },
-    fill: {
-        chance: 0.15,
-        chances: {
-            0: 0.1,
-            '/c2' : 0.2,
-            null: 1
-        }
-    },
-    start: {
-        chances: {
-            0: 0.25,
-        }
-    },
-    end: {
-        chances: {
-            1: 0.1,
-            '-1': 0.25,
-        }
-    }
-})
+    avoidOctavesWithSwapAhead(arr)
+    chanceFill(arr, 0, conf.start.chances)
+}
 
 
-export const JARD = new Shuffler({
-    shuffle: arr => {
-        // Shuffle the 2nd-5th notes
-        shuffle(arr, {start: 1, end: 4})
-        // Shuffle 25% of the upper half of the notes
-        const start = Math.floor(arr.length / 2)
-        const limit = Math.max(3, Math.floor(arr.length / 4))
-        shuffle(arr, {limit, start})
-    },
-    fill: {
-        chance: 0.15,
-        chances: {
-            random: 0.15,
-            '//2' : 0.30,
-            '/c2' : 0.31,
-            null: 1,
-        }
-    }
-})
+/**
+ * @param {TonalSample} arr
+ * @param {object} state
+ */
+export function JARD(arr, state) {
+    const conf = Conf.JARD
+    // Shuffle the 2nd-5th notes
+    shuffle(arr, {start: 1, end: 4})
+    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    // Shuffle 25% of the upper half of the notes
+    const start = floor(arr.length / 2)
+    const limit = Math.max(3, floor(arr.length / 4))
+    shuffle(arr, {limit, start})
+}
 
-export const CHUNE = arr => {
-    // Don't fail if state is missing
-    if (!arr.state) {
-        SOFA(arr)
-        return
-    }
-    const {counter, prev} = arr.state
-    let delegate = SOFA
+
+/**
+ * @param {TonalSample} arr
+ * @param {object} state
+ */
+export function CHUNE(arr, state) {
+    const conf = Conf.CHUNE
+    const {counter, prev} = state
+    let delegate = conf.delegate.default
     let isRephrase = false
+    search:
     if (counter > 0) {
-        if (counter % 21 === 0) {
-            delegate = BIMOM
-        } else if (counter % 8 === 0) {
-            delegate = JARD
-        } else if (counter % 5 === 0) {
-            delegate = TONAK
-        } else if (counter % 3 === 0) {
-            isRephrase = (
-                prev && prev.length > 7 &&
-                !notesEqual(prev[prev.length - 2], prev[prev.length - 1])
-            )
+        for (const [m, d] of conf.delegate.moduli) {
+            if (counter % m === 0) {
+                delegate = d
+                break search
+            }
         }
+        isRephrase = (
+            counter % conf.rephrase.modulo === 0 &&
+            prev && prev.length >= conf.rephrase.minPrevLength &&
+            !notesEqual(at(prev, -2), at(prev, -1))
+        )
     }
     if (isRephrase) {
-        rephrase(arr, prev, 2, 3)
+        rephrase(arr, prev, conf.rephrase.head, conf.rephrase.tail)
     } else {
-        delegate(arr)
+        delegate(arr, state)
     }
 }
 
 /**
  * Return true for both null, else call note.equals
- * @param {Note|null} a
- * @param {Note|null} b
+ * @param {Note|RestMarker} a
+ * @param {Note|RestMarker} b
  * @return {boolean}
  */
 function notesEqual(a, b) {
     return a === b || a && a.equals(b)
 }
 
-function halfShuffle(arr) {
-    shuffle(arr, {limit: Math.floor(arr.length / 2)})
-}
 
+/**
+ * @param {any[]} arr
+ */
 function midShuffle(arr) {
     const mid = Math.floor(arr.length / 2)
     const quarter = Math.floor(mid / 2)
     shuffle(arr, {start: mid - quarter, end: mid + quarter})
 }
 
+/**
+ * @param {any[]} arr
+ * @param {any[]} orig
+ * @param {number} head
+ * @param {number} tail
+ */
 function rephrase(arr, orig, head = 2, tail = undefined) {
     if (tail === undefined) {
         tail = head
@@ -154,3 +225,120 @@ function rephrase(arr, orig, head = 2, tail = undefined) {
     shuffle(arr, {start: 0, end: head})
     shuffle(arr, {start: arr.length - tail - 1})
 }
+
+/**
+ * @param {any[]} arr
+ * @param {any[][]} chances
+ * @param {number} p
+ */
+
+function chanceFills(arr, chances, p = 1) {
+    for (let i = 0; i < arr.length; ++i) {
+        if (p < 1 && p < random()) {
+            continue
+        }
+        chanceFill(arr, i, chances)
+    }
+}
+
+/**
+ * @param {any[]} arr
+ * @param {number} i
+ * @param {any[][]} chances
+ */
+
+function chanceFill(arr, i, chances) {
+    for (const [p, f] of chances) {
+        if (p > random()) {
+            arr[i] = f(arr) || arr[i]
+            break
+        }
+    }
+}
+
+/**
+ * @param {TonalSample} arr
+ */
+function smooth(arr) {
+    if (arr.length < 3) {
+        return
+    }
+    for (let i = 1; i < arr.length - 1; ++i) {
+        let prev = arr[i - 1]
+        let curr = arr[i]
+        let next = arr[i + 1]
+        if (!prev.index || !curr.index || !next || !next.index) {
+            continue
+        }
+        if (prev.index < curr.index && curr.index < next.index || prev.index > curr.index && curr.index > next.index || curr.index === next.index) {
+            continue
+        }
+        arr[i + 1] = curr
+        arr[i] = next
+    }
+}
+
+/**
+ * @param {TonalSample} arr
+ */
+function avoidOctavesWithSwapAhead(arr) {
+    for (let i = 0; i < arr.length; ++i) {
+        const a = arr[i]
+        const b = arr[i + 1]
+        if (a.type === Note && b && b.type === Note) {
+            if (a.degree === b.degree && a.octave !== b.octave) {
+                const c = arr[i + 2]
+                if (c && c.type === Note) {
+                    arr[i + 1] = c
+                    arr[i + 2] = b
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @param {T[]} arr
+ * @return {T|undefined}
+ */
+function randomElement(arr) {
+    return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/**
+ * @param {T[]} arr
+ * @return {T|undefined}
+ */
+function at(arr, i) {
+    if (i < 0) {
+        i = arr.length + i
+    }
+    return arr[i]
+}
+
+/**
+ * @param {T[]} arr
+ * @return {T|undefined}
+ */
+function first(arr) {
+    return arr[0]
+}
+
+/**
+ * @param {T[]} arr
+ * @return {T|undefined}
+ */
+function last(arr) {
+    return arr[arr.length - 1]
+}
+
+/**
+ * @return {RestMarker}
+ */
+function rest() {
+    return new RestMarker
+}
+
+// function halfShuffle(arr) {
+//     shuffle(arr, {limit: Math.floor(arr.length / 2)})
+// }

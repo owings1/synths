@@ -103,7 +103,6 @@ export function guessTimeSig(numNotes, noteDur, opts = undefined) {
         // Try over 8
         lower = 8
         totalBeats = numNotes / noteDur * lower
-        console.debug('trying 8', totalBeats % 6)
         for (const b of TIMESIG_GUESS_8) {
             if (totalBeats % b === 0) {
                 upper = b

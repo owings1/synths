@@ -127,7 +127,7 @@ export default class Sampler extends BaseNode {
         state.sampleOpts = Object.fromEntries(REBUILD_OPTKEYS.map(key => [key, this[key].value]))
         state.sampleOpts.clip = true
         state.scale = Music.scaleSample(this.degree.value, state.sampleOpts)
-        if (this.loop.value && this.direction.value & Music.Dir.isMulti(this.direction.value)) {
+        if (this.loop.value && Music.Dir.isMulti(this.direction.value)) {
             state.scale.pop()
         }
         state.sample = state.scale.copy(true)
@@ -362,13 +362,7 @@ function normalizeSample() {
     const state = this[symState]
     const {sample} = state
     for (let i = 0; i < sample.length; ++i) {
-        const note = sample[i]
-        if (note) {
-            sample[i] = note.copy()
-        } else {
-            // Treat empty values as rests
-            sample[i] = new Marker.Rest
-        }
+        sample[i] = sample[i].copy()
     }
 }
 
@@ -383,7 +377,9 @@ function shuffle() {
     state.sample = state.scale.copy(true)
     state.sample.state = state
     padSample.call(this)
-    SHUFFLERS[this.shuffler.value](state.sample)
+    if (state.sample.length > 2) {
+        SHUFFLERS[this.shuffler.value](state.sample, state)
+    }
     afterBuild.call(this)
 }
 
