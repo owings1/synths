@@ -264,17 +264,17 @@ Sampler.Meta = {
             max: Music.OCTAVE_COUNT - 2,
             step: 1,
         },
-        shuffle: {
+        shuffler: {
+            type: 'enum',
+            default: ShufflerIds.NONE,
+            values: flip(ShufflerIds),
+        },
+        repeat: {
             type: 'integer',
             default: 1,
             min: 0,
             max: 24,
             step: 1,
-        },
-        shuffler: {
-            type: 'enum',
-            default: ShufflerIds.NONE,
-            values: flip(ShufflerIds),
         },
         dotter: {
             type: 'enum',
@@ -330,7 +330,7 @@ function refreshState(node) {
     state.beat = node.beat.value
     state.bpm = node.bpm.value
     state.loop = node.loop.value
-    state.shuffle = node.shuffle.value
+    state.repeat = node.repeat.value
     if (!state.nextTime) {
         state.nextTime = node.context.currentTime
     }
@@ -491,7 +491,7 @@ class State {
     }
 
     get isShuffleWanted() {
-        return this.shuffle && this.counter % this.shuffle === 0
+        return this.repeat && this.counter % this.repeat === 0
     }
 
     refreshTimeSig() {

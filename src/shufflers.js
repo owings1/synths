@@ -10,8 +10,11 @@ import {Note} from './music.js'
 import {RestMarker} from './utils/notation.js'
 export const NONE = () => {}
 export const RANDY = shuffle
+const OCTAVE = 12
+const m7 = 10
+const M7 = 11
 
-const {ceil, floor, random} = Math
+const {abs, ceil, floor, random} = Math
 
 const Conf = {
     SOFA: {
@@ -57,9 +60,9 @@ const Conf = {
         fill: {
             chance: 0.20,
             chances: [
-                [0.04, randomElement],
-                [0.05, rest],
-                [0.10, first],
+                // [0.04, randomElement],
+                // [0.05, first],
+                [0.20, rest],
                 [0.45, arr => arr[3]],
                 [0.50, arr => arr[4]],
             ],
@@ -69,7 +72,6 @@ const Conf = {
                 [0.55, first],
             ],
         },
-        smooth: 3,
     },
     JARD: {
         fill: {
@@ -106,9 +108,10 @@ const Conf = {
  */
 export function SOFA(arr, state) {
     const conf = Conf.SOFA
+    const starter = chanceFill(arr, 0, conf.start.chances)
     shuffle(arr)
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    chanceFill(arr, 0, conf.start.chances)
+    arr[0] = starter
 }
 
 
@@ -118,12 +121,14 @@ export function SOFA(arr, state) {
  */
 export function BIMOM(arr, state) {
     const conf = Conf.BIMOM
+    const starter = chanceFill(arr, 0, conf.start.chances)
+    const ender = chanceFill(arr, arr.length - 1, conf.end.chances)
     shuffle(arr, {start: 0, end: 3})
     midShuffle(arr)
     shuffle(arr, {start: arr.length - 4})
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    chanceFill(arr, 0, conf.start.chances)
-    chanceFill(arr, arr.length - 1, conf.end.chances)
+    arr[0] = starter
+    arr[arr.length - 1] = ender
 }
 
 
@@ -133,13 +138,18 @@ export function BIMOM(arr, state) {
  */
 export function TONAK(arr, state) {
     const conf = Conf.TONAK
-    shuffle(arr)
+    const starter = chanceFill(arr, 0, conf.start.chances)
+    shuffleByOctave(arr)
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    for (let i = 0; i < conf.smooth; ++i) {
-        smooth(arr)
-    }
+    smooth(arr)
+    smooth(arr)
+    smooth(arr)
     avoidOctavesWithSwapAhead(arr)
-    chanceFill(arr, 0, conf.start.chances)
+    smooth(arr)
+    replaceConsecutiveLargeIntervalsWithRest(arr)
+    smooth(arr)
+    replaceLargeIntervalsWithRest(arr)
+    arr[0] = starter
 }
 
 
@@ -153,9 +163,10 @@ export function JARD(arr, state) {
     shuffle(arr, {start: 1, end: 4})
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
     // Shuffle 25% of the upper half of the notes
-    const start = floor(arr.length / 2)
-    const limit = Math.max(3, floor(arr.length / 4))
-    shuffle(arr, {limit, start})
+    shuffle(arr, {
+        start: floor(arr.length / 2),
+        limit: Math.max(3, floor(arr.length / 4))
+    })
 }
 
 
@@ -210,6 +221,28 @@ function midShuffle(arr) {
 }
 
 /**
+ * @param {TonalSample} arr
+ */
+function shuffleByOctave(arr) {
+    for (let i = 0, lo = 0, value; i < arr.length; ++i) {
+        if (arr[i].type !== Note) {
+            continue
+        }
+        if (value === undefined) {
+            value = arr[i].index
+            lo = i
+            continue
+        }
+        if (abs(arr[i].index - value) > OCTAVE || i === arr.length - 1) {
+            console.log(lo, i)
+            shuffle(arr, {start: lo, end: i-1})
+            value = arr[i].index
+            lo = i
+        }
+    }
+}
+
+/**
  * @param {any[]} arr
  * @param {any[]} orig
  * @param {number} head
@@ -242,9 +275,10 @@ function chanceFills(arr, chances, p = 1) {
 }
 
 /**
- * @param {any[]} arr
+ * @param {T[]} arr
  * @param {number} i
  * @param {any[][]} chances
+ * @return {T}
  */
 
 function chanceFill(arr, i, chances) {
@@ -254,6 +288,7 @@ function chanceFill(arr, i, chances) {
             break
         }
     }
+    return arr[i]
 }
 
 /**
@@ -264,13 +299,17 @@ function smooth(arr) {
         return
     }
     for (let i = 1; i < arr.length - 1; ++i) {
-        let prev = arr[i - 1]
-        let curr = arr[i]
-        let next = arr[i + 1]
-        if (!prev.index || !curr.index || !next || !next.index) {
+        const prev = arr[i - 1]
+        const curr = arr[i]
+        const next = arr[i + 1]
+        if (!isNote(prev, curr, next)) {
             continue
         }
-        if (prev.index < curr.index && curr.index < next.index || prev.index > curr.index && curr.index > next.index || curr.index === next.index) {
+        if (
+            prev.index < curr.index && curr.index < next.index ||
+            prev.index > curr.index && curr.index > next.index ||
+            curr.index === next.index
+        ) {
             continue
         }
         arr[i + 1] = curr
@@ -285,7 +324,7 @@ function avoidOctavesWithSwapAhead(arr) {
     for (let i = 0; i < arr.length; ++i) {
         const a = arr[i]
         const b = arr[i + 1]
-        if (a.type === Note && b && b.type === Note) {
+        if (isNote(a, b)) {
             if (a.degree === b.degree && a.octave !== b.octave) {
                 const c = arr[i + 2]
                 if (c && c.type === Note) {
@@ -297,6 +336,37 @@ function avoidOctavesWithSwapAhead(arr) {
     }
 }
 
+function replaceLargeIntervalsWithRest(arr, limit = M7) {
+    for (let i = 1; i < arr.length - 1; ++i) {
+        const a = arr[i]
+        const b = arr[i + 1]
+        if (isNote(a, b)) {
+            if (abs(a.index - b.index) > limit) {
+                arr[i + 1] = rest()
+            }
+        }
+    }
+}
+
+function replaceConsecutiveLargeIntervalsWithRest(arr, limit = m7) {
+    if (arr.length < 3) {
+        return
+    }
+    for (let i = 1; i < arr.length - 1; ++i) {
+        const prev = arr[i - 1]
+        const curr = arr[i]
+        const next = arr[i + 1]
+
+        if (isNote(prev, curr, next)) {
+            if (
+                abs(prev.index - curr.index) > limit &&
+                abs(curr.index - next.index) > limit
+            ) {
+                arr[i] = rest()
+            }
+        }
+    }
+}
 /**
  * @param {T[]} arr
  * @return {T|undefined}
@@ -305,6 +375,14 @@ function randomElement(arr) {
     return arr[Math.floor(Math.random() * arr.length)]
 }
 
+function isNote(...args) {
+    for (let i = 0; i < args.length; ++i) {
+        if (!args[i] || args[i].type !== Note) {
+            return false
+        }
+    }
+    return true
+}
 /**
  * @param {T[]} arr
  * @return {T|undefined}

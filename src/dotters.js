@@ -16,14 +16,17 @@ export const DROF = (sample, state) => {
     eachMeasureStart(sample, state, i => {
         const p = Math.random()
         if (p < 0.15) {
-            if (getDiffAt(sample, i + 1) < M6) {
+            let d1 = getDiffAt(sample, i)
+            let d2 = getDiffAt(sample, i + 1)
+            if (d1 < M6 && d2 < M6 && d1 !== 0 && d2 !== 0) {
                 tryDot(sample, state, i)
             }
         } else if (p < 0.1) {
-            if (getDiffAt(sample, i + 3) < M6) {
+            let d1 = getDiffAt(sample, i + 2)
+            let d2 = getDiffAt(sample, i + 3)
+            if (d1 < M6 && d2 < M6 && d1 !== 0 && d2 !== 0) {
                 tryDot(sample, state, i + 2)
             }
-            // tryDot(sample, state, i + 2)
         }
     })
 }
@@ -31,7 +34,7 @@ export const DROF = (sample, state) => {
 function getDiffAt(sample, i, dflt = Infinity) {
     const a = sample[i]
     const b = sample[i+1]
-    if (a && b && a.type === Note && b.type === Note) {
+    if (bothAreNotes(a, b)) {
         return Math.abs(a.index - b.index)
     }
     return dflt
@@ -51,12 +54,14 @@ function canDot(sample, state, i) {
     const a = sample[i]
     const b = sample[i + 1]
     return (
-        a && b &&
-        a.type === Note && b.type === Note &&
+        bothAreNotes(a, b) &&
         !a.dot && !a.dedot &&
         !b.dot && !b.dedot
     )
 
+}
+function bothAreNotes(a, b) {
+    return a && b && a.type === Note && a.type === b.type
 }
 function tryDot(sample, state, i) {
     if (canDot(sample, state, i)) {
