@@ -121,7 +121,7 @@ export function SOFA(arr, state) {
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
     arr[0] = starter
     smooth(arr)
-    replaceLargeIntervals(arr, M6, (arr, i) => random() > 0.5 ? arr[i - 1] : rest())
+    replaceLargeIntervals(arr, M6, (arr, i) => random() > 0.2 ? arr[i - 1] : rest())
 }
 
 
@@ -151,9 +151,11 @@ export function TONAK(arr, state) {
     const starter = chanceFill(arr, 0, conf.start.chances)
     shuffleByOctave(arr)
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    // smooth(arr)
     smooth(arr)
-    smooth(arr)
-    smooth(arr)
+    if (random() > 0.5) {
+        smooth(arr)
+    }
     avoidOctavesWithSwapAhead(arr)
     smooth(arr)
     replaceConsecutiveLargeIntervals(arr)
@@ -244,7 +246,6 @@ function shuffleByOctave(arr) {
             continue
         }
         if (abs(arr[i].index - value) > OCTAVE || i === arr.length - 1) {
-            console.log(lo, i)
             shuffle(arr, {start: lo, end: i-1})
             value = arr[i].index
             lo = i
@@ -353,7 +354,6 @@ function replaceLargeIntervals(arr, limit = M7, f = rest) {
         if (isNote(a, b)) {
             if (abs(a.index - b.index) > limit) {
                 arr[i + 1] = f(arr, i + 1) || b
-                console.debug('replaced at', i+1, arr[i+1])
             }
         }
     }

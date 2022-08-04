@@ -10,9 +10,10 @@ import * as Music from './music.js'
 import {guessTimeSig, guessClef, Clef, RestMarker} from './utils/notation.js'
 import {ValueError} from './utils/utils.js'
 
-const {Accidental, Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
+const {Accidental, Articulation, Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice} = Vex.Flow
 const REST_NOTETYPE = 'r'
-
+const STACCATO_MARK = 'a.'
+const STACCATO_LIMIT = 0.3
 const Defaults = {
     noteDur: null, // default 4
     timeSig: null, // null is to guess
@@ -178,18 +179,17 @@ export class VexSampleScore {
         // width of an accidental
         this.accidentalWidth = 15
         // render width of each note
-        this.noteWidth = 70
+        this.noteWidth = 40
         // width of the key signature
         this.keySigWidth = this.sample.keySig.accidents * this.accidentalWidth
         // total render height
         this.height = this.marginTop + 320
         // total render width
         this.width = this.sample.length * this.noteWidth + (
-            this.marginLeft +
+            this.marginLeft * 2 +
             this.clefWidth +
             this.keySigWidth +
-            this.timeSigWidth +
-            this.marginLeft
+            this.timeSigWidth
         )
     }
 
@@ -256,6 +256,9 @@ export class VexSampleScore {
             const staveNote = new StaveNote({keys, duration, clef})
             if (note.dot) {
                 Dot.buildAndAttach([staveNote], {index: 0})
+            }
+            if (note.articulation <= STACCATO_LIMIT) {
+                staveNote.addModifier(new Articulation(STACCATO_MARK))
             }
             return staveNote
         })

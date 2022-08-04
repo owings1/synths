@@ -6,7 +6,7 @@
  */
 import {BaseNode, paramProp} from './core.js'
 import {flip, range} from './utils/utils.js'
-import {guessTimeSig, Marker} from './utils/notation.js'
+import {guessTimeSig, RestMarker} from './utils/notation.js'
 import * as Music from './music.js'
 import * as Shufflers from './shufflers.js'
 import * as Dotters from './dotters.js'
@@ -26,16 +26,16 @@ const ShufflerIds = {
     JARD: 5,
     CHUNE: 6,
 }
-const SHUFFLERS = Object.fromEntries(
-    Object.entries(ShufflerIds).map(
-        ([name, id]) =>  [id, Shufflers[name]]
-    )
-)
 const DotterIds = {
     NONE: 0,
     CRIM: 1,
     DROF: 2,
 }
+const SHUFFLERS = Object.fromEntries(
+    Object.entries(ShufflerIds).map(
+        ([name, id]) =>  [id, Shufflers[name]]
+    )
+)
 const DOTTERS = Object.fromEntries(
     Object.entries(DotterIds).map(
         ([name, id]) =>  [id, Dotters[name]]
@@ -133,7 +133,7 @@ export default class Sampler extends BaseNode {
         state.sample = state.scale.copy(true)
         state.sample.state = state
         state.counter = 0
-        refreshState(this)
+        refreshState.call(this)
         afterBuild.call(this)
         return this
     }
@@ -174,14 +174,6 @@ export default class Sampler extends BaseNode {
         return this
     }
 
-    get noteDurDenominator() {
-        return 240 / this.beat.value
-    }
-
-    get timeSig() {
-        return this[symState].timeSig
-    }
-
     /**
      * Overridable callback
      * @param {Music.TonalNote[]} sample
@@ -220,30 +212,6 @@ Sampler.Meta = {
             type: 'boolean',
             default: false,
         },
-        loop: {
-            type: 'boolean',
-            default: false,
-        },
-        beat: {
-            type: 'enum',
-            default: 30,
-            values: {
-                15: '1/16',
-                // 20: '1/12',
-                30: '1/8',
-                // 45: '1/6',
-                60: '1/4',
-                120: '1/2',
-            }
-        },
-        bpm: {
-            type: 'integer',
-            default: 60,
-            min: 30,
-            max: 240,
-            step: 1,
-            ticks: range(30, 300, 30)
-        },
         minSize: {
             type: 'integer',
             default: 0,
@@ -269,17 +237,41 @@ Sampler.Meta = {
             default: ShufflerIds.NONE,
             values: flip(ShufflerIds),
         },
+        beat: {
+            type: 'enum',
+            default: 30,
+            values: {
+                15: '1/16',
+                // 20: '1/12',
+                30: '1/8',
+                // 45: '1/6',
+                60: '1/4',
+                120: '1/2',
+            }
+        },
+        dotter: {
+            type: 'enum',
+            default: DotterIds.NONE,
+            values: flip(DotterIds),
+        },
+        bpm: {
+            type: 'integer',
+            default: 60,
+            min: 30,
+            max: 240,
+            step: 1,
+            ticks: range(30, 300, 30)
+        },
+        loop: {
+            type: 'boolean',
+            default: false,
+        },
         repeat: {
             type: 'integer',
             default: 1,
             min: 0,
             max: 24,
             step: 1,
-        },
-        dotter: {
-            type: 'enum',
-            default: DotterIds.NONE,
-            values: flip(DotterIds),
         },
     },
     actions: {
@@ -293,7 +285,7 @@ Sampler.Meta = {
 }
 
 /**
- * @param {String} name
+ * @param {string} name
  * @param {number|boolean} value
  */
 function afterSet(name, value) {
@@ -304,7 +296,7 @@ function afterSet(name, value) {
     if (REBUILD_OPTHASH[name] === true) {
         this.build()
     } else {
-        refreshState(this)
+        refreshState.call(this)
     }
     clearTimeout(state.stopId)
     switch (name) {
@@ -321,21 +313,23 @@ function afterSet(name, value) {
 
 /**
  * Refresh state from node params
- * 
- * @param {Sampler} node
+ * @private
  */
-function refreshState(node) {
-    const state = node[symState]
-    state.minSize = node.minSize.value
-    state.beat = node.beat.value
-    state.bpm = node.bpm.value
-    state.loop = node.loop.value
-    state.repeat = node.repeat.value
+function refreshState() {
+    const state = this[symState]
+    state.minSize = this.minSize.value
+    state.beat = this.beat.value
+    state.bpm = this.bpm.value
+    state.loop = this.loop.value
+    state.repeat = this.repeat.value
     if (!state.nextTime) {
-        state.nextTime = node.context.currentTime
+        state.nextTime = this.context.currentTime
     }
 }
 
+/**
+ * @private
+ */
 function afterBuild() {
     const state = this[symState]
     const {sample} = state
@@ -350,6 +344,9 @@ function afterBuild() {
     state.prev = state.sample.copy()
 }
 
+/**
+ * @private
+ */
 function padSample() {
     const {sample} = this[symState]
     const minSize = this.minSize.value
@@ -358,6 +355,10 @@ function padSample() {
     }
 }
 
+/**
+ * Replace each element in sample with a copy
+ * @private
+ */
 function normalizeSample() {
     const state = this[symState]
     const {sample} = state
@@ -368,6 +369,7 @@ function normalizeSample() {
 
 /**
  * Call the configured shuffler on the current sample
+ * @private
  */
 function shuffle() {
     const state = this[symState]
@@ -386,7 +388,6 @@ function shuffle() {
 
 /**
  * Self-rescheduling scheduler
- * 
  * @private
  */
 function schedule() {
@@ -426,14 +427,14 @@ function schedule() {
 
 /**
  * Schedule a note to be played
- * 
+ * @private
  * @param {Music.Note|null|undefined} note
  * @param {number} durationSeconds duration in seconds
  * @param {number} time
  */
 function playNote(note, durationSeconds, time) {
     const state = this[symState]
-    if (note.type === Marker.Rest) {
+    if (note.type === RestMarker) {
         this.oscillator.frequency.setValueAtTime(0, time)
         return
     }
@@ -443,6 +444,7 @@ function playNote(note, durationSeconds, time) {
         durationSeconds /= 2
         time += durationSeconds
     }
+    durationSeconds *= note.articulation || 1
     state.lastNote = note
     this.instruments.forEach(inst => {
         inst.triggerAttackRelease(note.freq, durationSeconds, time)

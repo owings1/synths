@@ -44,6 +44,8 @@ function dotAt(sample, i) {
     const b = sample[i+1]
     a.dot = b.dedot = true
     b.dot = a.dedot = false
+    a.articulation = 0.5
+    b.articulation = 0.2
 }
 
 function canDot(sample, state, i) {
