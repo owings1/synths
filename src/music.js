@@ -26,6 +26,7 @@ export const Tonality = {
     MAJOR_PENTATONIC: 16,
     MINOR_PENTATONIC: 17,
     JAPANESE: 18,
+    MISHEBERAK: 19,
 }
 
 /** Direction Enum */
@@ -235,7 +236,7 @@ Object.defineProperties(Tonality, {
     },
     // reference functions
     isValid: {
-        value: value => Number.isInteger(value) && 0 < value && value <= 18,
+        value: value => Number.isInteger(value) && 0 < value && value <= 19,
         enumerable: false,
         writable: false,
     },
@@ -271,6 +272,7 @@ const SCALE_INTERVALS = Object.fromEntries(Object.entries({
     // Other minor
     HARMONIC_MINOR: [[W, H, W, W, H, m3, H], null],
     MELODIC_MINOR:  [[W, H, W, W, W, W, H], [W, W, H, W, W, H, W]],
+    MISHEBERAK:     [[W, H, m3,H, W, H, W], null],    
     // Octatonic
     DIMINISHED:  [[H, W, H, W, H, W, H, W], null],
     // Hexatonic
@@ -297,6 +299,7 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     // Other minor
     HARMONIC_MINOR: [[m3, M3, M3, H], null], // ?
     MELODIC_MINOR:  [[m3, M3, W, m3], [P4, M3, m3]],
+    MISHEBERAK:     [[m3, m3, M3, W], null], // TODO
     // Octatonic
     DIMINISHED: [[m3, m3, m3, m3], null],
     // Hexatonic
@@ -559,6 +562,7 @@ const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
     // Other minor
     HARMONIC_MINOR: -9,
     MELODIC_MINOR: -9,
+    MISHEBERAK: null,
     // Octatonic
     DIMINISHED: null,
     // Hexatonic
