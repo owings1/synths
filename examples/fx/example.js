@@ -41,7 +41,6 @@ const sampler = new Sampler(context)
 const samplerDry = new GainNode(context)
 const samplerFx = new GainNode(context)
 
-// const amSynth = new MembraneSynth(context)
 const amSynth = new AMSynth(context)
 const amSynthDry = new GainNode(context)
 const amSynthFx = new GainNode(context)
@@ -132,16 +131,30 @@ const mixer = [
 
 mixer.forEach(slot => slot.param.value = slot.default)
 
+const mixerId = 'mixer'
+const nodes = {sample: sampler, amSynth, fmSynth, ...effects}
+const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
+
+let autoSaveId
+let drawId
+
+function autoSave() {
+    clearTimeout(autoSaveId)
+    autoSaveId = setTimeout(() => presets.save('autoSave'), 500)
+}
+sampler.onschedule = (sample, time) => {
+    clearTimeout(drawId)
+    drawId = setTimeout(
+        () => new VexSampleScore(sample).render($('#score').empty()),
+        (time - context.currentTime) * 1000
+    )
+}
+
 $(() => {
-    const score = new VexSampleScore
-    const mixerId = 'mixer'
-    const nodes = {sample: sampler, amSynth, fmSynth, ...effects}
-    const presets = new LocalPresets('fx-example', nodes, mixer, mixerId)
-    const $score = $('<div/>').attr({id: 'score'})
     $('#main').append(
         mixerWidget(mixerId, 'Mixer', mixer),
         nodeWidget('sample', sampler),
-        $score,
+        $('<div/>').attr({id: 'score'}),
         nodeWidget('amSynth', amSynth),
         nodeWidget('fmSynth', fmSynth),
     )
@@ -149,14 +162,10 @@ $(() => {
     $.each(effects, (id, node) => nodeWidget(id, node).appendTo('#effects'))
     $.each(styles, (id, cls) => $(`#${id}`).addClass(cls))
     presets.widget().appendTo('#presets')
-
-    let drawId
-    sampler.onschedule = (sample, time) => {
-        clearTimeout(drawId)
-        drawId = setTimeout(
-            () => score.reload(sample).render($score.empty()),
-            (time - context.currentTime) * 1000
-        )
+    if (presets.has('autoSave')) {
+        presets.load('autoSave')
     }
-    // $('#sample-stop').on('click', () => clearTimeout(drawId))
+
+    $('#main, #effects').on('change', autoSave)
+    $('#presets').on('click', 'button.load', autoSave)
 })

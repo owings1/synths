@@ -35,6 +35,10 @@ input[type="checkbox"] {
     accent-color: var(--yellow);
 }
 
+#score {
+    overflow-x: scroll;
+}
+
 .unit {
     font-family: 'courier';
 }

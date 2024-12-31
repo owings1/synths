@@ -1,0 +1,431 @@
+{
+    "1": {
+      "mixer": {
+        "main": 0.550000011920929,
+        "sampleDry": 0.3799999952316284,
+        "amSynthDry": 0.4099999964237213,
+        "fmSynthDry": 0,
+        "sampleFx": 0.5,
+        "amSynthFx": 0.5,
+        "fmSynthFx": 0,
+        "fxout": 0.5
+      },
+      "nodes": {
+        "sample": {
+          "params": {
+            "tonality": 19,
+            "degree": 6,
+            "direction": 15,
+            "arpeggio": false,
+            "minSize": 96,
+            "octave": 4,
+            "octaves": 3,
+            "shuffler": 5,
+            "beat": 30,
+            "dotter": 0,
+            "bpm": 165,
+            "loop": true,
+            "repeat": 1
+          }
+        },
+        "amSynth": {
+          "params": {
+            "portamento": "0.0347",
+            "harmonicity": "3"
+          }
+        },
+        "fmSynth": {
+          "params": {
+            "portamento": "0.0382",
+            "harmonicity": "3",
+            "modulationIndex": "10"
+          }
+        },
+        "compressor": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "threshold": -50,
+            "knee": 40,
+            "ratio": 12,
+            "attack": 0,
+            "release": 0.25
+          }
+        },
+        "wah": {
+          "active": true,
+          "params": {
+            "wet": "1",
+            "base": 100,
+            "sensitivity": 0,
+            "octaves": "5",
+            "quality": "2"
+          }
+        },
+        "overdrive": {
+          "active": false,
+          "params": {
+            "gain": 2,
+            "drive": 0.5,
+            "feedback": 0,
+            "color": 800,
+            "postCut": 3000
+          }
+        },
+        "tremolo": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "chorus": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "delay": 3.5,
+            "depth": "0.7",
+            "spread": 180
+          }
+        },
+        "panner": {
+          "active": false,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "phaser": {
+          "active": false,
+          "params": {
+            "wet": "1",
+            "base": 350,
+            "frequency": 0.5,
+            "octaves": "3",
+            "stages": "10",
+            "quality": "10"
+          }
+        },
+        "reverb": {
+          "active": false,
+          "params": {
+            "intensity": 0.10000000149011612,
+            "sample": 1
+          }
+        },
+        "delay": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "delayTime": 3.5099998712539673,
+            "feedback": 0.8100000023841858
+          }
+        },
+        "lowpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 1000,
+            "quality": 1
+          }
+        },
+        "highpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 100,
+            "quality": 1
+          }
+        }
+      }
+    },
+    "2": {
+      "mixer": {
+        "main": 0.550000011920929,
+        "sampleDry": 0.3799999952316284,
+        "amSynthDry": 0.4099999964237213,
+        "fmSynthDry": 0.38999998569488525,
+        "sampleFx": 0.5,
+        "amSynthFx": 0.5,
+        "fmSynthFx": 0.4399999976158142,
+        "fxout": 0.5
+      },
+      "nodes": {
+        "sample": {
+          "params": {
+            "tonality": 19,
+            "degree": 6,
+            "direction": 15,
+            "arpeggio": false,
+            "minSize": 48,
+            "octave": 4,
+            "octaves": 3,
+            "shuffler": 5,
+            "beat": 30,
+            "dotter": 0,
+            "bpm": 165,
+            "loop": true,
+            "repeat": 1
+          }
+        },
+        "amSynth": {
+          "params": {
+            "portamento": "0.0347",
+            "harmonicity": "3"
+          }
+        },
+        "fmSynth": {
+          "params": {
+            "portamento": "0.0382",
+            "harmonicity": "3",
+            "modulationIndex": "10"
+          }
+        },
+        "compressor": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "threshold": -50,
+            "knee": 40,
+            "ratio": 12,
+            "attack": 0,
+            "release": 0.25
+          }
+        },
+        "wah": {
+          "active": true,
+          "params": {
+            "wet": "1",
+            "base": 100,
+            "sensitivity": 0,
+            "octaves": "5",
+            "quality": "2"
+          }
+        },
+        "overdrive": {
+          "active": false,
+          "params": {
+            "gain": 2,
+            "drive": 0.5,
+            "feedback": 0,
+            "color": 800,
+            "postCut": 3000
+          }
+        },
+        "tremolo": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "chorus": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "delay": 3.5,
+            "depth": "0.7",
+            "spread": 180
+          }
+        },
+        "panner": {
+          "active": false,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "phaser": {
+          "active": true,
+          "params": {
+            "wet": "1",
+            "base": 350,
+            "frequency": 0.5,
+            "octaves": "3",
+            "stages": "10",
+            "quality": "10"
+          }
+        },
+        "reverb": {
+          "active": false,
+          "params": {
+            "intensity": 0.10000000149011612,
+            "sample": 1
+          }
+        },
+        "delay": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "delayTime": 3.5099998712539673,
+            "feedback": 0.8100000023841858
+          }
+        },
+        "lowpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 1000,
+            "quality": 1
+          }
+        },
+        "highpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 100,
+            "quality": 1
+          }
+        }
+      }
+    },
+    "3": {
+      "mixer": {
+        "main": 0.550000011920929,
+        "sampleDry": 0.17000000178813934,
+        "amSynthDry": 0.14000000059604645,
+        "fmSynthDry": 0,
+        "sampleFx": 0.5,
+        "amSynthFx": 0.25,
+        "fmSynthFx": 0,
+        "fxout": 0.5
+      },
+      "nodes": {
+        "sample": {
+          "params": {
+            "tonality": 10,
+            "degree": 4,
+            "direction": 15,
+            "arpeggio": false,
+            "minSize": 96,
+            "octave": 6,
+            "octaves": 1,
+            "shuffler": 3,
+            "beat": 120,
+            "dotter": 0,
+            "bpm": 92,
+            "loop": true,
+            "repeat": 1
+          }
+        },
+        "amSynth": {
+          "params": {
+            "portamento": "0.0347",
+            "harmonicity": "3"
+          }
+        },
+        "fmSynth": {
+          "params": {
+            "portamento": "0.0382",
+            "harmonicity": "3",
+            "modulationIndex": "10"
+          }
+        },
+        "compressor": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "threshold": -50,
+            "knee": 40,
+            "ratio": 12,
+            "attack": 0,
+            "release": 0.25
+          }
+        },
+        "wah": {
+          "active": true,
+          "params": {
+            "wet": "1",
+            "base": 100,
+            "sensitivity": 0,
+            "octaves": "5",
+            "quality": "2"
+          }
+        },
+        "overdrive": {
+          "active": false,
+          "params": {
+            "gain": 2,
+            "drive": 0.5,
+            "feedback": 0,
+            "color": 800,
+            "postCut": 3000
+          }
+        },
+        "tremolo": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "chorus": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "delay": 3.5,
+            "depth": "0.7",
+            "spread": 180
+          }
+        },
+        "panner": {
+          "active": true,
+          "params": {
+            "wet": "0.5",
+            "frequency": 2,
+            "depth": "0.5"
+          }
+        },
+        "phaser": {
+          "active": true,
+          "params": {
+            "wet": "1",
+            "base": 350,
+            "frequency": 0.5,
+            "octaves": "3",
+            "stages": "10",
+            "quality": "10"
+          }
+        },
+        "reverb": {
+          "active": true,
+          "params": {
+            "intensity": 0.10000000149011612,
+            "sample": 1
+          }
+        },
+        "delay": {
+          "active": true,
+          "params": {
+            "gain": 1,
+            "delayTime": 2.9100000858306885,
+            "feedback": 0.9200000166893005
+          }
+        },
+        "lowpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 1000,
+            "quality": 1
+          }
+        },
+        "highpass": {
+          "active": false,
+          "params": {
+            "gain": 1,
+            "cutoff": 100,
+            "quality": 1
+          }
+        }
+      }
+    }
+  }
