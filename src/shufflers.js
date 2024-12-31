@@ -180,11 +180,24 @@ export function JARD(arr, state) {
         start: Math.min(floor(arr.length / 2), 23),
         limit: Math.max(3, floor(arr.length / 4)),
     })
-    if (arr.length >= 30 && random() <= 0.75) {
-        // Hold the last note for phrasing.
-        const holdNote = arr[arr.length - 3]
-        arr[arr.length - 2] = holdNote
-        arr[arr.length - 1] = holdNote
+    if (arr.length >= 24) {
+        let holdNote
+        for (let i = 1; i <= 3; ++i) {
+            const note = arr[arr.length - i]
+            if (
+                note.isLeadingTone
+                //|| note.isDominant
+            ) {
+                holdNote = note
+                break
+            }
+        }
+        if (holdNote) {
+            // Hold the last note for phrasing.
+            arr[arr.length - 3] = holdNote
+            arr[arr.length - 2] = holdNote
+            arr[arr.length - 1] = holdNote
+        }
     }
 }
 

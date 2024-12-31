@@ -29,6 +29,11 @@ export const Tonality = {
     MISHEBERAK: 19,
 }
 
+const TONALITY_NAMES = new Map
+for (const [key, value] of Object.entries(Tonality)) {
+    TONALITY_NAMES.set(value, key)
+}
+
 /** Direction Enum */
 export const Dir = {
     ASCEND: 1,
@@ -49,9 +54,16 @@ const FLAT_LABEL = 'b'
 const MINOR_LABEL = 'm'
 const OCTAVE_SEPARATOR = '/'
 
+/**
+ * Get a note by degree and octave
+ * @param {number} degree The degree (0-11)
+ * @param {number} octave The octave (0-8)
+ * @return {Note}
+ */
 export function getNote(degree, octave) {
     return new Note(octave * OCTAVE + degree)
 }
+
 /**
  * Get a note at a frequency
  * @param {number} freq
@@ -76,9 +88,9 @@ export function freqNote(freq, strict = false) {
  * @return {number|undefined} The frequency, or undefined if out of range
  */
 export function stepFreq(freq, degrees, strict = false) {
-    let baseData = getFreqData(freq, strict)
-    if (baseData) {
-        return FREQS[baseData.index + Number(degrees)]
+    const data = getFreqData(freq, strict)
+    if (data) {
+        return FREQS[data.index + Number(degrees)]
     }
 }
 
@@ -123,7 +135,7 @@ export function scaleSample(degree, opts = undefined) {
         opts.descend = direction === Dir.DESCEND
         notes = scaleNotes(degree, octave, tonality, opts)
     }
-    return new TonalSample().init(notes, notes[0], tonality)
+    return TonalSample.create(notes, notes[0], tonality)
 }
 
 /**
@@ -222,46 +234,13 @@ for (const Enum of [Tonality, Dir]) {
     })
 }
 
-Object.defineProperties(Tonality, {
-    // Mode aliases.
-    IONIAN: {
-        value: Tonality.MAJOR,
-        enumerable: false,
-        writable: false,
-    },
-    AEOLIAN: {
-        value: Tonality.NATURAL_MINOR,
-        enumerable: false,
-        writable: false,
-    },
-    // reference functions
-    isValid: {
-        value: value => Number.isInteger(value) && 0 < value && value <= 19,
-        enumerable: false,
-        writable: false,
-    },
-    isMinor: {
-        value: tonality => MAJOR_OFFSETS[tonality] === -9,
-        enumerable: false,
-        writable: false,
-    },
-})
-
-Object.defineProperties(Dir, {
-    isMulti: {
-        value: dir => Boolean(dir & 4),
-        enumerable: false,
-        writable: false,
-    }
-})
-
 /**
  * Scale intervals. Value is a pair of arrays [ascending, descending].
  * The descending array is generated from the reverse of the ascending,
  * unless it is directly given here.
  */
 const SCALE_INTERVALS = Object.fromEntries(Object.entries({
-    // Normal modes
+    // Heptatonic - Diatonic
     MAJOR:          [[W, W, H, W, W, W, H], null],
     DORIAN:         [[W, H, W, W, W, H, W], null],
     PHRYGIAN:       [[H, W, W, W, H, W, W], null],
@@ -269,7 +248,7 @@ const SCALE_INTERVALS = Object.fromEntries(Object.entries({
     MIXOLYDIAN:     [[W, W, H, W, W, H, W], null],
     NATURAL_MINOR:  [[W, H, W, W, H, W, W], null],
     LOCRIAN:        [[H, W, W, H, W, W, W], null],
-    // Other minor
+    // Heptatonic - Non-diatonic
     HARMONIC_MINOR: [[W, H, W, W, H, m3, H], null],
     MELODIC_MINOR:  [[W, H, W, W, W, W, H], [W, W, H, W, W, H, W]],
     MISHEBERAK:     [[W, H, m3,H, W, H, W], null],
@@ -322,6 +301,40 @@ for (const base of [SCALE_INTERVALS, ARPEGGIO_INTERVALS]) {
     })
 }
 
+const SCALE_DEGREE_REFS = new Map()
+
+for (const [key, ivls] of Object.entries(SCALE_INTERVALS)) {
+    const degreeRef = new Map()
+    SCALE_DEGREE_REFS.set(Number(key), degreeRef)
+    degreeRef.set(0, 0)
+    const [up, down] = ivls
+    for (let i = 0, v = 0; i < up.length; ++i) {
+        v += up[i]
+        degreeRef.set(v, i + 1)
+    }
+    for (let i = down.length - 1, v = 0; i >= 0; --i) {
+        v += down[i]
+        degreeRef.set(v, down.length - i)
+    }
+}
+
+const valuedProp = value => ({value, enumerable: false, writable: false})
+
+Object.defineProperties(Tonality, {
+    // Mode aliases.
+    IONIAN: valuedProp(Tonality.MAJOR),
+    AEOLIAN: valuedProp(Tonality.NATURAL_MINOR),
+    // reference functions
+    isValid: valuedProp(value => TONALITY_NAMES.has(value)),
+    isMinor: valuedProp(tonality => MAJOR_OFFSETS[tonality] === -9),
+    nameOf: valuedProp(tonality => TONALITY_NAMES.get(tonality)),
+    scaleSizeOf: valuedProp(tonality => SCALE_INTERVALS[tonality][0].length),
+})
+
+Object.defineProperties(Dir, {
+    isMulti: valuedProp(dir => Boolean(dir & 4)),
+})
+
 const symNote = Symbol()
 
 /**
@@ -338,34 +351,42 @@ export class Note {
         }
         this[symNote] = NOTES_DATA[index]
     }
+
     /** @type {number} */
     get index() {
         return this[symNote].index
     }
+
     /** @type {number} */
     get freq() {
         return this[symNote].freq
     }
+
     /** @type {number} */
     get octave() {
         return this[symNote].octave
     }
+
     /** @type {number} */
     get degree() {
         return this[symNote].degree
     }
+
     /** @type {string} */
     get letter() {
         return this[symNote].letter
     }
+
     /** @type {boolean} */
     get isBlackKey() {
         return this[symNote].raised
     }
+
     /** @type {string} */
     get label() {
         return this.shortLabel + OCTAVE_SEPARATOR + this.octave
     }
+
     /** @type {string} */
     get shortLabel() {
         if (this.isBlackKey) {
@@ -373,10 +394,12 @@ export class Note {
         }
         return this.letter
     }
+
     /** @type {string} */
     get flattedLabel() {
         return this.flattedShortLabel + OCTAVE_SEPARATOR + this.octave
     }
+
     /** @type {string} */
     get flattedShortLabel() {
         if (this.isBlackKey) {
@@ -384,6 +407,7 @@ export class Note {
         }
         return this.shortLabel
     }
+
     /**
      * Whether this note is equal in absolute value to another
      * @param {any} other
@@ -431,6 +455,7 @@ export class TonalNote extends Note {
         return KEYSIG_DATA[this.tonality][this.tonic.degree]
     }
 
+    /** @type {string} */
     get shortLabel() {
         if (this.keySig.isSharp) {
             const {majorDegree} = this.keySig
@@ -450,12 +475,40 @@ export class TonalNote extends Note {
         return super.shortLabel
     }
 
+    /** @type {number} */
     get octave() {
         if (this.degree === 0 && this.keySig.majorDegree === 1 && this.keySig.isSharp) {
             // When C becomes B-sharp we must drop its octave
             return super.octave - 1
         }
         return super.octave
+    }
+
+    /**
+     * The relative scale degree. Tonic is 0, next note is 1, etc.
+     * @type {number}
+     */
+    get scaleDegree() {
+        return SCALE_DEGREE_REFS.get(this.tonality).get(
+            degreeAt(this.degree - this.tonic.degree)
+        )
+    }
+
+    /**
+     * Whether the note is adjacent to the tonic in the scale
+     * @type {boolean}
+     */
+    get isLeadingTone() {
+        const {scaleDegree} = this
+        return scaleDegree === 1 || scaleDegree === Tonality.scaleSizeOf(this.tonality) - 1
+    }
+
+    /**
+     * Whether the note is in the middle of the scale
+     * @type {boolean}
+     */
+    get isDominant() {
+        return this.scaleDegree * 2 - 1 === Tonality.scaleSizeOf(this.tonality)
     }
 
     copy() {
@@ -469,23 +522,23 @@ export class TonalNote extends Note {
 class TonalSample extends Array {
 
     /**
-     * Self-deleting init constructor to support extending Array
-     * @param {Note[]} notes
-     * @param {Note} tonic
+     * @param {TonalNote[]} notes
+     * @param {TonalNote} tonic
      * @param {number} tonality
      */
-    init(notes, tonic, tonality) {
-        this.push(...notes)
+    static create(notes, tonic, tonality) {
+        const sample = new TonalSample()
+        sample.push(...notes)
+        tonality = Number(tonality)
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
-        if (!(tonic instanceof Note)) {
-            throw new ValueError(`Tonic must be an instance of Note`)
+        if (!(tonic instanceof TonalNote)) {
+            throw new ValueError(`Tonic must be an instance of TonalNote`)
         }
-        this.tonic = tonic
-        this.tonality = Number(tonality)
-        delete this.init
-        return this
+        sample.tonic = tonic
+        sample.tonality = tonality
+        return sample
     }
 
     /** @type {object} */
@@ -498,7 +551,7 @@ class TonalSample extends Array {
      */
     copy(deep = false) {
         const notes = deep ? this.map(note => note ? note.copy() : note) : this
-        return new TonalSample().init(notes, this.tonic, this.tonality)
+        return this.constructor.create(notes, this.tonic, this.tonality)
     }
 }
 
