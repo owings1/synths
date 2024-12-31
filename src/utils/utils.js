@@ -11,7 +11,7 @@ export class ValueError extends Error {}
  * 
  * @param {Number} target The search value
  * @param {Number[]} arr The array to search
- * @return {object|undefined} Object with `index` and `value` properties, or
+ * @return {Number|undefined} Closest value in array, or
  *  undefined if array is empty
  */
 export function closest(target, arr) {
@@ -20,7 +20,7 @@ export function closest(target, arr) {
         return
     }
     if (length === 1) {
-        arr[0]
+        return arr[0]
     }
     target = Number(target)
     let min = Infinity
@@ -53,7 +53,7 @@ export function closest(target, arr) {
             break
         }
     }
-    arr[index]
+    return arr[index]
 }
 
 /**

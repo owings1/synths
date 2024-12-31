@@ -1,4 +1,10 @@
 
+/**
+ * Dotting robots.
+ * 
+ * @author Doug Owings <doug@dougowings.net>
+ * @license MIT
+ */
 // import {Marker} from './utils/notation.js'
 import {Note} from './music.js'
 
@@ -39,6 +45,7 @@ function getDiffAt(sample, i, dflt = Infinity) {
     }
     return dflt
 }
+
 function dotAt(sample, i) {
     const a = sample[i]
     const b = sample[i+1]
@@ -62,9 +69,11 @@ function canDot(sample, state, i) {
     )
 
 }
+
 function bothAreNotes(a, b) {
-    return a && b && a.type === Note && a.type === b.type
+    return Boolean(a && b) && a.type === Note && a.type === b.type
 }
+
 function tryDot(sample, state, i) {
     if (canDot(sample, state, i)) {
         dotAt(sample, i)

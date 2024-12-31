@@ -523,5 +523,5 @@ class State {
  * @return {Boolean}
  */
 function isInstrument(obj) {
-    return obj && typeof obj.triggerAttackRelease === 'function'
+    return Boolean(obj) && typeof obj.triggerAttackRelease === 'function'
 }

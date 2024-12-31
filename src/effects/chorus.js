@@ -16,7 +16,7 @@ export default class Chorus extends BaseNode {
      * @param {AudioContext} context
      * @param {object} opts
      */
-     constructor(context, opts = {}) {
+    constructor(context, opts = {}) {
         super(context)
         Tone.setContext(context)
         opts = BaseNode.mergeOpts(this.meta.params, opts)

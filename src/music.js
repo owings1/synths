@@ -272,7 +272,7 @@ const SCALE_INTERVALS = Object.fromEntries(Object.entries({
     // Other minor
     HARMONIC_MINOR: [[W, H, W, W, H, m3, H], null],
     MELODIC_MINOR:  [[W, H, W, W, W, W, H], [W, W, H, W, W, H, W]],
-    MISHEBERAK:     [[W, H, m3,H, W, H, W], null],    
+    MISHEBERAK:     [[W, H, m3,H, W, H, W], null],
     // Octatonic
     DIMINISHED:  [[H, W, H, W, H, W, H, W], null],
     // Hexatonic

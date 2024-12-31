@@ -7,7 +7,7 @@
  */
 import $ from '../../lib/jquery.js'
 import * as Effects from '../../src/effects.js'
-import {AMSynth, FMSynth, MembraneSynth} from '../../src/synths.js'
+import {AMSynth, FMSynth} from '../../src/synths.js'
 import Sampler from '../../src/sampler.js'
 import {VexSampleScore} from '../../src/score.js'
 import {mixerWidget, nodeWidget, LocalPresets} from '../../src/widgets.js'
