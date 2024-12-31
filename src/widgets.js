@@ -261,12 +261,11 @@ function presetsWidget(presets, n = 24, per = 12) {
         const $loadTr = $('<tr/>').appendTo($table)
         for (let j = 1; j <= per; j++) {
             const key = String(j + i * per)
-            const has = presets.has(key)
             $('<th/>').text(key).appendTo($headTr)
             const $clearTd = $('<td/>').appendTo($clearTr)
             const $saveTd = $('<td/>').appendTo($saveTr)
             const $loadTd = $('<td/>').appendTo($loadTr)
-            const $clear = $('<button/>').button({disabled: !has})
+            const $clear = $('<button/>').button()
                 .attr({value: key})
                 .text('clear')
                 .addClass('presets clear')
@@ -286,7 +285,7 @@ function presetsWidget(presets, n = 24, per = 12) {
                     $clear.button({disabled: false})
                     $load.button({disabled: false})
                 })
-            const $load = $('<button/>').button({disabled: !has})
+            const $load = $('<button/>').button()
                 .attr({value: key})
                 .text('load')
                 .addClass('presets load')
@@ -298,8 +297,19 @@ function presetsWidget(presets, n = 24, per = 12) {
                 })
         }
     }
+    $section.on('dataLoad', () => {
+        $('button.presets.clear, button.presets.load', $section).each(function() {
+            const $this = $(this)
+            const key = $this.attr('value')
+            const has = presets.has(key)
+            $this.button({disabled: !has})
+            console.log(this, {key, has})
+        })
+    })
+    $section.trigger('dataLoad')
     return $section
 }
+
 /**
  * @param {LocalPresets} presets
  * @param {object} $section jQuery object
@@ -324,7 +334,26 @@ function presetsJsonWidget(presets, $section) {
             minHeight: 360,
         })
         .appendTo($dialog)
-
+    const $buttonsDiv = $('<div/>')
+        .appendTo($dialog)
+        .append(
+            $('<button/>')
+                .text('Save')
+                .on('click', () => {
+                    let data
+                    try {
+                        data = JSON.parse($area.val())
+                    } catch(e) {
+                        console.error(e)
+                        return
+                    }
+                    presets.data = data
+                    presets.write()
+                    $dialog.dialog('close')
+                    $section.trigger('dataLoad')
+                })
+        )
+    
     $('<button/>')
         .text('{ }')
         .appendTo($section)
