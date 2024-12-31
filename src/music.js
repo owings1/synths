@@ -28,6 +28,7 @@ export const Tonality = {
     MINOR_PENTATONIC: 17,
     JAPANESE: 18,
     MISHEBERAK: 19,
+    EGYPTIAN: 20,
 }
 
 const TONALITY_NAMES = new Map(Object.entries(Tonality).map(entry => entry.reverse()))
@@ -259,6 +260,7 @@ const SCALE_INTERVALS = Object.fromEntries(Object.entries({
     TRITONE:    [[H, m3, W,  H, m3, W], null],
     // Pentatonic
     MAJOR_PENTATONIC: [[W, W, m3, W, m3], null],
+    EGYPTIAN:         [[W, m3, W, m3, W], null],
     MINOR_PENTATONIC: [[m3, W, W, m3, W], null],
     JAPANESE:         [[H, M3, W, H, M3], null],
 }).map(([key, value]) => [Tonality[key], value]))
@@ -286,6 +288,7 @@ const ARPEGGIO_INTERVALS = Object.fromEntries(Object.entries({
     TRITONE:    [[M3, W,  M3, W], null],
     // Pentatonic
     MAJOR_PENTATONIC: [[M3, m3, W, m3], null],
+    EGYPTIAN:         [[m3, W, m3, W], null], // ?
     MINOR_PENTATONIC: [[m3, M3, m3, W], null],
     JAPANESE:         [[H, M3, m3, M3], null],
 }).map(([key, value]) => [Tonality[key], value]))
@@ -637,6 +640,7 @@ const MAJOR_OFFSETS = new Map(Object.entries({
     TRITONE: null,
     // Pentatonic
     MAJOR_PENTATONIC: 0,
+    EGYPTIAN: -2,
     MINOR_PENTATONIC: -9,
     JAPANESE: -9,
 }).map(([key, value]) => [Tonality[key], value]))
