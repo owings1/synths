@@ -303,7 +303,6 @@ function presetsWidget(presets, n = 24, per = 12) {
             const key = $this.attr('value')
             const has = presets.has(key)
             $this.button({disabled: !has})
-            console.log(this, {key, has})
         })
     })
     $section.trigger('dataLoad')

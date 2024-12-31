@@ -174,11 +174,18 @@ export function JARD(arr, state) {
     // Shuffle the 2nd-5th notes
     shuffle(arr, {start: 1, end: 4})
     chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    // Shuffle 25% of the upper half of the notes
+    // Shuffle 25% of the upper half of the notes, or the notes after the first
+    // 24 notes, whichever is larger.
     shuffle(arr, {
-        start: floor(arr.length / 2),
-        limit: Math.max(3, floor(arr.length / 4))
+        start: Math.min(floor(arr.length / 2), 23),
+        limit: Math.max(3, floor(arr.length / 4)),
     })
+    if (arr.length >= 30 && random() <= 0.75) {
+        // Hold the last note for phrasing.
+        const holdNote = arr[arr.length - 3]
+        arr[arr.length - 2] = holdNote
+        arr[arr.length - 1] = holdNote
+    }
 }
 
 
