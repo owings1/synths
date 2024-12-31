@@ -216,7 +216,7 @@ Sampler.Meta = {
             type: 'integer',
             default: 0,
             min: 0,
-            max: 48,
+            max: 96,
         },
         octave: {
             type: 'integer',
