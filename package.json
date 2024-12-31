@@ -4,13 +4,13 @@
         "test": "mocha ./test/specs/**/*.js"
     },
     "dependencies": {
-        "vexflow": "^4.0.3"
+        "vexflow": "^4.2.5"
     },
     "devDependecies": {
-        "@types/vexflow": "^1.2.38"
+        "@types/vexflow": "^1.2.42"
     },
     "devDependencies": {
-        "chai": "^4.3.6",
-        "mocha": "^10.0.0"
+        "chai": "^5.1.2",
+        "mocha": "^11.0.1"
     }
 }
