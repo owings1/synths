@@ -152,11 +152,11 @@ $(() => {
 
     let drawId
     sampler.onschedule = (sample, time) => {
-        score.reload(sample)
-        drawId = setTimeout(renderScore, (time - context.currentTime) * 1000)
+        clearTimeout(drawId)
+        drawId = setTimeout(
+            () => score.reload(sample).render($score.empty()),
+            (time - context.currentTime) * 1000
+        )
     }
-    function renderScore() {
-        score.render($score.empty())
-    }
-    $('#sample-stop').on('click', () => clearTimeout(drawId))
+    // $('#sample-stop').on('click', () => clearTimeout(drawId))
 })

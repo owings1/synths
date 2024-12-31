@@ -15,7 +15,7 @@ import '../lib/tone.js'
 const symState = Symbol()
 const symSched = Symbol()
 const PREFER8 = false
-const Lookahead = 25.0
+const Lookahead = 100//25.0
 const StopDelay = Lookahead * 10
 const ShufflerIds = {
     NONE: 0,
@@ -69,7 +69,6 @@ export default class Sampler extends BaseNode {
         this[symSched] = schedule.bind(this)
         this[symState] = new State
         this.oscillator = new OscillatorNode(this.context, {frequency: 0})
-        this.oscillator.connect(this.output)
         const prox = Object.create(null)
         const props = Object.entries(params).map(([name, {type}]) => {
             const cast = type === 'boolean' ? Boolean : Number
@@ -151,8 +150,18 @@ export default class Sampler extends BaseNode {
         state.nextTime = null
         this.oscillator.frequency.cancelScheduledValues(null)
         this.oscillator.frequency.value = 0
+        /*
+        this.instruments.forEach(inst => {
+            try {
+                inst.oscillator.frequency.cancelScheduledValues(null)
+            } catch(e) {
+                console.error(e)
+            }
+        })
+        */
         clearTimeout(state.stopId)
         clearTimeout(state.scheduleId)
+        this.oscillator.disconnect()
         return this
     }
 
@@ -166,6 +175,7 @@ export default class Sampler extends BaseNode {
         state.lastNote = null
         this.build()
         state.playing = true
+        this.oscillator.connect(this.output)
         if (!state.isOscillatorStarted) {
             state.isOscillatorStarted = true
             this.oscillator.start()
@@ -395,11 +405,8 @@ function schedule() {
     const state = this[symState]
     clearTimeout(state.scheduleId)
     clearTimeout(state.stopId)
-    let firstScheduleTime = null
-    while (this.context.currentTime + state.sampleDurInSeconds > state.nextTime) {
-        if (!firstScheduleTime) {
-            firstScheduleTime = state.nextTime
-        }
+    if (this.context.currentTime + state.sampleDurInSeconds > state.nextTime) {
+        const firstTime = state.nextTime
         if (state.isShuffleWanted) {
             shuffle.call(this)
         }
@@ -408,15 +415,12 @@ function schedule() {
             state.nextTime += state.noteDurInSeconds
         })
         state.counter += 1
-        if (!state.loop) {
-            break
-        }
-    }
-    if (firstScheduleTime) {
-        this.onschedule(state.sample, firstScheduleTime)
+        this.onschedule(state.sample, firstTime)
     }
     if (state.loop) {
-        state.scheduleId = setTimeout(this[symSched], Lookahead)
+        const delay = state.sampleDurInSeconds * 1000 - Lookahead
+        state.scheduleId = setTimeout(this[symSched], delay)
+        // state.scheduleId = setTimeout(this[symSched], Lookahead)
         return
     }
     this.oscillator.frequency.setValueAtTime(0, state.nextTime)

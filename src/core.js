@@ -112,6 +112,9 @@ export class InstrumentWrapper extends BaseNode {
     triggerRelease(...args) {
         return this.instrument.triggerRelease(...args)
     }
+    get oscillator() {
+        return this.instrument.oscillator
+    }
 }
 /**
  * Make a property definition for a stub param object
