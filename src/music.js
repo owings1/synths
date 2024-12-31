@@ -5,6 +5,7 @@
  * @license MIT
  */
 import {closest, ValueError} from './utils/utils.js'
+import {Marker} from './utils/notation.js'
 
 /** Tonality Enum */
 export const Tonality = {
@@ -29,10 +30,7 @@ export const Tonality = {
     MISHEBERAK: 19,
 }
 
-const TONALITY_NAMES = new Map
-for (const [key, value] of Object.entries(Tonality)) {
-    TONALITY_NAMES.set(value, key)
-}
+const TONALITY_NAMES = new Map(Object.entries(Tonality).map(entry => entry.reverse()))
 
 /** Direction Enum */
 export const Dir = {
@@ -148,14 +146,14 @@ export function scaleSample(degree, opts = undefined) {
  * @param {number} opts.octaves
  * @param {boolean} opts.arpeggio
  * @param {boolean} opts.clip
- * @return {TonalNote[]}
+ * @return {Note[]}
  */
 function scaleNotes(degree, octave, tonality, opts) {
     opts = opts || {}
     const base = opts.arpeggio
         ? ARPEGGIO_INTERVALS[tonality]
         : SCALE_INTERVALS[tonality]
-    const tonic = new TonalNote(octave * OCTAVE + degree, null, tonality)
+    const tonic = new Note(octave * OCTAVE + degree)
     const descend = Boolean(opts.descend)
     const olimit = descend ? tonic.octave : OCTAVE_COUNT - tonic.octave - 1
     let octaves = opts.octaves === undefined ? 1 : Number(opts.octaves)
@@ -177,8 +175,7 @@ function scaleNotes(degree, octave, tonality, opts) {
     const notes = [tonic]
     for (let note = tonic, o = 0; o < octaves; ++o) {
         for (let i = 0; i < intervals.length; ++i) {
-            const idx = note.index + dir * intervals[i]
-            note = new TonalNote(idx, tonic, tonality)
+            note = new Note(note.index + dir * intervals[i])
             notes.push(note)
         }
     }
@@ -326,7 +323,7 @@ Object.defineProperties(Tonality, {
     AEOLIAN: valuedProp(Tonality.NATURAL_MINOR),
     // reference functions
     isValid: valuedProp(value => TONALITY_NAMES.has(value)),
-    isMinor: valuedProp(tonality => MAJOR_OFFSETS[tonality] === -9),
+    isMinor: valuedProp(tonality => MAJOR_OFFSETS.get(tonality) === -9),
     nameOf: valuedProp(tonality => TONALITY_NAMES.get(tonality)),
     scaleSizeOf: valuedProp(tonality => SCALE_INTERVALS[tonality][0].length),
 })
@@ -419,6 +416,9 @@ export class Note {
         )
     }
 
+    /**
+     * @return {Note}
+     */
     copy() {
         return new this.constructor(this.index)
     }
@@ -440,15 +440,16 @@ export class TonalNote extends Note {
      */
     constructor(index, tonic, tonality) {
         super(index)
+        tonality = Number(tonality)
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
         tonic = tonic || this
-        if (!(tonic instanceof Note)) {
-            throw new ValueError(`Tonic must be an instance of Note`)
+        if (!(tonic instanceof this.constructor)) {
+            tonic = new this.constructor(tonic.index, null, tonality)
         }
         this.tonic = tonic
-        this.tonality = Number(tonality)
+        this.tonality = tonality
     }
 
     get keySig() {
@@ -500,7 +501,7 @@ export class TonalNote extends Note {
      */
     get isLeadingTone() {
         const {scaleDegree} = this
-        return scaleDegree === 1 || scaleDegree === Tonality.scaleSizeOf(this.tonality) - 1
+        return scaleDegree === 1 || scaleDegree + 1 === Tonality.scaleSizeOf(this.tonality)
     }
 
     /**
@@ -511,6 +512,9 @@ export class TonalNote extends Note {
         return this.scaleDegree * 2 - 1 === Tonality.scaleSizeOf(this.tonality)
     }
 
+    /**
+     * @return {TonalNote}
+     */
     copy() {
         return new this.constructor(this.index, this.tonic, this.tonality)
     }
@@ -522,22 +526,28 @@ export class TonalNote extends Note {
 class TonalSample extends Array {
 
     /**
-     * @param {TonalNote[]} notes
-     * @param {TonalNote} tonic
+     * @param {Array<Note|Marker>} notes
+     * @param {Note} tonic
      * @param {number} tonality
      */
     static create(notes, tonic, tonality) {
-        const sample = new TonalSample()
-        sample.push(...notes)
         tonality = Number(tonality)
         if (!Tonality.isValid(tonality)) {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
-        if (!(tonic instanceof TonalNote)) {
-            throw new ValueError(`Tonic must be an instance of TonalNote`)
-        }
+        tonic = new TonalNote(tonic.index, null, tonality)
+        const sample = new TonalSample()
         sample.tonic = tonic
         sample.tonality = tonality
+        notes.forEach(note => {
+            if (note instanceof Note) {
+                sample.push(new TonalNote(note.index, tonic, tonality))
+            } else if (note instanceof Marker) {
+                sample.push(note)
+            } else {
+                throw new ValueError(`Each note must be an instance of Note or Marker`)
+            }
+        })
         return sample
     }
 
@@ -547,6 +557,7 @@ class TonalSample extends Array {
     }
 
     /**
+     * @param {boolean} deep
      * @return {TonalSample}
      */
     copy(deep = false) {
@@ -603,7 +614,7 @@ OCTAVES.forEach((freqs, octave) => {
  * For key signature, how to get to the major key from a degree for a tonality.
  * A value of `null` represents no key signature, i.e. C-major.
  */
-const MAJOR_OFFSETS = Object.fromEntries(Object.entries({
+const MAJOR_OFFSETS = new Map(Object.entries({
     // Normal modes
     MAJOR: 0,
     DORIAN: -2,
@@ -671,7 +682,7 @@ const MAJOR_ACCIDENTS = [
  */
 function buildKeySigInfo(degree, tonality) {
     // Normalize to major key signature
-    const majorOffset = MAJOR_OFFSETS[tonality]
+    const majorOffset = MAJOR_OFFSETS.get(tonality)
     const majorDegree = degreeAt(majorOffset === null ? 0 : degree + majorOffset)
     // Relative minor of the major key
     const minorDegree = degreeAt(majorDegree - 3)
