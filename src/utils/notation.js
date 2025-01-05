@@ -12,7 +12,7 @@ export const Clef = {
     TREBLE: 'treble',
 }
 
-const CLEF_CENTERS = Object.fromEntries(Object.entries({
+const CLEF_CENTERS = new Map(Object.entries({
     // F/3
     SUBBASS: 35,
     // D/3
@@ -25,38 +25,56 @@ const CLEF_CENTERS = Object.fromEntries(Object.entries({
 
 const AUTO_CLEFS = [Clef.TREBLE, Clef.BASS, Clef.ALTO, Clef.SUBBASS]
 const DEFAULT_CLEF = Clef.TREBLE
+const BETTER_FIT_THRESHOLD = 0.6
 
 /**
  * Guess the clef based on the notes
  * @param {Array<object|number>} notes Note objects or absolute indexes
- * @param {string} defaultClef
- * @param {string[]} autoClefs
+ * @param {object} opts
+ * @param {string} opts.defaultClef
+ * @param {string[]} opts.clefs
  * @return {string}
  */
-export function guessClef(notes, defaultClef = undefined, autoClefs = undefined) {
-    autoClefs = autoClefs || AUTO_CLEFS
-    notes = notes.filter(note => note != null) // allow 0
-    const maxes = Object.create(null)
-    for (const clef of autoClefs) {
-        maxes[clef] = -Infinity
-        notes.forEach(note => {
-            const diff = Math.abs(CLEF_CENTERS[clef] - (note.index || note))
-            if (diff > maxes[clef]) {
-                maxes[clef] = diff
+export function guessClef(notes, opts = undefined) {
+    opts = opts || {}
+    const defaultClef = opts.defaultClef || DEFAULT_CLEF
+    const clefs = opts.clefs || AUTO_CLEFS
+    // normalize to integer index
+    notes = notes.map(note => note?.index || note).filter(Number.isInteger)
+    const maxDiffs = Object.create(null)
+    const fitCounts = Object.create(null)
+    for (const clef of clefs) {
+        const center = CLEF_CENTERS.get(clef)
+        maxDiffs[clef] = -Infinity
+        fitCounts[clef] = 0
+        for (const note of notes) {
+            const diff = Math.abs(center - note)
+            if (diff > maxDiffs[clef]) {
+                maxDiffs[clef] = diff
             }
-        })
-    }
-    let best = defaultClef || DEFAULT_CLEF
-    for (const clef in maxes) {
-        if (maxes[clef] < maxes[best]) {
-            best = clef
+            if (note >= center - 9 && note <= center + 9) {
+                fitCounts[clef] += 1
+            }
         }
     }
-    return best
+    let bestByMax = defaultClef
+    let bestByFit = defaultClef
+    for (const clef of clefs) {
+        if (maxDiffs[clef] < maxDiffs[bestByMax]) {
+            bestByMax = clef
+        }
+        if (fitCounts[clef] > fitCounts[bestByFit]) {
+            bestByFit = clef
+        }
+    }
+    if (bestByFit !== bestByMax && fitCounts[bestByFit] / notes.length >= BETTER_FIT_THRESHOLD) {
+        return bestByFit
+    }
+    return bestByMax
 }
 
-const TIMESIG_GUESS_4 = [4, 2, 3, 5, 7, 1]
-const TIMESIG_GUESS_8 = [6, 3, 7]
+const TIMESIG_GUESS_4 = Uint8Array.from([4, 2, 3, 5, 7])
+const TIMESIG_GUESS_8 = Uint8Array.from([6, 3, 7])
 
 /**
  * Try to guess a reasonable time signature
@@ -72,27 +90,20 @@ export function guessTimeSig(numNotes, noteDur, opts = undefined) {
     let lower = 4
     let totalBeats = numNotes / noteDur * lower
     let upper
-    search:
     for (const b of TIMESIG_GUESS_4) {
-        switch (b) {
-            case 4: // prefer 4/4
-            case 2: // go for 2/2
-            case 3: // use 3/4 
-            case 5: // try 5/4 for fun
-            case 7: // why not 7/4
-                if (totalBeats % b === 0) {
-                    upper = b
-                    break search
-                }
-                break
-            case 1:
-                if (totalBeats % b === 0) { // just make one big measure
-                    upper = totalBeats
-                    break search
-                }
-            default: // does not divide evenly by even one beat
-                upper = 4
-                invalid = true
+        if (totalBeats % b === 0) {
+            upper = b
+            break
+        }
+    }
+    if (upper === undefined) {
+        if (Number.isInteger(totalBeats)) {
+            // just make one big measure
+            upper = 1
+        } else {
+            // does not divide evenly by even one beat
+            upper = 4
+            invalid = true
         }
     }
     const try8 = noteDur % 8 === 0 && (
@@ -107,7 +118,6 @@ export function guessTimeSig(numNotes, noteDur, opts = undefined) {
             if (totalBeats % b === 0) {
                 upper = b
                 invalid = false
-                console.debug({upper})
                 break
             }
         }
