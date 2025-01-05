@@ -526,7 +526,7 @@ export class TonalNote extends Note {
 /**
  * An array of notes with a tonic and tonality
  */
-class TonalSample extends Array {
+export class TonalSample extends Array {
 
     /**
      * @param {Array<Note|Marker>} notes

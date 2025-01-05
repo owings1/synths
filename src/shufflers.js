@@ -6,7 +6,8 @@
  */
 
 import {shuffle} from './utils/shuffler.js'
-import {Note} from './music.js'
+import {Note, TonalSample} from './music.js'
+import {State} from './sampler.js'
 import {RestMarker} from './utils/notation.js'
 export const NONE = () => {}
 export const RANDY = shuffle
@@ -109,81 +110,81 @@ const Conf = {
 }
 
 /**
- * @param {TonalSample} arr
- * @param {object} state
+ * @param {TonalSample} sample
+ * @param {State} state
  */
-export function SOFA(arr, state) {
+export function SOFA(sample, state) {
     const conf = Conf.SOFA
-    const starter = chanceFill(arr, 0, conf.start.chances)
-    shuffle(arr)
-    smooth(arr)
-    smooth(arr)
-    chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    arr[0] = starter
-    smooth(arr)
-    replaceLargeIntervals(arr, M6, (arr, i) => random() > 0.2 ? arr[i - 1] : rest())
+    const starter = chanceFill(sample, 0, conf.start.chances)
+    shuffle(sample)
+    smooth(sample)
+    smooth(sample)
+    chanceFills(sample, conf.fill.chances, conf.fill.chance)
+    sample[0] = starter
+    smooth(sample)
+    replaceLargeIntervals(sample, M6, (arr, i) => random() > 0.2 ? arr[i - 1] : rest())
 }
 
 
 /**
- * @param {TonalSample} arr
- * @param {object} state
+ * @param {TonalSample} sample
+ * @param {State} state
  */
-export function BIMOM(arr, state) {
+export function BIMOM(sample, state) {
     const conf = Conf.BIMOM
-    const starter = chanceFill(arr, 0, conf.start.chances)
-    const ender = chanceFill(arr, arr.length - 1, conf.end.chances)
-    shuffle(arr, {start: 0, end: 3})
-    midShuffle(arr)
-    shuffle(arr, {start: arr.length - 4})
-    chanceFills(arr, conf.fill.chances, conf.fill.chance)
-    arr[0] = starter
-    arr[arr.length - 1] = ender
+    const starter = chanceFill(sample, 0, conf.start.chances)
+    const ender = chanceFill(sample, sample.length - 1, conf.end.chances)
+    shuffle(sample, {start: 0, end: 3})
+    midShuffle(sample)
+    shuffle(sample, {start: sample.length - 4})
+    chanceFills(sample, conf.fill.chances, conf.fill.chance)
+    sample[0] = starter
+    sample[sample.length - 1] = ender
 }
 
 
 /**
- * @param {TonalSample} arr
- * @param {object} state
+ * @param {TonalSample} sample
+ * @param {State} state
  */
-export function TONAK(arr, state) {
+export function TONAK(sample, state) {
     const conf = Conf.TONAK
-    const starter = chanceFill(arr, 0, conf.start.chances)
-    shuffleByOctave(arr)
-    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    const starter = chanceFill(sample, 0, conf.start.chances)
+    shuffleByOctave(sample)
+    chanceFills(sample, conf.fill.chances, conf.fill.chance)
     // smooth(arr)
-    smooth(arr)
+    smooth(sample)
     if (random() > 0.5) {
-        smooth(arr)
+        smooth(sample)
     }
-    avoidOctavesWithSwapAhead(arr)
-    smooth(arr)
-    replaceConsecutiveLargeIntervals(arr)
-    arr[0] = starter
-    smooth(arr)
-    replaceLargeIntervals(arr)
+    avoidOctavesWithSwapAhead(sample)
+    smooth(sample)
+    replaceConsecutiveLargeIntervals(sample)
+    sample[0] = starter
+    smooth(sample)
+    replaceLargeIntervals(sample)
 }
 
 
 /**
- * @param {TonalSample} arr
- * @param {object} state
+ * @param {TonalSample} sample
+ * @param {State} state
  */
-export function JARD(arr, state) {
+export function JARD(sample, state) {
     const conf = Conf.JARD
     // Shuffle the 2nd-5th notes
-    shuffle(arr, {start: 1, end: 4})
-    chanceFills(arr, conf.fill.chances, conf.fill.chance)
+    shuffle(sample, {start: 1, end: 4})
+    chanceFills(sample, conf.fill.chances, conf.fill.chance)
     // Shuffle 25% of the upper half of the notes, or the notes after the first
     // 24 notes, whichever is larger.
-    shuffle(arr, {
-        start: Math.min(floor(arr.length / 2), 23),
-        limit: Math.max(3, floor(arr.length / 4)),
+    shuffle(sample, {
+        start: Math.min(floor(sample.length / 2), 23),
+        limit: Math.max(3, floor(sample.length / 4)),
     })
-    if (arr.length >= 24) {
+    if (sample.length >= 24) {
         let holdNote
         for (let i = 1; i <= 3; ++i) {
-            const note = arr[arr.length - i]
+            const note = sample[sample.length - i]
             if (
                 note.isLeadingTone
                 //|| note.isDominant
@@ -194,19 +195,19 @@ export function JARD(arr, state) {
         }
         if (holdNote) {
             // Hold the last note for phrasing.
-            arr[arr.length - 3] = holdNote
-            arr[arr.length - 2] = holdNote
-            arr[arr.length - 1] = holdNote
+            sample[sample.length - 3] = holdNote
+            sample[sample.length - 2] = holdNote
+            sample[sample.length - 1] = holdNote
         }
     }
 }
 
 
 /**
- * @param {TonalSample} arr
- * @param {object} state
+ * @param {TonalSample} sample
+ * @param {State} state
  */
-export function CHUNE(arr, state) {
+export function CHUNE(sample, state) {
     const conf = Conf.CHUNE
     const {counter, prev} = state
     let delegate = conf.delegate.default
@@ -226,9 +227,9 @@ export function CHUNE(arr, state) {
         )
     }
     if (isRephrase) {
-        rephrase(arr, prev, conf.rephrase.head, conf.rephrase.tail)
+        rephrase(sample, prev, conf.rephrase.head, conf.rephrase.tail)
     } else {
-        delegate(arr, state)
+        delegate(sample, state)
     }
 }
 
@@ -241,6 +242,7 @@ export default {
     JARD,
     CHUNE,
 }
+
 /**
  * Return true for both null, else call note.equals
  * @param {Note|RestMarker} a
@@ -332,16 +334,16 @@ function chanceFill(arr, i, chances) {
 }
 
 /**
- * @param {TonalSample} arr
+ * @param {TonalSample} sample
  */
-function smooth(arr) {
-    if (arr.length < 3) {
+function smooth(sample) {
+    if (sample.length < 3) {
         return
     }
-    for (let i = 1; i < arr.length - 1; ++i) {
-        const prev = arr[i - 1]
-        const curr = arr[i]
-        const next = arr[i + 1]
+    for (let i = 1; i < sample.length - 1; ++i) {
+        const prev = sample[i - 1]
+        const curr = sample[i]
+        const next = sample[i + 1]
         if (!isNote(prev, curr, next)) {
             continue
         }
@@ -352,24 +354,24 @@ function smooth(arr) {
         ) {
             continue
         }
-        arr[i + 1] = curr
-        arr[i] = next
+        sample[i + 1] = curr
+        sample[i] = next
     }
 }
 
 /**
- * @param {TonalSample} arr
+ * @param {TonalSample} sample
  */
-function avoidOctavesWithSwapAhead(arr) {
-    for (let i = 0; i < arr.length; ++i) {
-        const a = arr[i]
-        const b = arr[i + 1]
+function avoidOctavesWithSwapAhead(sample) {
+    for (let i = 0; i < sample.length; ++i) {
+        const a = sample[i]
+        const b = sample[i + 1]
         if (isNote(a, b)) {
             if (a.degree === b.degree && a.octave !== b.octave) {
-                const c = arr[i + 2]
+                const c = sample[i + 2]
                 if (isNote(c)) {
-                    arr[i + 1] = c
-                    arr[i + 2] = b
+                    sample[i + 1] = c
+                    sample[i + 2] = b
                 }
             }
         }

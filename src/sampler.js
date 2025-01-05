@@ -10,6 +10,7 @@ import {guessTimeSig, RestMarker} from './utils/notation.js'
 import * as Music from './music.js'
 import Shufflers from './shufflers.js'
 import Dotters from './dotters.js'
+import Velociters from './velociters.js'
 import '../lib/tone.js'
 
 const symState = Symbol()
@@ -18,10 +19,16 @@ const PREFER8 = false
 const Lookahead = 100
 const StopDelay = Lookahead * 10
 const ShufflerIds =  Object.fromEntries(Object.keys(Shufflers).map((v, i) => [v, i]))
+const VelociterIds =  Object.fromEntries(Object.keys(Velociters).map((v, i) => [v, i]))
 const DotterIds =  Object.fromEntries(Object.keys(Dotters).map((v, i) => [v, i]))
 const SHUFFLERS = Object.fromEntries(
     Object.entries(ShufflerIds).map(
         ([name, id]) =>  [id, Shufflers[name]]
+    )
+)
+const VELOCITERS = Object.fromEntries(
+    Object.entries(VelociterIds).map(
+        ([name, id]) =>  [id, Velociters[name]]
     )
 )
 const DOTTERS = Object.fromEntries(
@@ -233,6 +240,11 @@ Sampler.Meta = {
                 120: '1/2',
             }
         },
+        velociter: {
+            type: 'enum',
+            default: 0,
+            values: flip(VelociterIds),
+        },
         dotter: {
             type: 'enum',
             default: 0,
@@ -344,6 +356,9 @@ function shuffle() {
     if (this.dotter.value) {
         DOTTERS[this.dotter.value](state.sample, state)
     }
+    if (this.velociter.value) {
+        VELOCITERS[this.velociter.value](state.sample, state)
+    }
 }
 
 
@@ -409,7 +424,7 @@ function playNote(note, durationSeconds, time) {
     this.oscillator.frequency.setValueAtTime(note.freq, time)
 }
 
-class State {
+export class State {
 
     constructor() {
         this.counter = 0
