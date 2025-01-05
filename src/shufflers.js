@@ -232,6 +232,15 @@ export function CHUNE(arr, state) {
     }
 }
 
+export default {
+    NONE,
+    RANDY,
+    TONAK,
+    SOFA,
+    BIMOM,
+    JARD,
+    CHUNE,
+}
 /**
  * Return true for both null, else call note.equals
  * @param {Note|RestMarker} a

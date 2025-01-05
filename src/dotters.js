@@ -37,6 +37,12 @@ export const DROF = (sample, state) => {
     })
 }
 
+export default {
+    NONE,
+    CRIM,
+    DROF,
+}
+
 function getDiffAt(sample, i, dflt = Infinity) {
     const a = sample[i]
     const b = sample[i+1]
@@ -62,10 +68,13 @@ function canDot(sample, state, i) {
     }
     const a = sample[i]
     const b = sample[i + 1]
+    const c = sample[i - 1]
     return (
         bothAreNotes(a, b) &&
         !a.dot && !a.dedot &&
-        !b.dot && !b.dedot
+        !b.dot && !b.dedot && (
+            !c || !c.dot && !c.dedot
+        )
     )
 
 }

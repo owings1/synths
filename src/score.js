@@ -171,7 +171,7 @@ export class VexSampleScore {
         // initial left margin
         this.marginLeft = 10
         // initial top margin
-        this.marginTop = 40
+        this.marginTop = 90
         // width of a clef
         this.clefWidth = 60
         // width of the time signature
