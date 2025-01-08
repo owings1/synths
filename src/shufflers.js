@@ -6,8 +6,8 @@
  */
 
 import {shuffle} from './utils/shuffler.js'
-import {Note, TonalSample} from './music.js'
-import {State} from './sampler.js'
+import {Note} from './music.js'
+import {Sample} from './sampler.js'
 import {RestMarker} from './utils/notation.js'
 export const NONE = () => {}
 export const RANDY = shuffle
@@ -83,11 +83,30 @@ const Conf = {
     JARD: {
         fill: {
             chance: 0.15,
+            // chance: 0.2,
             chances: [
                 [0.15, randomElement],
                 [0.30, arr => arr[floor(arr.length / 2)]],
                 [0.31, arr => arr[ceil(arr.length / 2)]],
                 [1.00, rest],
+                // [0.50, (sample, i) => {
+                //     for (let j = i - 3; j < i + 3; ++j) {
+                //         const note = sample[j]
+                //         if (note && (note.isTonic || note.isDominant)) {
+                //             return note
+                //         }
+                //     }
+                //     // return sample[floor(sample.length / 2)]
+                // }],
+                // [1.00, (sample, i) => {
+                //     switch(sample.beatLabelAt(i)) {
+                //         case 'downbeat':
+                //         // case 'midbeat':
+                //             return
+                //         default:
+                //             return rest()
+                //     }
+                // }],
             ],
         },
     },
@@ -110,10 +129,9 @@ const Conf = {
 }
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function SOFA(sample, state) {
+export function SOFA(sample) {
     const conf = Conf.SOFA
     const starter = chanceFill(sample, 0, conf.start.chances)
     shuffle(sample)
@@ -127,10 +145,9 @@ export function SOFA(sample, state) {
 
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function BIMOM(sample, state) {
+export function BIMOM(sample) {
     const conf = Conf.BIMOM
     const starter = chanceFill(sample, 0, conf.start.chances)
     const ender = chanceFill(sample, sample.length - 1, conf.end.chances)
@@ -144,10 +161,9 @@ export function BIMOM(sample, state) {
 
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function TONAK(sample, state) {
+export function TONAK(sample) {
     const conf = Conf.TONAK
     const starter = chanceFill(sample, 0, conf.start.chances)
     shuffleByOctave(sample)
@@ -167,10 +183,9 @@ export function TONAK(sample, state) {
 
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function JARD(sample, state) {
+export function JARD(sample) {
     const conf = Conf.JARD
     // Shuffle the 2nd-5th notes
     shuffle(sample, {start: 1, end: 4})
@@ -204,12 +219,11 @@ export function JARD(sample, state) {
 
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function CHUNE(sample, state) {
+export function CHUNE(sample) {
     const conf = Conf.CHUNE
-    const {counter, prev} = state
+    const {counter, prev} = sample
     let delegate = conf.delegate.default
     let isRephrase = false
     search:
@@ -229,7 +243,7 @@ export function CHUNE(sample, state) {
     if (isRephrase) {
         rephrase(sample, prev, conf.rephrase.head, conf.rephrase.tail)
     } else {
-        delegate(sample, state)
+        delegate(sample)
     }
 }
 
@@ -264,21 +278,21 @@ function midShuffle(arr) {
 }
 
 /**
- * @param {TonalSample} arr
+ * @param {Sample} sample
  */
-function shuffleByOctave(arr) {
-    for (let i = 0, lo = 0, value; i < arr.length; ++i) {
-        if (!isNote(arr[i])) {
+function shuffleByOctave(sample) {
+    for (let i = 0, lo = 0, value; i < sample.length; ++i) {
+        if (!isNote(sample[i])) {
             continue
         }
         if (value === undefined) {
-            value = arr[i].index
+            value = sample[i].index
             lo = i
             continue
         }
-        if (abs(arr[i].index - value) > OCTAVE || i === arr.length - 1) {
-            shuffle(arr, {start: lo, end: i-1})
-            value = arr[i].index
+        if (abs(sample[i].index - value) > OCTAVE || i === sample.length - 1) {
+            shuffle(sample, {start: lo, end: i-1})
+            value = sample[i].index
             lo = i
         }
     }
@@ -334,7 +348,7 @@ function chanceFill(arr, i, chances) {
 }
 
 /**
- * @param {TonalSample} sample
+ * @param {Sample} sample
  */
 function smooth(sample) {
     if (sample.length < 3) {
@@ -360,7 +374,7 @@ function smooth(sample) {
 }
 
 /**
- * @param {TonalSample} sample
+ * @param {Sample} sample
  */
 function avoidOctavesWithSwapAhead(sample) {
     for (let i = 0; i < sample.length; ++i) {

@@ -5,16 +5,15 @@
  * @license MIT
  */
 
-import {Note, TonalSample} from './music.js'
-import {State} from './sampler.js'
+import {Note} from './music.js'
+import {Sample} from './sampler.js'
 export const NONE = () => {}
 const {random} = Math
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function TURNT(sample, state) {
+export function TURNT(sample) {
     for (const note of sample) {
         if (note instanceof Note) {
             note.velocity = random()
@@ -23,21 +22,16 @@ export function TURNT(sample, state) {
 }
 
 /**
- * @param {TonalSample} sample
- * @param {State} state
+ * @param {Sample} sample
  */
-export function DAWN(sample, state) {
-    const {timeSig, beat} = state
-    if (!timeSig || timeSig.invalid || !beat){
+export function DAWN(sample) {
+    const {timeSig, noteDur} = sample
+    if (!timeSig || timeSig.invalid){
         return
     }
-    const noteDur = 240 / beat
     let velocity = 1
     sample.forEach((note, i) => {
-        if (!(note instanceof Note)) {
-            return
-        }
-        switch (classify(timeSig, noteDur, i)) {
+        switch (sample.beatLabelAt(i)) {
             case 'downbeat':
             case 'midbeat':
                 velocity = 1
@@ -60,19 +54,4 @@ export default {
     NONE,
     TURNT,
     DAWN,
-}
-
-function classify(timeSig, noteDur, i) {
-    const {upper, lower} = timeSig
-    const measureLength = upper / (lower / noteDur)
-    switch (i % measureLength) {
-        case 0:
-            return 'downbeat'
-        case measureLength / 2 - 1:
-            return 'midbeat'
-        case measureLength - 1:
-            return 'pickup'
-        default:
-            return 'other'
-    }
 }

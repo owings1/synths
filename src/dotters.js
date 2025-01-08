@@ -7,31 +7,32 @@
  */
 // import {Marker} from './utils/notation.js'
 import {Note} from './music.js'
+import {Sample} from './sampler.js'
 
 const M6 = 8
 export const NONE = () => {}
 
-export const CRIM = (sample, state) => {
+export const CRIM = (sample) => {
 
-    eachMeasureStart(sample, state, i => {
-        tryDot(sample, state, i)
+    eachMeasureStart(sample, i => {
+        tryDot(sample, i)
     })
 }
 
-export const DROF = (sample, state) => {
-    eachMeasureStart(sample, state, i => {
+export const DROF = (sample) => {
+    eachMeasureStart(sample, i => {
         const p = Math.random()
         if (p < 0.15) {
             let d1 = getDiffAt(sample, i)
             let d2 = getDiffAt(sample, i + 1)
             if (d1 < M6 && d2 < M6 && d1 !== 0 && d2 !== 0) {
-                tryDot(sample, state, i)
+                tryDot(sample, i)
             }
         } else if (p < 0.1) {
             let d1 = getDiffAt(sample, i + 2)
             let d2 = getDiffAt(sample, i + 3)
             if (d1 < M6 && d2 < M6 && d1 !== 0 && d2 !== 0) {
-                tryDot(sample, state, i + 2)
+                tryDot(sample, i + 2)
             }
         }
     })
@@ -61,8 +62,14 @@ function dotAt(sample, i) {
     b.articulation = 0.2
 }
 
-function canDot(sample, state, i) {
-    const {notesPerMeasure} = state
+/**
+ * 
+ * @param {Sample} sample 
+ * @param {number} i 
+ * @returns {boolean}
+ */
+function canDot(sample, i) {
+    const {notesPerMeasure} = sample
     if (notesPerMeasure < 2 || i % notesPerMeasure >= notesPerMeasure - 1) {
         return false
     }
@@ -83,16 +90,27 @@ function bothAreNotes(a, b) {
     return Boolean(a && b) && a.type === Note && a.type === b.type
 }
 
-function tryDot(sample, state, i) {
-    if (canDot(sample, state, i)) {
+/**
+ * 
+ * @param {Sample} sample 
+ * @param {number} i 
+ * @returns {boolean}
+ */
+function tryDot(sample, i) {
+    if (canDot(sample, i)) {
         dotAt(sample, i)
         return true
     }
     return false
 }
 
-function eachMeasureStart(sample, state, cb) {
-    const {notesPerMeasure} = state
+/**
+ * 
+ * @param {Sample} sample 
+ * @param {function} cb 
+ */
+function eachMeasureStart(sample, cb) {
+    const {notesPerMeasure} = sample
     for (let i = 0, m = 0; i < sample.length; i += notesPerMeasure, m += 1) {
         cb(i, m)
     }

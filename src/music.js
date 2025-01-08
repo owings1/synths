@@ -516,6 +516,14 @@ export class TonalNote extends Note {
     }
 
     /**
+     * Whether the note is of the tonic degree
+     * @type {boolean}
+     */
+    get isTonic() {
+        return this.degree === this.tonic.degree
+    }
+
+    /**
      * @return {TonalNote}
      */
     copy() {
@@ -539,7 +547,7 @@ export class TonalSample extends Array {
             throw new ValueError(`Invalid tonality: ${tonality}`)
         }
         tonic = new TonalNote(tonic.index, null, tonality)
-        const sample = new TonalSample()
+        const sample = new this.prototype.constructor
         sample.tonic = tonic
         sample.tonality = tonality
         notes.forEach(note => {
